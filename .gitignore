@@ -28,7 +28,6 @@
 *.docx
 *conflicted*
 *copy*
-*.txt
 *.png
 *.eps
 *SPL*
