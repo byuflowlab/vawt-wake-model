@@ -8,6 +8,10 @@ vorticity of the wake into velocity information. The model uses CFD data
 obtained from STAR-CCM+ of simulated turbines to make the wake model as
 accurate as possible.
 
+Only valid for tip-speed ratios between 2.5 and 7.0 and solidities between
+0.15 and 1.0. Reynolds numbers should also be around the range of 200,000 to
+6,000,000.
+
 In this code, up and down are sides of the wake according to:
 
 --------------->-------------------------------------------------
@@ -235,7 +239,7 @@ if __name__ == "__main__":
     print vel
 
 ## Plotting
-    fs = 12 # font size for plots
+    fs = 15 # font size for plots
     
     # Option to plot velocity profiles
     vel_slice = True
@@ -311,10 +315,11 @@ if __name__ == "__main__":
         v = np.linspace(lb,ub,5) # setting the number of tick marks on colorbar
         CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.parula) # plotting the contour plot
         CB = plt.colorbar(CS, ticks=v) # creating colorbar
-        CB.ax.set_ylabel(r'$u/U_\infty$',fontsize=15)
-        plt.xlabel('$x/D$',fontsize=15)
-        plt.ylabel('$y/D$',fontsize=15)
-        plt.xticks(fontsize=15)
-        plt.yticks(fontsize=15)
+        CB.ax.set_ylabel(r'$u/U_\infty$',fontsize=fs)
+        CB.ax.tick_params(labelsize=fs)
+        plt.xlabel('$x/D$',fontsize=fs)
+        plt.ylabel('$y/D$',fontsize=fs)
+        plt.xticks(fontsize=fs)
+        plt.yticks(fontsize=fs)
     
     plt.show()
