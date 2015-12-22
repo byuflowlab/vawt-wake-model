@@ -1,6 +1,6 @@
 # VAWT Wake Model
 
-## Installation instructions for MAC
+## Installation instructions
 
 - system requirements: gfortran, python 2.7, numpy, scipy
 - navigate to the directory and run the following command in the terminal: 
