@@ -1,3 +1,0 @@
-To build the fortran code:
-
-f2py -c  --opt=-O2 -m _vortrun vorticity.f90
