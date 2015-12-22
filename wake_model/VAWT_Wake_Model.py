@@ -43,15 +43,24 @@ import _vortrun
 def vorticity(tsr,solidity):
     """
     Using EMG distribution parameters to define the vorticity strength and shape
-    Parameters:
-    tsr: tip-speed ratio
-    solidity: turbine solidity
     
-    Returns:
-    loc: array of the location parameter (3 values)
-    spr: array of the spread parameter (2 values)
-    skw: array of the skew parameter (2 values)
-    scl: array of the scale parameter (3 values)
+    Parameters
+    ----------
+    tsr : float
+        tip-speed ratio
+    solidity : float
+        turbine solidity
+    
+    Returns
+    ----------
+    loc : array
+        array of the location parameter (3 values)
+    spr : array
+        array of the spread parameter (2 values)
+    skw : array
+        array of the skew parameter (2 values)
+    scl : array
+        array of the scale parameter (3 values)
     """
     
     tsr_d = np.linspace(2.50,7.0,19) # range of TSRs included
@@ -194,16 +203,26 @@ def vorticity(tsr,solidity):
 def velocity_field(x0,y0,velf,dia,tsr,solidity):
     """
     Calculating normalized velocity from the vorticity data at (x0,y0)
-    Parameters:
-    x0: downstream distance in flow domain (m)
-    y0: lateral distance in flow domation (m)
-    velf: free stream velocity (m/s)
-    dia: turbine diameter (m)
-    tsr: tip-speed ratio
-    solidity: turbine solidity
     
-    Returns:
-    vel: final normalized velocity at (x0,y0) with respect to the free stream velocity (m/s)
+    Parameters
+    ----------
+    x0 : float
+        downstream distance in flow domain (m)
+    y0 : float
+        lateral distance in flow domation (m)
+    velf : float
+        free stream velocity (m/s)
+    dia : float
+        turbine diameter (m)
+    tsr : float
+        tip-speed ratio
+    solidity : float
+        turbine solidity
+    
+    Returns
+    ----------
+    vel : float
+        final normalized velocity at (x0,y0) with respect to the free stream velocity (m/s)
     """
     rad = dia/2.
     rot = tsr*velf/rad
