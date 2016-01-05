@@ -41,7 +41,7 @@ subroutine gamma(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,gam_l
     real(dp), intent(out) :: gam_lat
 
     ! local
-    real(dp) :: xd,yd,loc,spr,skw,scl,g1,g2,gam
+    real(dp) :: xd,yd,loc,spr,skw,scl,g1,g2
     intrinsic exp
 
     xd = x/dia ! normalizing x by the diameter
