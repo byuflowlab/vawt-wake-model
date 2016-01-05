@@ -2,7 +2,6 @@
 
 import unittest
 import numpy as np
-from scipy.io import loadmat
 from VAWT_Wake_Model import velocity_field
 
 class Testwakemodel(unittest.TestCase):
