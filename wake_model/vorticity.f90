@@ -81,17 +81,12 @@ subroutine integrand(y,x,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,
     real(dp), intent(out) :: inte
 
     ! local
-    real(dp) :: xd,yd,x0d,y0d,gammav
+    real(dp) :: gammav
 
     ! Specifying the strength of the vorticity
     call gamma(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,gammav)
 
-    xd = x/dia ! normalizing x by the diameter
-    yd = y/dia ! normalizing y by the diameter
-    x0d = x0/dia ! normalizing x0 by the diameter
-    y0d = y0/dia ! normalizing y0 by the diameter
-
-    inte = gammav*((yd - y0d)/((xd - x0d)**2 + (yd - y0d)**2))
+    inte = gammav*((y - y0)/((x - x0)**2 + (y - y0)**2))
 
 end subroutine integrand
 

@@ -35,7 +35,7 @@ from numpy import pi
 from scipy.integrate import dblquad
 from scipy.interpolate import RectBivariateSpline
 
-import _vortrun
+import _vortmodel
 
 # from matplotlib import rcParams
 # rcParams['font.family'] = 'Times New Roman'
@@ -193,7 +193,7 @@ def velocity_field(x0,y0,velf,dia,tsr,solidity):
     loc,spr,skw,scl = vorticity(tsr,solidity)
     
     # Integration of the vorticity profile using Fortran code (vorticity.f90; _vortrun.so)
-    vel_vs = dblquad(_vortrun.integrand,0.,35.*dia,lambda x: -4.*dia,lambda x: 4.*dia, args=(x0,y0,dia,loc[0],loc[1],loc[2],spr[0],spr[1],skw[0],skw[1],scl[0],scl[1],scl[2]))
+    vel_vs = dblquad(_vortmodel.integrand,0.,35.*dia,lambda x: -4.*dia,lambda x: 4.*dia, args=(x0,y0,dia,loc[0],loc[1],loc[2],spr[0],spr[1],skw[0],skw[1],scl[0],scl[1],scl[2]))
     
     # Calculating velocity deficit
     vel = (vel_vs[0]*(rot))/(2.*pi)

@@ -19,26 +19,26 @@ y0 = 0. # lateral position (m)
 
 vel = velocity_field(x0,y0,velf,dia,tsr,solidity)
 
-print vel # output velocity (normalized by free stream wind speed)
+print '\nNormalized velocity at (',x0,',',y0,') =',vel,'\n' # output velocity (normalized by free stream wind speed)
 
 ## Plotting
 fs = 15 # font size for plots
 
 # Option to plot velocity profiles
 vel_slice = True
-vel_slice = False
+vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-plot_dist = False
+plot_dist = False # comment this out if desired on
 
 # Plotting velocity profiles
 if vel_slice == True:
     leng = 100 # data points in the velocity profile
     wide = 2.0*dia # width of the profile
     
-    d_lab1 = str(int(wide/dia)) # y-axis label
-    d_lab2 = str(int(wide/(2*dia))) # y-axis label
+    d_lab1 = str(wide/dia) # y-axis label
+    d_lab2 = str(wide/(2*dia)) # y-axis label
     
     x = np.array([2*dia,4*dia,6*dia,8*dia,10*dia,15*dia]) # plotting at 2D, 4D, 6D, 8D, 10D, and 15D (changeable)
     y = np.linspace(-wide,wide,leng)
@@ -48,7 +48,7 @@ if vel_slice == True:
     iterp = 0
     for i in range(int(np.size(x))):
         vel = np.array([])
-        val = str(int(x[i]/dia))
+        val = str(x[i]/dia)
         lab = '$x/D$ = '+val
         for j in range(int(np.size(y))):
             velp = velocity_field(x[i],y[j],velf,dia,tsr,solidity)

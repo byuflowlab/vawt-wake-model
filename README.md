@@ -5,7 +5,7 @@
 - system requirements: gfortran, python 2.7, numpy, scipy
 - navigate to the directory and run the following command in the terminal:
 ```
-$ f2py -c  --opt=-O2 -m _vortrun vorticity.f90
+$ f2py -c  --opt=-O2 -m _vortmodel vorticity.f90
 ```
 
 ## Running the Python code
