@@ -91,4 +91,4 @@ subroutine integrand(y,x,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,
 end subroutine integrand
 
 
-! To build for Python interface: f2py -c  --opt=-O2 -m _vortrun vorticity.f90
+! To build for Python interface: f2py -c  --opt=-O2 -m _vortmodel vorticity.f90
