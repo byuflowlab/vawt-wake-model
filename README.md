@@ -3,9 +3,16 @@
 ## Installation instructions
 
 - system requirements: gfortran, python 2.7, numpy, scipy
-- navigate to the directory and run the following command in the terminal:
+- navigate to the directory and run the following command in the terminal to build the Fortran code:
 ```
+$ cd wake_model
 $ f2py -c  --opt=-O2 -m _vortmodel vorticity.f90
+```
+
+- a unit test can then be run using the command:
+```
+$ cd tests
+$ python test.py
 ```
 
 ## Running the Python code
