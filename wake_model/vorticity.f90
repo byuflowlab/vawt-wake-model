@@ -22,7 +22,7 @@ subroutine dist(y,loc,spr,skw,scl,gam_skew)
 
     ! Exponentially Modified Gaussian Distribution
     gam_skew = scl*skw/2.0_dp*exp(skw/2.0_dp*(2.0_dp*loc+skw*spr**2.0_dp-2.0_dp*y))&
-	*(1.0_dp-erf((loc + skw*spr**2.0_dp -y)/(sqrt(2.0_dp)*spr)))
+    *(1.0_dp-erf((loc + skw*spr**2.0_dp -y)/(sqrt(2.0_dp)*spr)))
 
 end subroutine dist
 
@@ -85,7 +85,7 @@ subroutine integrand(y,x,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,
 
     ! Specifying the strength of the vorticity
     call gamma(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,gammav)
-    
+
     xd = x/dia ! normalizing x by the diameter
     yd = y/dia ! normalizing y by the diameter
     x0d = x0/dia ! normalizing x0 by the diameter
