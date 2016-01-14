@@ -27,3 +27,7 @@ An example code is available to see how to call the wake model code and calculat
 
 The complete data set of the wake vorticity calculations used to produce this model is available to access at:
 https://figshare.com/articles/Parameterized_Wake_Model/2059947
+
+## Referencing the Model
+
+To reference any part of this repository, use the reference of the paper found on http://flow.byu.edu/publications/ entitled "Parameterized Vertical-Axis Wind Turbine Wake Model Using CFD Vorticity Data" under Conference Publications.
