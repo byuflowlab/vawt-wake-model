@@ -12,14 +12,15 @@ B = 3. # number of blades
 chord = 0.25 # chord lenth (m)
 solidity = (chord*B)/(dia/2.)
 
-# Enter the position of the velocity calculation
+# Enter the positions of the turbine and velocity calculation
+xt = 0. # downstream position of turbine (m)
+yt = 0. # later position of turbine (m)
+x0 = 5. # downstream position of velocity calculation from turbine (m)
+y0 = 0. # lateral position of velocity calculation from turbine (m)
 
-x0 = 5. # downstream position (m)
-y0 = 0. # lateral position (m)
+vel = velocity_field(xt,yt,xt + x0,yt + y0,velf,dia,tsr,solidity)
 
-vel = velocity_field(x0,y0,velf,dia,tsr,solidity)
-
-print '\nNormalized velocity at (',x0,',',y0,') =',vel,'\n' # output velocity (normalized by free stream wind speed)
+print '\nNormalized velocity at (',x0,',',y0,') from the turbine =',vel,'\n' # output velocity (normalized by free stream wind speed)
 
 ## Plotting
 fs = 15 # font size for plots
@@ -30,7 +31,7 @@ vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-plot_dist = False # comment this out if desired on
+# plot_dist = False # comment this out if desired on
 
 # Plotting velocity profiles
 if vel_slice == True:
@@ -51,7 +52,7 @@ if vel_slice == True:
         val = str(x[i]/dia)
         lab = '$x/D$ = '+val
         for j in range(int(np.size(y))):
-            velp = velocity_field(x[i],y[j],velf,dia,tsr,solidity)
+            velp = velocity_field(xt,yt,x[i],y[j],velf,dia,tsr,solidity)
             vel = np.append(vel,velp)
             iterp += 1
             print 'Vel Slice ('+str(iterp)+' of '+str(leng*np.size(x))+')'
@@ -86,7 +87,7 @@ if plot_dist == True:
     iter = 0
     for i in range(N):
         for j in range(N):
-            VEL[i,j] = velocity_field(X[i,j],Y[i,j],velf,dia,tsr,solidity)
+            VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,tsr,solidity)
             iter = iter +1
             print 'Plot ('+str(iter)+' of '+str(N*N)+')'
     
@@ -104,5 +105,7 @@ if plot_dist == True:
     plt.ylabel('$y/D$',fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
+    circ = plt.Circle((xt/dia,yt/dia),0.5,edgecolor='k',fill=False)
+    plt.gca().add_patch(circ)
 
 plt.show()

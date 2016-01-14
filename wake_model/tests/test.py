@@ -33,13 +33,13 @@ class Testwakemodel(unittest.TestCase):
         rom35 = np.zeros_like(x35)
         rom40 = np.zeros_like(x40)
         for i in range(np.size(x15)):
-            rom15[i] = velocity_field(0.75,x15[i]*dia,velf,dia,tsr,sol)
-            rom20[i] = velocity_field(1.0,x20[i]*dia,velf,dia,tsr,sol)
-            rom25[i] = velocity_field(1.25,x25[i]*dia,velf,dia,tsr,sol)
-            rom30[i] = velocity_field(1.5,x30[i]*dia,velf,dia,tsr,sol)
-            rom35[i] = velocity_field(1.75,x35[i]*dia,velf,dia,tsr,sol)
+            rom15[i] = velocity_field(0.0,0.0,0.75,x15[i]*dia,velf,dia,tsr,sol)
+            rom20[i] = velocity_field(0.0,0.0,1.0,x20[i]*dia,velf,dia,tsr,sol)
+            rom25[i] = velocity_field(0.0,0.0,1.25,x25[i]*dia,velf,dia,tsr,sol)
+            rom30[i] = velocity_field(0.0,0.0,1.5,x30[i]*dia,velf,dia,tsr,sol)
+            rom35[i] = velocity_field(0.0,0.0,1.75,x35[i]*dia,velf,dia,tsr,sol)
         for i in range(np.size(x40)):
-            rom40[i] = velocity_field(2.0,x40[i]*dia,velf,dia,tsr,sol)
+            rom40[i] = velocity_field(0.0,0.0,2.0,x40[i]*dia,velf,dia,tsr,sol)
             
             
         idx1 = np.array([4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29])
@@ -65,7 +65,7 @@ class Testwakemodel(unittest.TestCase):
         tsr = 1.6
         rom15wt = np.zeros_like(x15wt)
         for i in range(np.size(rom15wt)):
-            rom15wt[i] = velocity_field(1.5*dia,x15wt[i]*dia,velf,dia,tsr,sol)
+            rom15wt[i] = velocity_field(0.0,0.0,1.5*dia,x15wt[i]*dia,velf,dia,tsr,sol)
         
         np.testing.assert_allclose(rom15wt,y15wt,atol=0.4)
         

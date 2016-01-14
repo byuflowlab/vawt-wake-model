@@ -162,16 +162,20 @@ def vorticity(tsr,solidity):
     return loc,spr,skw,scl
 
 ## Final Velocity Field (using both methods)
-def velocity_field(x0,y0,velf,dia,tsr,solidity):
+def velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity):
     """
     Calculating normalized velocity from the vorticity data at (x0,y0)
     
     Parameters
     ----------
+    xt : float
+        downstream position of turbine (m)
+    yt : float
+        lateral position of turbine (m)
     x0 : float
-        downstream distance in flow domain (m)
+        downstream distance from turbine in flow domain (m)
     y0 : float
-        lateral distance in flow domation (m)
+        lateral distance from turbine in flow domation (m)
     velf : float
         free stream velocity (m/s)
     dia : float
@@ -192,8 +196,12 @@ def velocity_field(x0,y0,velf,dia,tsr,solidity):
     # Calculating EMG distribution parameters
     loc,spr,skw,scl = vorticity(tsr,solidity)
     
+    # Translating the turbine position
+    x0t = x0 - xt
+    y0t = y0 - yt
+    
     # Integration of the vorticity profile using Fortran code (vorticity.f90; _vortrun.so)
-    vel_vs = dblquad(_vortmodel.integrand,0.,35.*dia,lambda x: -4.*dia,lambda x: 4.*dia, args=(x0,y0,dia,loc[0],loc[1],loc[2],spr[0],spr[1],skw[0],skw[1],scl[0],scl[1],scl[2]))
+    vel_vs = dblquad(_vortmodel.integrand,0.,35.*dia,lambda x: -4.*dia,lambda x: 4.*dia, args=(x0t,y0t,dia,loc[0],loc[1],loc[2],spr[0],spr[1],skw[0],skw[1],scl[0],scl[1],scl[2]))
     
     # Calculating velocity deficit
     vel = (vel_vs[0]*(rot))/(2.*pi)
