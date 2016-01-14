@@ -1,12 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from EMG_dist_fit import fit
+import csv
+from os import path
 
 s = np.array([])
 t = np.array([])
 
 solidity = np.array(['s0.15','s0.25','s0.50','s0.75','s1.0'])
 tsr = np.linspace(250,700,19)
+
+tsr_write = tsr/100.
+solidity_write = np.array([0.15,0.25,0.5,0.75,1.0])
 
 for i in range(np.size(solidity)):
     for j in range(np.size(tsr)):
@@ -171,6 +176,55 @@ for i in range(np.size(tsr)):
     s5_scl2 = np.append(s5_scl2,scl2[k])
     s5_scl3 = np.append(s5_scl3,scl3[k])
     k += 1
+
+## Writing data to csv file
+basepath = path.dirname(path.realpath(__file__))
+fdata = basepath + path.sep + 'vortdatabase_new.csv'
+
+with open(fdata,'w') as fp:
+    a = csv.writer(fp)
+    
+    data = np.array(['TSR'])
+    data = np.append(data,tsr.astype(np.str))
+    
+    for i in range(np.size(solidity)):
+        sol = str(i+1)
+        
+        sollab = 'solidity'
+        
+        exec('solrow = np.array([sollab,str(solidity[i])])')
+        for j in range(np.size(tsr)-1):
+            solrow = np.append(solrow,'')
+        data = np.vstack([data,solrow])
+        
+        coef = np.zeros((10,np.size(tsr)+1)).astype(np.str)
+        coef[0,0] = 'loc1'
+        coef[1,0] = 'loc2'
+        coef[2,0] = 'loc3'
+        coef[3,0] = 'spr1'
+        coef[4,0] = 'spr2'
+        coef[5,0] = 'skw1'
+        coef[6,0] = 'skw2'
+        coef[7,0] = 'scl1'
+        coef[8,0] = 'scl2'
+        coef[9,0] = 'scl3'
+        
+        for j in range(np.size(tsr)):
+            exec('coef[0,j+1] = s'+sol+'_loc1[j]')
+            exec('coef[1,j+1] = s'+sol+'_loc2[j]')
+            exec('coef[2,j+1] = s'+sol+'_loc3[j]')
+            exec('coef[3,j+1] = s'+sol+'_spr1[j]')
+            exec('coef[4,j+1] = s'+sol+'_spr2[j]')
+            exec('coef[5,j+1] = s'+sol+'_skw1[j]')
+            exec('coef[6,j+1] = s'+sol+'_skw2[j]')
+            exec('coef[7,j+1] = s'+sol+'_scl1[j]')
+            exec('coef[8,j+1] = s'+sol+'_scl2[j]')
+            exec('coef[9,j+1] = s'+sol+'_scl3[j]')
+                
+            
+        data = np.vstack([data,coef])
+        
+    a.writerows(data)
 
 
 ## Vorticity Database Output
