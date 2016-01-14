@@ -67,7 +67,7 @@ subroutine gamma(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,gam_l
 
 end subroutine gamma
 
-! Creating the integral for VAWT Wake Model.py
+! Creating the integral for VAWT_Wake_Model.py
 subroutine integrand(y,x,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,inte)
     implicit none
 
