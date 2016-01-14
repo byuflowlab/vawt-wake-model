@@ -41,7 +41,6 @@ import _vortmodel
 # rcParams['font.family'] = 'Times New Roman'
 
 
-## Vortex Strength
 def vorticity(tsr,solidity):
     """
     Using EMG distribution parameters to define the vorticity strength and shape
@@ -98,7 +97,8 @@ def vorticity(tsr,solidity):
         
         exec('s'+sol+'_loc1 = vortdat[i*10]\ns'+sol+'_loc2 = vortdat[i*10+1]\ns'+sol+'_loc3 = vortdat[i*10+2]\ns'+sol+'_spr1 = vortdat[i*10+3]\ns'+sol+'_spr2 = vortdat[i*10+4]\ns'+sol+'_skw1 = vortdat[i*10+5]\ns'+sol+'_skw2 = vortdat[i*10+6]\ns'+sol+'_scl1 = vortdat[i*10+7]\ns'+sol+'_scl2 = vortdat[i*10+8]\ns'+sol+'_scl3 = vortdat[i*10+9]\n')
     
-## Spline Fitting
+    # BIVARIATE SPLINE FITTING
+    
     iz = np.size(sol_d)
     jz = np.size(tsr_d)
     
@@ -161,7 +161,7 @@ def vorticity(tsr,solidity):
     
     return loc,spr,skw,scl
 
-## Final Velocity Field (using both methods)
+
 def velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity):
     """
     Calculating normalized velocity from the vorticity data at (x0,y0)
