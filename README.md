@@ -4,10 +4,19 @@
 
 - system requirements: gfortran, python 2.7, numpy, scipy
 - navigate to the directory and run the following command in the terminal to build the Fortran code:
+
+Mac
 ```
 $ cd wake_model
 $ f2py -c  --opt=-O2 -m _vortmodel vorticity.f90
 ```
+
+Windows
+```
+cd wake_model
+python \your\path\to\f2py.py -c --opt=-O2 --compiler=mingw32 --fcompiler=gfortran -m _vortmodel vorticity.f90
+```
+(most likely C:\Python27\Scripts\f2py.py)
 
 - a unit test can then be run using the command:
 ```
