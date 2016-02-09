@@ -9,7 +9,7 @@ def Cr(y0,xt,yt,x0,velf,dia,tsr,solidity):
     return 1. - velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity)
 
 
-def overlap(xt,yt,x0,y0,velf,dia,tsr,solidity):
+def overlap(xt,yt,x0,y0,velf,dia,rot,solidity):
     """
     Calculating an effective velocity based on overlapping of wakes
     
@@ -27,8 +27,8 @@ def overlap(xt,yt,x0,y0,velf,dia,tsr,solidity):
         free stream velocity (m/s)
     dia : array
         turbine diameters of each turbine (m)
-    tsr : array
-        tip-speed ratios of each turbine
+    rot : array
+        rotation rate of each turbine (rad/s)
     solidity : array
         solidities of each turbine
     
@@ -44,7 +44,8 @@ def overlap(xt,yt,x0,y0,velf,dia,tsr,solidity):
     r2 = y0 + dia/2. # upper bound of integration
     
     for i in range(N):
-        inte_n = quad(Cr,r1,r2,args=(xt[i],yt[i],x0,velf,dia[i],tsr[i],solidity[i]))
+        tsr = (dia/2.)*rot/velf
+        inte_n = quad(Cr,r1,r2,args=(xt[i],yt[i],x0,velf,dia[i],tsr,solidity[i]))
         inte = inte + (inte_n[0])**2
     
     veleff = velf*(1. - sqrt(inte))
@@ -86,17 +87,18 @@ if __name__ == "__main__":
     y0 = 6.
     velf = 15.
     dia = np.array([6.])
-    tsr = np.array([3.0])
+    rot = np.array([15.0])
     solidity = np.array([0.25])
     
     Cp = 0.4
     dens = 1.225
     
-    veleff = overlap(xt,yt,x0,y0,velf,dia,tsr,solidity)
     power_iso = powerval(Cp,dens,velf,dia[0])
-    power = powerval(Cp,dens,veleff,dia[0])
-    
     print 'Isolated turbine power: ',power_iso,'kJ'
+    
+    veleff = overlap(xt,yt,x0,y0,velf,dia,rot,solidity)
+    
+    power = powerval(Cp,dens,veleff,dia[0])
     print 'Analyzed turbine power: ',power,'kJ'
     
     

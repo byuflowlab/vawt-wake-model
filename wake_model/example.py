@@ -31,7 +31,7 @@ vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-# plot_dist = False # comment this out if desired on
+plot_dist = False # comment this out if desired on
 
 # Plotting velocity profiles
 if vel_slice == True:
@@ -97,7 +97,7 @@ if plot_dist == True:
     ran = 200 # number of contours between the velocity bounds
     bounds = np.linspace(lb,ub,ran)
     v = np.linspace(lb,ub,5) # setting the number of tick marks on colorbar
-    CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.parula) # plotting the contour plot
+    CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.jet) # plotting the contour plot
     CB = plt.colorbar(CS, ticks=v) # creating colorbar
     CB.ax.set_ylabel(r'$u/U_\infty$',fontsize=fs)
     CB.ax.tick_params(labelsize=fs)
