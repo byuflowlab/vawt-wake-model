@@ -181,9 +181,9 @@ def velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity):
     dia : float
         turbine diameter (m)
     tsr : float
-        tip-speed ratio
+        tip-speed ratio; [rotation rate (rad/s)]*[turbine radius (m)]/[free stream velocity (m/s)]
     solidity : float
-        turbine solidity
+        turbine solidity; [number of turbine blades]*[blade chord length (m)]/[turbine radius (m)]
     
     Returns
     ----------
