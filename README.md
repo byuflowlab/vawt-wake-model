@@ -2,7 +2,7 @@
 
 ## Installation instructions
 
-- system requirements: gfortran, python 2.7, numpy, scipy
+- system requirements: gfortran (using MinGW for Windows in order to use the commands here), python 2.7, numpy, scipy
 - navigate to the directory and run the following command in the terminal to build the Fortran code:
 
 Mac
