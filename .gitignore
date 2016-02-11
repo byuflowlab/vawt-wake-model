@@ -22,6 +22,8 @@
 *.nlo
 *.nls
 *.out
+*.pyc
+*.pyd
 *.so
 *.synctex.gz
 *.pdf
