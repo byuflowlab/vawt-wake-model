@@ -1,5 +1,13 @@
 # VAWT Wake Model
 
+Parameterized VAWT Wake Model using CFD vorticity data
+Developed by Eric Tingey at Brigham Young University
+
+This code models the wake behind a vertical-axis wind turbine based on parameters like tip-speed ratio, solidity and wind speed by converting the vorticity of the wake into velocity information. The model uses CFD data obtained from STAR-CCM+ of simulated turbines to make the wake model as accurate as possible.
+
+Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between 0.15 and 1.0. Reynolds numbers should also be around the range of 200,000 to 6,000,000.
+
+
 ## Installation instructions
 
 - system requirements: gfortran, python 2.7, numpy, scipy
