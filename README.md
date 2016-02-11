@@ -22,7 +22,7 @@ $ f2py -c  --opt=-O2 -m _vortmodel vorticity.f90
 Windows
 ```
 cd wake_model
-python \your\path\to\f2py.py -c --opt=-O2 --compiler=mingw32 --fcompiler=gfortran -m _vortmodel vorticity.f90
+python <\your\path\to\f2py.py> -c --opt=-O2 --compiler=mingw32 --fcompiler=gfortran -m _vortmodel vorticity.f90
 ```
 (most likely C:\Python27\Scripts\f2py.py)
 
