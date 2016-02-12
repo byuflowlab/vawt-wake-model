@@ -1,4 +1,5 @@
 import csv
+from os import path
 import numpy as np
 from numpy import pi,sqrt,exp,fabs,log
 import matplotlib.pyplot as plt
@@ -12,6 +13,8 @@ rcParams['font.family'] = 'Times New Roman'
 """
 For simplicity sake, loc = e, spr = w, skw = a, and scl = c (sometimes seen as int)
 The first side of vorticity is indicated by 'u' and the second side of vorticity is indicated by 'l'
+
+ADJUST PATHS FOUND IN LINES 388 TO 393
 """
 
 def emg(x,e,w,a,c):
@@ -26,7 +29,7 @@ def sigmoid(x,max,decay,infl):
 def starccm_read(fdata,length,rad,wind,rot,tsr,s):
     # Function to read in CFD data from STAR-CCM+ and fit an EMG distribution to the data
     
-    ploti = False
+    ploti = False # option to view the plots of the EMG fitting
     
     dia = rad*2.
     
@@ -176,7 +179,7 @@ def starccm_read(fdata,length,rad,wind,rot,tsr,s):
     
     start = length/30.
     x = np.linspace(start,length,30)
-
+    
     # Integrating over the vorticity profiles
     intu = np.array([])
     intl = np.array([])
@@ -272,6 +275,7 @@ def starccm_read(fdata,length,rad,wind,rot,tsr,s):
         exec('pos'+name+'glow = (1./dia)*pos'+name+'glow')
         exec('vort'+name+'gup = (-1./rot)*vort'+name+'gup')
         exec('vort'+name+'glow = (1./rot)*vort'+name+'glow')
+        
         exec('delvec = np.array([])\nif x['+ind+'] < rad+fix:\n\tfor j in range(np.size(vort'+name+'gup)):\n\t\tif pos'+name+'gup[j] > -regionfix and vort'+name+'gup[j] > vortmax:\n\t\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvort'+name+'gup = np.delete(vort'+name+'gup,delvec[j])\n\tpos'+name+'gup = np.delete(pos'+name+'gup,delvec[j])')
         exec('delvec = np.array([])\nif x['+ind+'] < rad+fix:\n\tfor j in range(np.size(vort'+name+'glow)):\n\t\tif pos'+name+'glow[j] > -regionfix and vort'+name+'glow[j] > vortmax:\n\t\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvort'+name+'glow = np.delete(vort'+name+'glow,delvec[j])\n\tpos'+name+'glow = np.delete(pos'+name+'glow,delvec[j])')
         if s == 's1' and tsr <= 3.5:
@@ -305,9 +309,9 @@ def starccm_read(fdata,length,rad,wind,rot,tsr,s):
             color = 'bo'
             color2 = 'r-'
             lab = str(x[i]/dia)+'D'
-            exec('xfit = np.linspace(min(pos'+name+'glow),max(pos'+name+'glow),500)')
-            exec('plt.plot(pos'+name+'glow/diap,vort'+name+'glow/rotp,color,label=lab)')
-            exec('plt.plot(xfit,emg(xfit,el['+ind+'],wl['+ind+'],al['+ind+'],intl['+ind+'])/rotp,color2,linewidth=2)')
+            exec('xfit = np.linspace(min(pos'+name+'gup),max(pos'+name+'gup),500)')
+            exec('plt.plot(-pos'+name+'gup/diap,vort'+name+'gup/rotp,color,label=lab)')
+            exec('plt.plot(-xfit,emg(xfit,-eu['+ind+'],-wu['+ind+'],-au['+ind+'],-intu['+ind+'])/rotp,color2,linewidth=2)')
             plt.xlim(0.,1.2)
             plt.ylim(0.,1.)
             # plt.legend(loc=1)
@@ -342,25 +346,31 @@ def starccm_read(fdata,length,rad,wind,rot,tsr,s):
 
         # Output of specifications of fitting
         print i+1,'EMG  Wind =',wind,'Rot =',rot,s,'TSR =',tsr
-    # plt.show()
     
     return x,eu,wu,au,el,wl,al,intu,intl
 
 
 def fit(s,t,length):
+    basepath15 = 'path to vorticity files for wind speed = 15 m/s'
+    basepath14 = 'path to vorticity files for wind speed = 14 m/s'
+    basepath12 = 'path to vorticity files for wind speed = 12 m/s'
+    basepath16 = 'path to vorticity files for wind speed = 16 m/s'
+    basepath17 = 'path to vorticity files for rotation rate = 17 rad/s'
+    basepath18 = 'path to vorticity files for rotation rate = 17 rad/s'
+    
     # Function to obtain EMG parameters from the data fit based on solidity and tip-speed ratio
     read_data = 4 # number of Re's to read in
     
-    plottrend = True
+    plottrend = True # option to plot graphs of each parameter across lateral cuts
     
     t2 = t+'.0t'
     
-    wfit = 'w15_'+s+'_'+t
-    wfit2 = 'w14_'+s+'_'+t
-    wfit3 = 'w12_'+s+'_'+t
-    wfit4 = 'w16_'+s+'_'+t
-    wfit5 = 'r17_'+s+'_'+t
-    wfit6 = 'r18_'+s+'_'+t
+    wfit = 'w15_'+s+'_t'+t
+    wfit2 = 'w14_'+s+'_t'+t2
+    wfit3 = 'w12_'+s+'_t'+t2
+    wfit4 = 'w16_'+s+'_t'+t2
+    wfit5 = 'r17_'+s+'_t'+t2
+    wfit6 = 'r18_'+s+'_t'+t2
     
     length2 = length
     length3 = length
@@ -384,12 +394,12 @@ def fit(s,t,length):
     wind5 = rot5*rad/tsr
     wind6 = rot6*rad/tsr
     
-    fdata = wfit+'.csv'
-    fdata2 = wfit2+'.csv'
-    fdata3 = wfit3+'.csv'
-    fdata4 = wfit4+'.csv'
-    fdata5 = wfit5+'.csv'
-    fdata6 = wfit6+'.csv'
+    fdata = basepath15+'\\'+wfit+'.csv'
+    fdata2 = basepath14+'\\'+wfit2+'.csv'
+    fdata3 = basepath12+'\\'+wfit3+'.csv'
+    fdata4 = basepath16+'\\'+wfit4+'.csv'
+    fdata5 = basepath17+'\\'+wfit5+'.csv'
+    fdata6 = basepath18+'\\'+wfit6+'.csv'
     
     if read_data >=1:
         xd,eud,wud,aud,eld,wld,ald,intud,intld = starccm_read(fdata,length,rad,wind,rot,tsr,s)
@@ -511,9 +521,9 @@ def fit(s,t,length):
     delintu = np.array([])
     delintl = np.array([])
     for i in range(np.size(x)):
-        if fabs(eu[i]) > 1.:
+        if fabs(eu[i]) > 1. or eu[i] < 0.0:
             deleu = np.append(deleu,i)
-        if fabs(el[i]) > 1.:
+        if fabs(el[i]) > 1. or el[i] > -0.0:
             delel = np.append(delel,i)
         if fabs(wu[i]) > 1.:
             delwu = np.append(delwu,i)
@@ -523,9 +533,9 @@ def fit(s,t,length):
             delau = np.append(delau,i)
         if fabs(al[i]) > 20.:
             delal = np.append(delal,i)
-        if fabs(intu[i]) > 0.3:
+        if fabs(xintu[i]) < 0.15*length/dia or fabs(intu[i]) > 0.3:
             delintu = np.append(delintu,i)
-        if fabs(intl[i]) > 0.3:
+        if fabs(xintl[i]) < 0.15*length/dia or fabs(intl[i]) > 0.3:
             delintl = np.append(delintl,i)
     deleu = deleu[::-1]
     delel = delel[::-1]
@@ -742,8 +752,8 @@ def fit(s,t,length):
     cwl = np.polyfit(xwl,wl,1)
     cau = np.polyfit(xau,au,1)
     cal = np.polyfit(xal,al,1)
-    cintu,_ = curve_fit(sigmoid,xintu,intu,p0=(-0.1,1.,length/dia))
-    cintl,_ = curve_fit(sigmoid,xintl,intl,p0=(0.1,1.,length/dia))
+    cintu,_ = curve_fit(sigmoid,xintu,intu,p0=(-0.1,2.,length/dia-5.))
+    cintl,_ = curve_fit(sigmoid,xintl,intl,p0=(0.1,2.,length/dia-5.))
     
     # Options for plotting
     fs = 12
@@ -829,7 +839,7 @@ def fit(s,t,length):
         plt.title('Skew',fontsize=fsp)
         plt.xticks(fontsize=fsp)
         plt.yticks(fontsize=fsp)
-        plt.ylim(-30,30)
+        # plt.ylim(-30,30)
         
         plt.subplot(2,2,4)
         plt.plot(xfit/diap,fintu,'-',color='cyan',linewidth=4)
@@ -851,9 +861,9 @@ def fit(s,t,length):
 
 ## Main File
 if __name__ == "__main__":
-    cv = False
+    cv = False # option to perform cross validation of fitting (loc, spr, skw)
     
-    s = 's2'
+    s = 's0.25'
     t = '400'
     length = 100.
     

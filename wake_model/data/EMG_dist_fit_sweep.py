@@ -8,7 +8,7 @@ s = np.array([])
 t = np.array([])
 
 solidity = np.array(['s0.15','s0.25','s0.50','s0.75','s1.0'])
-tsr = np.linspace(250,700,19)
+tsr = np.linspace(150,700,23)
 
 tsr_write = tsr/100.
 solidity_write = np.array([0.15,0.25,0.5,0.75,1.0])
@@ -18,11 +18,11 @@ for i in range(np.size(solidity)):
         s = np.append(s,solidity[i])
         t = np.append(t,str(int(tsr[j])))
         
-s1length = np.array([185,178,170,165,160,145,140,123,115,112,108,101,101,90,85,80,78,75,70])
-s2length = np.array([140,146,126,114,103,96,100,86,77,72,70,68,60,64,54,50,47,45,44])
-s3length = np.array([83,76,72,63,60,49,50,41,39,36,34,33,30,31,28,30,29,28,27])
-s4length = np.array([53,44,42,37,38,30,33,26,22,24,23,21,21,19,24,23,22,21,20])
-s5length = np.array([37,32,29,27,26,23,20,20,23,21,20,19,19,18,18,16,16,15,14])
+s1length = np.array([210,210,205,196,185,178,170,165,160,145,140,123,115,112,108,101,101,90,85,80,78,75,70])
+s2length = np.array([197,193,185,176,140,146,126,114,103,96,100,86,77,72,70,68,60,64,54,50,47,45,44])
+s3length = np.array([185,150,100,95,83,76,72,63,60,49,50,41,39,36,34,33,30,31,28,30,29,28,27])
+s4length = np.array([145,100,73,60,53,44,42,37,38,30,33,26,22,24,23,21,21,19,24,23,22,21,20])
+s5length = np.array([78,70,52,43,37,32,29,27,26,23,20,20,23,21,20,19,19,18,18,16,16,15,14])
 
 slength = np.array([])
 slength = np.append(slength,s1length)
@@ -47,7 +47,7 @@ scl2 = np.array([])
 scl3 = np.array([])
 
 for i in range(np.size(s)):
-    _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,loc1d,loc2d,loc3d,spr1d,spr2d,spr3d,skw1d,skw2d,skw3d,skw4d,scl1d,scl2d,scl3d = fit(s[i],t[i],slength[i])
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,loc1d,loc2d,loc3d,spr1d,spr2d,skw1d,skw2d,scl1d,scl2d,scl3d = fit(s[i],t[i],slength[i])
     
     loc1 = np.append(loc1,loc1d)
     loc2 = np.append(loc2,loc2d)
@@ -178,21 +178,22 @@ for i in range(np.size(tsr)):
     k += 1
 
 ## Writing data to csv file
-basepath = path.dirname(path.realpath(__file__))
-fdata = basepath + path.sep + 'vortdatabase_new.csv'
+# basepath = path.dirname(path.realpath(__file__))
+# fdata = basepath + path.sep + 'vortdatabase_new.csv'
+fdata = 'C:\Users\TingeyPC\Documents\zStar-CCM\NACA0021\MoveForward\\Vorticity Sections\\vortdatabase_new.csv'
 
 with open(fdata,'w') as fp:
     a = csv.writer(fp)
     
     data = np.array(['TSR'])
-    data = np.append(data,tsr.astype(np.str))
+    data = np.append(data,tsr_write.astype(np.str))
     
-    for i in range(np.size(solidity)):
+    for i in range(np.size(solidity_write)):
         sol = str(i+1)
         
         sollab = 'solidity'
         
-        exec('solrow = np.array([sollab,str(solidity[i])])')
+        exec('solrow = np.array([sollab,str(solidity_write[i])])')
         for j in range(np.size(tsr)-1):
             solrow = np.append(solrow,'')
         data = np.vstack([data,solrow])
