@@ -38,3 +38,4 @@
 *bare_*
 *.fls
 *.fdb_latexmk
+*.pyc
