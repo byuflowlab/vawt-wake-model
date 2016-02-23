@@ -22,6 +22,14 @@ velf = 16.0
 sol = 0.5
 tsr = 1.6
 rom15 = np.zeros_like(x15r)
+rom15t = np.zeros_like(x15)
+error_test = np.zeros_like(x15)
+
+for i in range(np.size(x15)):
+    rom15t[i] = velocity_field(0.,0.,1.5*dia,x15[i]*dia,velf,dia,tsr,sol)
+    error_test[i] = (rom15t[i]-y15o[i])/y15o[i]
+error = np.average(error_test)
+errorstd = np.std(error_test)
 for i in range(np.size(rom15)):
     rom15[i] = velocity_field(0.,0.,1.5*dia,x15r[i]*dia,velf,dia,tsr,sol)
     print i
@@ -42,5 +50,9 @@ plt.xticks(fontsize=fs)
 plt.yticks(fontsize=fs)
 # plt.text(-0.5,0.9,'X/D = 1.5')
 # print '1.5 modc',(min(rom15)-min(y15c))/min(y15c)
-print '1.5 modo',(min(rom15)-min(y15o))/min(y15o)
+print '1.5 modo',(min(rom15)-min(y15o))/min(y15o),error,errorstd
 plt.show()
+
+
+# 1.5 modo -0.0511120658493 0.0466994707498 0.117194753988
+

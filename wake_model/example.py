@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numpy import pi
 from VAWT_Wake_Model import velocity_field
+from matplotlib import rcParams
+rcParams['font.family'] = 'Times New Roman'
 
 # Enter the values desired
 
@@ -23,7 +25,7 @@ vel = velocity_field(xt,yt,xt + x0,yt + y0,velf,dia,tsr,solidity)
 print '\nNormalized velocity at (',x0,',',y0,') from the turbine =',vel,'\n' # output velocity (normalized by free stream wind speed)
 
 ## Plotting
-fs = 15 # font size for plots
+fs = 18 # font size for plots
 
 # Option to plot velocity profiles
 vel_slice = True
@@ -72,10 +74,10 @@ if vel_slice == True:
 
     # Plotting full velocity domain
 if plot_dist == True:
-    xi = -1.0*dia # starting point in downstream direction
-    xf = 10.0*dia # ending point in downstream direction
-    yd = -2.0*dia # lateral extent on down side
-    yu = 2.0*dia # lateral extent on up side
+    xi = -3.*dia # starting point in downstream direction
+    xf = 17.0*dia # ending point in downstream direction
+    yd = -2.5*dia # lateral extent on down side
+    yu = 2.5*dia # lateral extent on up side
     
     N = 100 # N**2 = number of data points in domain
     
@@ -94,13 +96,14 @@ if plot_dist == True:
     plt.figure(2)
     lb = 0.15 # lower bound on velocity to display
     ub = 1.15 # upper bound on velocity to display
-    ran = 200 # number of contours between the velocity bounds
+    ran = 32 # number of contours between the velocity bounds
     bounds = np.linspace(lb,ub,ran)
-    v = np.linspace(lb,ub,5) # setting the number of tick marks on colorbar
-    CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.jet) # plotting the contour plot
+    v = np.linspace(lb,ub,6) # setting the number of tick marks on colorbar
+    CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.coolwarm) # plotting the contour plot
     CB = plt.colorbar(CS, ticks=v) # creating colorbar
     CB.ax.set_ylabel(r'$u/U_\infty$',fontsize=fs)
     CB.ax.tick_params(labelsize=fs)
+    CB.ax.set_aspect(40)
     plt.xlabel('$x/D$',fontsize=fs)
     plt.ylabel('$y/D$',fontsize=fs)
     plt.xticks(fontsize=fs)
