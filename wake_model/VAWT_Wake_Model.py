@@ -168,18 +168,18 @@ def vorticity(tsr,solidity):
 
 def velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity):
     """
-    Calculating normalized velocity from the vorticity data at (x0,y0)
+    Calculating normalized velocity from the vorticity data at (x0,y0) in global flow domain
     
     Parameters
     ----------
     xt : float
-        downstream position of turbine (m)
+        downstream position of turbine domain (m)
     yt : float
-        lateral position of turbine (m)
+        lateral position of turbine in flow domain (m)
     x0 : float
-        downstream distance from turbine in flow domain (m)
+        downstream position in flow domain to be calculated (m)
     y0 : float
-        lateral distance from turbine in flow domation (m)
+        lateral position in flow domain to be calculated (m)
     velf : float
         free stream velocity (m/s)
     dia : float
