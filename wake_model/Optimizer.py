@@ -140,15 +140,18 @@ if __name__ == "__main__":
     print 'The y-locations:',yf
     print 'The effective wind speeds:',veleff
     print 'The power of each turbine (kJ):',power_turb
+    print 'The isolated power of one turbine is:',power_iso,'kJ'
     
     
     plt.figure(1)
     for i in range(np.size(xt)):
-            circ = plt.Circle((xt[i],yt[i]),dia[i]/2.,color='b',fill=True)
-            plt.gca().add_patch(circ)
+        circ = plt.Circle((xt[i],yt[i]),dia[i]/2.,color='b',fill=True)
+        plt.gca().add_patch(circ)
     for i in range(np.size(xt)):
-            circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,color='r',fill=True)
-            plt.gca().add_patch(circ)
+        circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,color='r',fill=True)
+        plt.gca().add_patch(circ)
+    for i in range(np.size(xt)):
+        plt.plot([xt[i], xf[i]], [yt[i], yf[i]], '--k')
     plt.xlim(points[0]-spacing*area,points[-1]+spacing*area)
     plt.ylim(points[0]-spacing*area,points[-1]+spacing*area)
     

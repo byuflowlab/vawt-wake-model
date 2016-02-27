@@ -70,7 +70,7 @@ def overlap(xt,yt,diat,tsr,solidity,x0,y0,dia,velf,hub,out):
 
 def powerval(Cp,dens,vel,dia):
     """
-    Calculating an effective velocity based on overlapping of wakes
+    Calculating turbine power of a 2D VAWT
     
     Parameters
     ----------
