@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
-from VWM_Fortran import velocity_field
+from VAWT_Wake_Model import velocity_field
+from database_call import vorticity,velocity
 from scipy.io import loadmat
 
 from matplotlib import rcParams
@@ -13,7 +14,7 @@ r = 0.5
 v = 1.
 
 # fdata = 'path/to/tes.csv' # adjust this for your case
-# fdata = '/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/Validation/tes.csv'
+fdata = '/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/Validation/tes.csv'
 f = open(fdata)
 
 csv_f = csv.reader(f)
@@ -153,7 +154,8 @@ cfd40error = np.average(cfd40t)
 cfd40errorstd = np.std(cfd40t)
     
 
-plt.figure(1)
+fig1 = plt.figure(1,figsize=(12,6))
+fig1.subplots_adjust(left=.05,right=.88,wspace=.36,hspace=.35)
 plt.subplot(2,3,1)
 plt.plot(x15,y15,'b.')
 plt.plot(pos1,vel1,'r-')
@@ -217,6 +219,19 @@ if rom == True:
     velf = 9.308422677
     sol = 0.24
     tsr = 4.5
+    xt = 0.
+    yt = 0.
+    # Choose whether CFD vorticity or velocity data will be used as the basis
+    cfd_data = 'vort'
+    # cfd_data = 'velo'
+    
+    if cfd_data == 'vort':
+        loc,spr,skw,scl = vorticity(tsr,sol)
+        param = np.array([loc,spr,skw,scl])
+    elif cfd_data == 'velo':
+        men,spr,scl,rat,tns = velocity(tsr,sol)
+        param = np.array([men,spr,scl,rat,tns])
+    
     rom15 = np.zeros(33)
     rom20 = np.zeros(33)
     rom25 = np.zeros(33)
@@ -232,20 +247,20 @@ if rom == True:
     rom35t = np.zeros(33)
     rom40t = np.zeros(26)
     for i in range(33):
-        rom15[i] = velocity_field(0.75,x15[i]*dia,velf,dia,tsr,sol)
+        rom15[i] = velocity_field(xt,yt,0.75,x15[i]*dia,velf,dia,tsr,sol,cfd_data,param)
         rom15t[i] = (rom15[i]-y15[i])/y15[i]
-        rom20[i] = velocity_field(1.0,x20[i]*dia,velf,dia,tsr,sol)
+        rom20[i] = velocity_field(xt,yt,1.0,x20[i]*dia,velf,dia,tsr,sol,cfd_data,param)
         rom20t[i] = (rom20[i]-y20[i])/y20[i]
-        rom25[i] = velocity_field(1.25,x25[i]*dia,velf,dia,tsr,sol)
+        rom25[i] = velocity_field(xt,yt,1.25,x25[i]*dia,velf,dia,tsr,sol,cfd_data,param)
         rom25t[i] = (rom25[i]-y25[i])/y25[i]
-        rom30[i] = velocity_field(1.5,x30[i]*dia,velf,dia,tsr,sol)
+        rom30[i] = velocity_field(xt,yt,1.5,x30[i]*dia,velf,dia,tsr,sol,cfd_data,param)
         rom30t[i] = (rom30[i]-y30[i])/y30[i]
-        rom35[i] = velocity_field(1.75,x35[i]*dia,velf,dia,tsr,sol)
+        rom35[i] = velocity_field(xt,yt,1.75,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
         rom35t[i] = (rom35[i]-y35[i])/y35[i]
-        rom40f[i] = velocity_field(2.0,x35[i]*dia,velf,dia,tsr,sol)
+        rom40f[i] = velocity_field(xt,yt,2.0,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
         print i
     for i in range(26):
-        rom40[i] = velocity_field(4.0*3.,x40[i]*3.,9.308422677,6.,4.5,0.24)
+        rom40[i] = velocity_field(xt,yt,4.0*3.,x40[i]*3.,9.308422677,6.,4.5,0.24,cfd_data,param)
         rom40t[i] = (rom40[i]-y40[i])/y40[i]
         print i
     
@@ -262,7 +277,8 @@ if rom == True:
     rom40error = np.average(rom40t)
     rom40errorstd = np.std(rom40t)
     
-    plt.figure(2)
+    fig2 = plt.figure(2,figsize=(12,6))
+    fig2.subplots_adjust(left=.05,right=.88,wspace=.36,hspace=.35)
     plt.subplot(2,3,1)
     plt.plot(x15,y15,'b.')
     plt.plot(pos1,vel1,'r-')
