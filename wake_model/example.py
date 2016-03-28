@@ -45,21 +45,21 @@ vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-# plot_dist = False # comment this out if desired on
+plot_dist = False # comment this out if desired on
 
 # Plotting velocity profiles
 if vel_slice == True:
     leng = 100 # data points in the velocity profile
     wide = 2.0*dia # width of the profile
-    
+
     d_lab1 = str(wide/dia) # y-axis label
     d_lab2 = str(wide/(2*dia)) # y-axis label
-    
+
     x = np.array([2*dia,4*dia,6*dia,8*dia,10*dia,15*dia]) # plotting at 2D, 4D, 6D, 8D, 10D, and 15D (changeable)
     y = np.linspace(-wide,wide,leng)
-    
+
     color = np.array(['b','c','g','y','r','m']) # identifying six colors to use for differentiation
-    
+
     iterp = 0
     for i in range(int(np.size(x))):
         vel = np.array([])
@@ -72,7 +72,7 @@ if vel_slice == True:
             print 'Vel Slice ('+str(iterp)+' of '+str(leng*np.size(x))+')'
         plt.figure(1)
         plt.plot(vel,y,color[i],label=lab)
-    
+
     tix = np.array([-wide,-wide/2.,0.,wide/2.,wide])
     tixl = np.array([d_lab1,d_lab2,'0.0',d_lab2,d_lab1])
     # plt.legend(loc="upper left",bbox_to_anchor=(1, 1),fontsize=fs) # legend off to the side
@@ -90,21 +90,21 @@ if plot_dist == True:
     xf = 17.0*dia # ending point in downstream direction
     yd = -2.5*dia # lateral extent on down side
     yu = 2.5*dia # lateral extent on up side
-    
+
     N = 100 # N**2 = number of data points in domain
-    
+
     xp = np.linspace(xi,xf,N)
     yp = np.linspace(yd,yu,N)
     [X, Y] = np.meshgrid(xp,yp)
     VEL = np.zeros((N, N)) # initiallizing velocity data point array
-    
+
     iter = 0
     for i in range(N):
         for j in range(N):
             VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,tsr,solidity,cfd_data,param)
             iter = iter +1
             print 'Plot ('+str(iter)+' of '+str(N*N)+')'
-    
+
     fig = plt.figure(2,figsize=(19,5))
     fig.subplots_adjust(bottom=.16,left=.05,right=1.0)
     lb = 0.15 # lower bound on velocity to display
