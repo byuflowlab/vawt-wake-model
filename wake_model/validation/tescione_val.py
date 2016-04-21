@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 from VAWT_Wake_Model import velocity_field
-from database_call import vorticity,velocity
+from database_call import vorticity,velocity,quad
 from scipy.io import loadmat
 
 from matplotlib import rcParams
@@ -153,9 +153,9 @@ cfd35errorstd = np.std(cfd35t)
 cfd40error = np.average(cfd40t)
 cfd40errorstd = np.std(cfd40t)
     
-
-fig1 = plt.figure(1,figsize=(12,6))
-fig1.subplots_adjust(left=.05,right=.88,wspace=.36,hspace=.35)
+## Plot CFD
+fig1 = plt.figure(1,figsize=(12.5,6))
+fig1.subplots_adjust(left=.05,right=.86,wspace=.36,hspace=.35)
 plt.subplot(2,3,1)
 plt.plot(x15,y15,'b.')
 plt.plot(pos1,vel1,'r-')
@@ -213,139 +213,175 @@ plt.text(-0.25,1.05,r'$x/D$ = 2.0')
 print '4.0 cfd',(min(vel6)-min(y40))/min(y40),cfd40error,cfd40errorstd
 
 
+## Plot Model
 if rom == True:
-    rad = 0.5
-    dia = 2*rad
-    velf = 9.308422677
-    sol = 0.24
-    tsr = 4.5
-    xt = 0.
-    yt = 0.
-    # Choose whether CFD vorticity or velocity data will be used as the basis
-    cfd_data = 'vort'
-    # cfd_data = 'velo'
+    for k in range(1):
+        rad = 0.5
+        dia = 2*rad
+        velf = 9.308422677
+        sol = 0.24
+        tsr = 4.5
+        xt = 0.
+        yt = 0.
+        # Choose whether CFD vorticity or velocity data will be used as the basis
+        if k == 1:
+            cfd_data = 'vort'
+        elif k == 0:
+            cfd_data = 'velo'
+        # cfd_data = 'quad'
+        
+        if cfd_data == 'vort':
+            loc,spr,skw,scl = vorticity(tsr,sol)
+            param = np.array([loc,spr,skw,scl])
+            
+        elif cfd_data == 'velo':
+            men,spr,scl,rat,tns = velocity(tsr,sol)
+            param = np.array([men,spr,scl,rat,tns])
+            
+        elif cfd_data == 'quad':
+            scl,trn = quad(tsr,sol)
+            param = np.array([scl,trn])
+        
+        rom15 = np.zeros(33)
+        rom20 = np.zeros(33)
+        rom25 = np.zeros(33)
+        rom30 = np.zeros(33)
+        rom35 = np.zeros(33)
+        rom40 = np.zeros(26)
+        rom40f = np.zeros(33)
+        
+        rom15t = np.zeros(33)
+        rom20t = np.zeros(33)
+        rom25t = np.zeros(33)
+        rom30t = np.zeros(33)
+        rom35t = np.zeros(33)
+        rom40t = np.zeros(26)
+        for i in range(33):
+            rom15[i] = velocity_field(xt,yt,0.75,x15[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom15t[i] = (rom15[i]-y15[i])/y15[i]
+            rom20[i] = velocity_field(xt,yt,1.0,x20[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom20t[i] = (rom20[i]-y20[i])/y20[i]
+            rom25[i] = velocity_field(xt,yt,1.25,x25[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom25t[i] = (rom25[i]-y25[i])/y25[i]
+            rom30[i] = velocity_field(xt,yt,1.5,x30[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom30t[i] = (rom30[i]-y30[i])/y30[i]
+            rom35[i] = velocity_field(xt,yt,1.75,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom35t[i] = (rom35[i]-y35[i])/y35[i]
+            rom40f[i] = velocity_field(xt,yt,2.0,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            print i
+        for i in range(26):
+            rom40[i] = velocity_field(xt,yt,4.0*3.,x40[i]*3.,9.308422677,6.,4.5,0.24,cfd_data,param)
+            rom40t[i] = (rom40[i]-y40[i])/y40[i]
+            print i
+        
+        rom15error = np.average(rom15t)
+        rom15errorstd = np.std(rom15t)
+        rom20error = np.average(rom20t)
+        rom20errorstd = np.std(rom20t)
+        rom25error = np.average(rom25t)
+        rom25errorstd = np.std(rom25t)
+        rom30error = np.average(rom30t)
+        rom30errorstd = np.std(rom30t)
+        rom35error = np.average(rom35t)
+        rom35errorstd = np.std(rom35t)
+        rom40error = np.average(rom40t)
+        rom40errorstd = np.std(rom40t)
+        
+        fig2 = plt.figure(2,figsize=(12.5,6))
+        fig2.subplots_adjust(left=.05,right=.86,wspace=.36,hspace=.35)
+        plt.subplot(2,3,1)
+        if k == 0:
+            plt.plot(x15,y15,'b.')
+            plt.plot(pos1,vel1,'r-')
+            plt.plot(x15,rom15,'g-')
+        elif k == 1:
+            plt.plot(x15,rom15,'m-')
+        if k == 0:
+            plt.xlim(-1,1)
+            plt.ylim(0.1,1.2)
+            plt.xlabel('$y/D$')
+            plt.ylabel(r'$u/U_\infty$')
+            plt.text(-0.25,1.05,r'$x/D$ = 0.75')
+        print '1.5 mod',(min(rom15)-min(y15))/min(y15),rom15error,rom15errorstd
+        print '1.5 cfd',(min(vel1)-min(y15))/min(y15),cfd15error,cfd15errorstd
+        plt.subplot(2,3,2)
+        if k == 0:
+            plt.plot(x20,y20,'b.')
+            plt.plot(pos2,vel2,'r-')
+            plt.plot(x20,rom20,'g-')
+        elif k == 1:
+            plt.plot(x20,rom20,'m-')
+        if k == 0:
+            plt.xlim(-1,1)
+            plt.ylim(0.1,1.2)
+            plt.xlabel('$y/D$')
+            plt.ylabel(r'$u/U_\infty$')
+            plt.text(-0.25,1.05,r'$x/D$ = 1.0')
+        print '2.0 mod',(min(rom20)-min(y20))/min(y20),rom20error,rom20errorstd
+        print '2.0 cfd',(min(vel2)-min(y20))/min(y20),cfd20error,cfd20errorstd
+        plt.subplot(2,3,3)
+        if k == 0:
+            plt.plot(x25,y25,'b.',label='PIV')
+            plt.plot(pos3,vel3,'r-',label='CFD')
+            plt.plot(x25,rom25,'g-',label='Vorticity')
+        elif k == 1:
+            plt.plot(x25,rom25,'m-',label='Velocity')
+        if k == 0:
+            plt.xlim(-1,1)
+            plt.ylim(0.1,1.2)
+            plt.xlabel('$y/D$')
+            plt.ylabel(r'$u/U_\infty$')
+            plt.text(-0.25,1.05,r'$x/D$ = 1.25')
+        elif k == 1:
+            plt.legend(loc="upper left", bbox_to_anchor=(1,1))
+        print '2.5 mod',(min(rom25)-min(y25))/min(y25),rom25error,rom25errorstd
+        print '2.5 cfd',(min(vel3)-min(y25))/min(y25),cfd25error,cfd25errorstd
+        plt.subplot(2,3,4)
+        if k == 0:
+            plt.plot(x30,y30,'b.')
+            plt.plot(pos4,vel4,'r-')
+            plt.plot(x30,rom30,'g-')
+        elif k == 1:
+            plt.plot(x30,rom30,'m-')
+        if k == 0:
+            plt.xlim(-1,1)
+            plt.ylim(0.1,1.2)
+            plt.xlabel('$y/D$')
+            plt.ylabel(r'$u/U_\infty$')
+            plt.text(-0.25,1.05,r'$x/D$ = 1.5')
+        print '3.0 mod',(min(rom30)-min(y30))/min(y30),rom30error,rom30errorstd
+        print '3.0 cfd',(min(vel4)-min(y30))/min(y30),cfd30error,cfd30errorstd
+        plt.subplot(2,3,5)
+        if k == 0:
+            plt.plot(x35,y35,'b.')
+            plt.plot(pos5,vel5,'r-')
+            plt.plot(x35,rom35,'g-')
+        elif k == 1:
+            plt.plot(x35,rom35,'m-')
+        if k == 0:
+            plt.xlim(-1,1)
+            plt.ylim(0.1,1.2)
+            plt.xlabel('$y/D$')
+            plt.ylabel(r'$u/U_\infty$')
+            plt.text(-0.25,1.05,r'$x/D$ = 1.75')
+        print '3.5 mod',(min(rom35)-min(y35))/min(y35),rom35error,rom35errorstd
+        print '3.5 cfd',(min(vel5)-min(y35))/min(y35),cfd35error,cfd35errorstd
+        plt.subplot(2,3,6)
+        if k == 0:
+            plt.plot(x40,y40,'b.')
+            plt.plot(pos6,vel6,'r-')
+            plt.plot(x35,rom40f,'g-')
+        elif k == 1:
+            plt.plot(x35,rom40f,'m-')
+        if k == 0:
+            plt.xlim(-1,1)
+            plt.ylim(0.1,1.2)
+            plt.xlabel('$y/D$')
+            plt.ylabel(r'$u/U_\infty$')
+            plt.text(-0.25,1.05,r'$x/D$ = 2.0')
+        print '4.0 mod',(min(rom40f)-min(y40))/min(y40),rom40error,rom40errorstd
+        print '4.0 cfd',(min(vel6)-min(y40))/min(y40),cfd40error,cfd40errorstd
     
-    if cfd_data == 'vort':
-        loc,spr,skw,scl = vorticity(tsr,sol)
-        param = np.array([loc,spr,skw,scl])
-    elif cfd_data == 'velo':
-        men,spr,scl,rat,tns = velocity(tsr,sol)
-        param = np.array([men,spr,scl,rat,tns])
-    
-    rom15 = np.zeros(33)
-    rom20 = np.zeros(33)
-    rom25 = np.zeros(33)
-    rom30 = np.zeros(33)
-    rom35 = np.zeros(33)
-    rom40 = np.zeros(26)
-    rom40f = np.zeros(33)
-    
-    rom15t = np.zeros(33)
-    rom20t = np.zeros(33)
-    rom25t = np.zeros(33)
-    rom30t = np.zeros(33)
-    rom35t = np.zeros(33)
-    rom40t = np.zeros(26)
-    for i in range(33):
-        rom15[i] = velocity_field(xt,yt,0.75,x15[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-        rom15t[i] = (rom15[i]-y15[i])/y15[i]
-        rom20[i] = velocity_field(xt,yt,1.0,x20[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-        rom20t[i] = (rom20[i]-y20[i])/y20[i]
-        rom25[i] = velocity_field(xt,yt,1.25,x25[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-        rom25t[i] = (rom25[i]-y25[i])/y25[i]
-        rom30[i] = velocity_field(xt,yt,1.5,x30[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-        rom30t[i] = (rom30[i]-y30[i])/y30[i]
-        rom35[i] = velocity_field(xt,yt,1.75,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-        rom35t[i] = (rom35[i]-y35[i])/y35[i]
-        rom40f[i] = velocity_field(xt,yt,2.0,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-        print i
-    for i in range(26):
-        rom40[i] = velocity_field(xt,yt,4.0*3.,x40[i]*3.,9.308422677,6.,4.5,0.24,cfd_data,param)
-        rom40t[i] = (rom40[i]-y40[i])/y40[i]
-        print i
-    
-    rom15error = np.average(rom15t)
-    rom15errorstd = np.std(rom15t)
-    rom20error = np.average(rom20t)
-    rom20errorstd = np.std(rom20t)
-    rom25error = np.average(rom25t)
-    rom25errorstd = np.std(rom25t)
-    rom30error = np.average(rom30t)
-    rom30errorstd = np.std(rom30t)
-    rom35error = np.average(rom35t)
-    rom35errorstd = np.std(rom35t)
-    rom40error = np.average(rom40t)
-    rom40errorstd = np.std(rom40t)
-    
-    fig2 = plt.figure(2,figsize=(12,6))
-    fig2.subplots_adjust(left=.05,right=.88,wspace=.36,hspace=.35)
-    plt.subplot(2,3,1)
-    plt.plot(x15,y15,'b.')
-    plt.plot(pos1,vel1,'r-')
-    plt.plot(x15,rom15,'g-')
-    plt.xlim(-1,1)
-    plt.ylim(0.1,1.2)
-    plt.xlabel('$y/D$')
-    plt.ylabel(r'$u/U_\infty$')
-    plt.text(-0.25,1.05,r'$x/D$ = 0.75')
-    print '1.5 mod',(min(rom15)-min(y15))/min(y15),rom15error,rom15errorstd
-    print '1.5 cfd',(min(vel1)-min(y15))/min(y15),cfd15error,cfd15errorstd
-    plt.subplot(2,3,2)
-    plt.plot(x20,y20,'b.')
-    plt.plot(pos2,vel2,'r-')
-    plt.plot(x20,rom20,'g-')
-    plt.xlim(-1,1)
-    plt.ylim(0.1,1.2)
-    plt.xlabel('$y/D$')
-    plt.ylabel(r'$u/U_\infty$')
-    plt.text(-0.25,1.05,r'$x/D$ = 1.0')
-    print '2.0 mod',(min(rom20)-min(y20))/min(y20),rom20error,rom20errorstd
-    print '2.0 cfd',(min(vel2)-min(y20))/min(y20),cfd20error,cfd20errorstd
-    plt.subplot(2,3,3)
-    plt.plot(x25,y25,'b.',label='PIV')
-    plt.plot(pos3,vel3,'r-',label='CFD')
-    plt.plot(x25,rom25,'g-',label='Model')
-    plt.xlim(-1,1)
-    plt.ylim(0.1,1.2)
-    plt.xlabel('$y/D$')
-    plt.ylabel(r'$u/U_\infty$')
-    plt.text(-0.25,1.05,r'$x/D$ = 1.25')
-    print '2.5 mod',(min(rom25)-min(y25))/min(y25),rom25error,rom25errorstd
-    print '2.5 cfd',(min(vel3)-min(y25))/min(y25),cfd25error,cfd25errorstd
-    plt.legend(loc="upper left", bbox_to_anchor=(1,1))
-    plt.subplot(2,3,4)
-    plt.plot(x30,y30,'b.')
-    plt.plot(pos4,vel4,'r-')
-    plt.plot(x30,rom30,'g-')
-    plt.xlim(-1,1)
-    plt.ylim(0.1,1.2)
-    plt.xlabel('$y/D$')
-    plt.ylabel(r'$u/U_\infty$')
-    plt.text(-0.25,1.05,r'$x/D$ = 1.5')
-    print '3.0 mod',(min(rom30)-min(y30))/min(y30),rom30error,rom30errorstd
-    print '3.0 cfd',(min(vel4)-min(y30))/min(y30),cfd30error,cfd30errorstd
-    plt.subplot(2,3,5)
-    plt.plot(x35,y35,'b.')
-    plt.plot(pos5,vel5,'r-')
-    plt.plot(x35,rom35,'g-')
-    plt.xlim(-1,1)
-    plt.ylim(0.1,1.2)
-    plt.xlabel('$y/D$')
-    plt.ylabel(r'$u/U_\infty$')
-    plt.text(-0.25,1.05,r'$x/D$ = 1.75')
-    print '3.5 mod',(min(rom35)-min(y35))/min(y35),rom35error,rom35errorstd
-    print '3.5 cfd',(min(vel5)-min(y35))/min(y35),cfd35error,cfd35errorstd
-    plt.subplot(2,3,6)
-    plt.plot(x40,y40,'b.')
-    plt.plot(pos6,vel6,'r-')
-    plt.plot(x35,rom40f,'g-')
-    plt.xlim(-1,1)
-    plt.ylim(0.1,1.2)
-    plt.xlabel('$y/D$')
-    plt.ylabel(r'$u/U_\infty$')
-    plt.text(-0.25,1.05,r'$x/D$ = 2.0')
-    print '4.0 mod',(min(rom40f)-min(y40))/min(y40),rom40error,rom40errorstd
-    print '4.0 cfd',(min(vel6)-min(y40))/min(y40),cfd40error,cfd40errorstd
 plt.show()
 
 
@@ -356,10 +392,17 @@ plt.show()
 # 3.5 cfd 0.221745704619 0.0144463482651 0.241148027704
 # 4.0 cfd 0.229931173793 0.0861193758607 0.230378847745
 
-# 1.5 mod 0.132533980869 -0.00249220233475 0.135549625874
-# 2.0 mod 0.0900569224281 0.00390185648972 0.165934427415
-# 2.5 mod 0.121956169586 0.0284868322059 0.212463978
-# 3.0 mod 0.183497086211 0.0533395185243 0.252295420726
-# 3.5 mod 0.178795083367 0.0810197607279 0.307635395074
-# 4.0 mod 0.195690779039 -0.164091083186 0.223888887434
+# 1.5 mod 0.132406448951 -0.00256161525725 0.135568318639
+# 2.0 mod 0.0899133305592 0.00382367450972 0.165954653691
+# 2.5 mod 0.121791964707 0.0284003121819 0.212482259263
+# 3.0 mod 0.18331069938 0.053245879612 0.252310440555
+# 3.5 mod 0.178599395018 0.0809206204189 0.307648876785
+# 4.0 mod 0.195484403221 -0.164230705369 0.223847661153
+# 
+# 1.5 mod 0.164733537822 -0.088250778748 0.203022505624
+# 2.0 mod 0.197731448521 -0.0355075389875 0.216590369048
+# 2.5 mod 0.277213809379 0.02342672484 0.23582018833
+# 3.0 mod 0.367779442861 0.0774171123246 0.267252785236
+# 3.5 mod 0.364469667839 0.126689008729 0.30349096456
+# 4.0 mod 0.373573093559 0.02295442195 0.261155148874
 

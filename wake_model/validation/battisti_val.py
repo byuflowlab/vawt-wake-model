@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 from VAWT_Wake_Model import velocity_field
-from database_call import vorticity,velocity
+from database_call import vorticity,velocity,quad
 
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
@@ -26,46 +26,60 @@ rom15 = np.zeros_like(x15r)
 rom15t = np.zeros_like(x15)
 error_test = np.zeros_like(x15)
 
-# Choose whether CFD vorticity or velocity data will be used as the basis
-cfd_data = 'vort'
-# cfd_data = 'velo'
+for k in range(1):
+    # Choose whether CFD vorticity or velocity data will be used as the basis
+    if k == 1:
+        cfd_data = 'vort'
+    elif k == 0:
+        cfd_data = 'velo'
+    # cfd_data = 'quad'
+    
+    if cfd_data == 'vort':
+        loc,spr,skw,scl = vorticity(tsr,sol)
+        param = np.array([loc,spr,skw,scl])
+        
+    elif cfd_data == 'velo':
+        men,spr,scl,rat,tns = velocity(tsr,sol)
+        param = np.array([men,spr,scl,rat,tns])
+        
+    elif cfd_data == 'quad':
+        scl,trn = quad(tsr,sol)
+        param = np.array([scl,trn])
 
-if cfd_data == 'vort':
-    loc,spr,skw,scl = vorticity(tsr,sol)
-    param = np.array([loc,spr,skw,scl])
-elif cfd_data == 'velo':
-    men,spr,scl,rat,tns = velocity(tsr,sol)
-    param = np.array([men,spr,scl,rat,tns])
-
-for i in range(np.size(x15)):
-    rom15t[i] = velocity_field(0.,0.,1.5*dia,x15[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-    error_test[i] = (rom15t[i]-y15o[i])/y15o[i]
-error = np.average(error_test)
-errorstd = np.std(error_test)
-for i in range(np.size(rom15)):
-    rom15[i] = velocity_field(0.,0.,1.5*dia,x15r[i]*dia,velf,dia,tsr,sol,cfd_data,param)
-    print i
-
-fs = 15
-
-plt.figure()
-# plt.subplot(2,3,1)
-# plt.plot(x15,y15c,'r.',label='Experimental (closed)')
-# plt.plot(x15,y15o,'b.',label='Experimental (open)')
-plt.plot(x15,y15o,'b.',label='Experimental')
-plt.plot(x15r,rom15,'g-',label='Model')
-plt.xlim(-1.75,1.75)
-plt.ylim(0.3,1.4)
-plt.xlabel('$y/D$',fontsize=fs)
-plt.ylabel(r'$u/U_\infty$',fontsize=fs)
-plt.legend(loc=1,fontsize=fs)
-plt.xticks(fontsize=fs)
-plt.yticks(fontsize=fs)
-# plt.text(-0.5,0.9,'X/D = 1.5')
-# print '1.5 modc',(min(rom15)-min(y15c))/min(y15c)
-print '1.5 modo',(min(rom15)-min(y15o))/min(y15o),error,errorstd
+    for i in range(np.size(x15)):
+        rom15t[i] = velocity_field(0.,0.,1.5*dia,x15[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+        error_test[i] = (rom15t[i]-y15o[i])/y15o[i]
+    error = np.average(error_test)
+    errorstd = np.std(error_test)
+    for i in range(np.size(rom15)):
+        rom15[i] = velocity_field(0.,0.,1.5*dia,x15r[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+        print i
+    
+    fs = 15
+    
+    plt.figure(1)
+    # plt.subplot(2,3,1)
+    # plt.plot(x15,y15c,'r.',label='Experimental (closed)')
+    # plt.plot(x15,y15o,'b.',label='Experimental (open)')
+    if k == 0:
+        plt.plot(x15,y15o,'b.',label='Experimental')
+        plt.plot(x15r,rom15,'g-',label='Vorticity')
+        plt.xlim(-1.75,1.75)
+        plt.ylim(0.3,1.4)
+        plt.xlabel('$y/D$',fontsize=fs)
+        plt.ylabel(r'$u/U_\infty$',fontsize=fs)
+        plt.xticks(fontsize=fs)
+        plt.yticks(fontsize=fs)
+    elif k == 1:
+        plt.plot(x15r,rom15,'m-',label='Velocity')
+        plt.legend(loc=1,fontsize=fs)
+    # plt.text(-0.5,0.9,'X/D = 1.5')
+    # print '1.5 modc',(min(rom15)-min(y15c))/min(y15c)
+    print '1.5 modo',(min(rom15)-min(y15o))/min(y15o),error,errorstd
 plt.show()
 
 
-# 1.5 modo -0.0511120658493 0.0466994707498 0.117194753988
+# 1.5 modo -0.151387906156 0.0167814413896 0.124429748661
+# 1.5 modo 0.206656789139 0.0423548166059 0.138762846991
+
 

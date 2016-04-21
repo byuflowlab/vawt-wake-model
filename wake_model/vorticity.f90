@@ -53,8 +53,8 @@ subroutine gamma(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,gam_l
     scl = scl1/(1.0_dp + exp(scl2*(xd - scl3)))
 
     ! Limiting the fits to maximum values the Weibull distribution can handle
-    if (loc < 0.0_dp) then
-        loc = 0.0_dp
+    if (loc < 0.2_dp) then
+        loc = 0.2_dp
     end if
     if (skw > 0.0_dp) then
        skw = 0.0_dp

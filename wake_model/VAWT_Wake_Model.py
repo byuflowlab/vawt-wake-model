@@ -31,12 +31,7 @@ rotation is counter-clockwise from the top.
 
 """
 
-
-import csv
-from os import path
-import numpy as np
-import matplotlib.pyplot as plt
-from numpy import pi,exp,fabs,sqrt
+from numpy import pi, exp, fabs, sqrt
 from scipy.integrate import dblquad
 
 import _vortmodel
@@ -45,7 +40,7 @@ import _vortmodel
 # rcParams['font.family'] = 'Times New Roman'
 
 
-def velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity,cfd_data,param):
+def velocity_field(xt, yt, x0, y0, velf, dia, tsr, solidity, cfd_data, param):
     """
     Calculating normalized velocity from the vorticity data at (x0,y0) in global flow domain
 
@@ -90,13 +85,16 @@ def velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity,cfd_data,param):
         spr = param[1]
         skw = param[2]
         scl = param[3]
-
+        
         # Integration of the vorticity profile using Fortran code (vorticity.f90)
-        vel_vs = dblquad(_vortmodel.integrand,0.,35.*dia,lambda x: -4.*dia,lambda x: 4.*dia, args=(x0t,y0t,dia,loc[0],loc[1],loc[2],spr[0],spr[1],skw[0],skw[1],scl[0],scl[1],scl[2]))
-
+        xbound = 45.*dia/max(1, int(tsr*solidity))
+        vel_vs = dblquad(_vortmodel.integrand, 0., xbound, lambda x: -4.*dia, lambda x: 4.*dia,
+                         args=(x0t, y0t, dia, loc[0], loc[1], loc[2], spr[0], spr[1],
+                               skw[0], skw[1], scl[0], scl[1], scl[2]))
+        
         # Calculating velocity deficit
-        vel = (vel_vs[0]*(rot))/(2.*pi)
-        vel = (vel + velf)/velf # normalization of velocity
+        vel = (vel_vs[0]*rot)/(2.*pi)
+        vel = (vel + velf)/velf  # normalization of velocity
 
     elif cfd_data == 'velo':
         # Normalizing the downstream and lateral positions by the turbine diameter
@@ -110,45 +108,47 @@ def velocity_field(xt,yt,x0,y0,velf,dia,tsr,solidity,cfd_data,param):
         rat = param[3]
         tns = param[4]
 
-        # men = np.array( [-0.0007448786610163438, 0.011700465818493566, -0.005332505770684337] )
-        # spr = np.array( [6.462355161093711, 7.079901300173991, 12.102886237210939] )
-        # scl = np.array( [8.509272717226171, 7.023483471068396, 27.707846411384697] )
-        # rat = np.array( [-2.107186196351149, 44.93845180541949] )
-        # tns = np.array( [-1.4660542829002265, 30.936653231840257] )
-        #
-        # men = np.array( [-0.00059737414699399, 0.009890587474506057, -0.0016721254639608882] )
-        # spr = np.array( [-0.005652314031253564, 0.06923002880544946, 0.526304136118912] )
-        # scl = np.array( [6.639808894608728, 5.477607580787858, 21.13678312202297] )
-        # rat = np.array( [-2.0794010451530873, 44.798557035611] )
-        # tns = np.array( [-1.43164706657537, 30.761785195818447] )
-
-
         men_v = men[0]*x0d**2 + men[1]*x0d + men[2]
-        if men_v > 0.5:
-            men_v = 0.5
-        elif men_v < -0.5:
-            men_v = -0.5
-
-        # spr_v = spr[2]/(spr[1]*sqrt(2.*pi))*exp(-(x0d-spr[0])**2/(2.*spr[1]**2))
-        spr_v = spr[0]*x0d**2 + spr[1]*x0d + spr[2]
-        if spr_v < 0.35:
-            spr_v = 0.35
-        elif spr_v > 4.:
-            spr_v = 4.
-
-        scl_v = scl[2]/(scl[1]*sqrt(2.*pi))*exp(-(x0d-scl[0])**2/(2.*scl[1]**2))
-
+        if men_v > 1.5:
+            men_v = 1.5
+        elif men_v < -1.5:
+            men_v = -1.5
+        
+        spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*x0d)*exp(spr[0])*exp(-spr[0]*exp(spr[1]*x0d)) + spr[3]
+        
+        scl_v = scl[2]*scl[1]*scl[0]*exp(scl[1]*x0d)*exp(scl[0])*exp(-scl[0]*exp(scl[1]*x0d))
+        
         rat_v = rat[0]*x0d + rat[1]
         if rat_v < 0.:
             rat_v = 0.
-
+        
         tns_v = tns[0]*x0d + tns[1]
         if tns_v < 0.:
             tns_v = 0.
 
-        vel = (-scl_v/(spr_v*sqrt(2.*pi))*exp(-(y0d+men_v)**2/(2.*spr_v**2)))*(1./(1 + exp(rat_v*fabs(y0d)-tns_v))) + 1. # Normal distribution with sigmoid weighting
+        vel = (-scl_v/(spr_v*sqrt(2.*pi))*exp(-(y0d+men_v)**2/(2.*spr_v**2))) * \
+              (1./(1 + exp(rat_v*fabs(y0d)-tns_v))) + 1.  # Normal distribution with sigmoid weighting
 
         if x0 < xt:
-            vel = 1. # Velocity is free stream in front and to the sides of the turbine
+            vel = 1.  # Velocity is free stream in front and to the sides of the turbine
+    
+    elif cfd_data == 'quad':
+        # Normalizing the downstream and lateral positions by the turbine diameter
+        x0d = x0/dia
+        y0d = y0/dia
+        
+        # Calculating quadratic distribution parameters
+        scl = param[0]
+        trn = param[1]
+        
+        scl_v = scl[0]/(1 + exp(scl[1]*(x0d - scl[2])))
+        trn_v = (1.-trn[2])/(1 + exp(trn[0]*(x0d - trn[1]))) + trn[2]
+        
+        vel = scl_v*y0d**4 + trn_v
+        if vel > 1.:
+            vel = 1.
+        
+        if x0 < xt:
+            vel = 1.  # Velocity is free stream in front and to the sides of the turbine
 
     return vel

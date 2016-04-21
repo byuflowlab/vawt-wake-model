@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from numpy import pi
-from database_call import vorticity,velocity
+from database_call import vorticity,velocity,quad
 from VAWT_Wake_Model import velocity_field
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
@@ -23,14 +22,20 @@ y0 = 0. # lateral distance from turbine for velocity calculation (m)
 
 # Choose whether CFD vorticity or velocity data will be used as the basis
 cfd_data = 'vort'
-# cfd_data = 'velo'
+cfd_data = 'velo'
+# cfd_data = 'quad'
 
 if cfd_data == 'vort':
     loc,spr,skw,scl = vorticity(tsr,solidity)
     param = np.array([loc,spr,skw,scl])
+    
 elif cfd_data == 'velo':
     men,spr,scl,rat,tns = velocity(tsr,solidity)
     param = np.array([men,spr,scl,rat,tns])
+    
+elif cfd_data == 'quad':
+    scl,trn = quad(tsr,solidity)
+    param = np.array([scl,trn])
 
 vel = velocity_field(xt,yt,xt + x0,yt + y0,velf,dia,tsr,solidity,cfd_data,param)
 
@@ -45,7 +50,7 @@ vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-plot_dist = False # comment this out if desired on
+# plot_dist = False # comment this out if desired on
 
 # Plotting velocity profiles
 if vel_slice == True:
