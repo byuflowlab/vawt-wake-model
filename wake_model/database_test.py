@@ -70,68 +70,134 @@ if type == 'vort':
 
 
 elif type == 'velo':
-    for k in range(np.size(solidity)):
-        men1 = np.zeros_like(tsr)
-        men2 = np.zeros_like(tsr)
-        men3 = np.zeros_like(tsr)
-        spr1 = np.zeros_like(tsr)
-        spr2 = np.zeros_like(tsr)
-        spr3 = np.zeros_like(tsr)
-        spr4 = np.zeros_like(tsr)
-        scl1 = np.zeros_like(tsr)
-        scl2 = np.zeros_like(tsr)
-        scl3 = np.zeros_like(tsr)
-        rat1 = np.zeros_like(tsr)
-        rat2 = np.zeros_like(tsr)
-        tns1 = np.zeros_like(tsr)
-        tns2 = np.zeros_like(tsr)
+    # for k in range(np.size(solidity)):
+    #     men1 = np.zeros_like(tsr)
+    #     men2 = np.zeros_like(tsr)
+    #     men3 = np.zeros_like(tsr)
+    #     spr1 = np.zeros_like(tsr)
+    #     spr2 = np.zeros_like(tsr)
+    #     spr3 = np.zeros_like(tsr)
+    #     spr4 = np.zeros_like(tsr)
+    #     scl1 = np.zeros_like(tsr)
+    #     scl2 = np.zeros_like(tsr)
+    #     scl3 = np.zeros_like(tsr)
+    #     rat1 = np.zeros_like(tsr)
+    #     rat2 = np.zeros_like(tsr)
+    #     tns1 = np.zeros_like(tsr)
+    #     tns2 = np.zeros_like(tsr)
+    #
+    #     for i in range(np.size(tsr)):
+    #         men,spr,scl,rat,tns = velocity(tsr[i],solidity[k])
+    #         men1[i] = men[0]
+    #         men2[i] = men[1]
+    #         men3[i] = men[2]
+    #         spr1[i] = spr[0]
+    #         spr2[i] = spr[1]
+    #         spr3[i] = spr[2]
+    #         spr4[i] = spr[3]
+    #         scl1[i] = scl[0]
+    #         scl2[i] = scl[1]
+    #         scl3[i] = scl[2]
+    #         rat1[i] = rat[0]
+    #         rat2[i] = rat[1]
+    #         tns1[i] = tns[0]
+    #         tns2[i] = tns[1]
+    #
+    #     plt.figure()
+    #     plt.subplot(4,5,1)
+    #     plt.plot(tsr,men1,col[k])
+    #     plt.subplot(4,5,6)
+    #     plt.plot(tsr,men2,col[k])
+    #     plt.subplot(4,5,11)
+    #     plt.plot(tsr,men3,col[k])
+    #     plt.subplot(4,5,2)
+    #     plt.plot(tsr,spr1,col[k])
+    #     plt.subplot(4,5,7)
+    #     plt.plot(tsr,spr2,col[k])
+    #     plt.subplot(4,5,12)
+    #     plt.plot(tsr,spr3,col[k])
+    #     plt.subplot(4,5,17)
+    #     plt.plot(tsr,spr4,col[k])
+    #     plt.subplot(4,5,3)
+    #     plt.plot(tsr,scl1,col[k])
+    #     plt.subplot(4,5,8)
+    #     plt.plot(tsr,scl2,col[k])
+    #     plt.subplot(4,5,13)
+    #     plt.plot(tsr,scl3,col[k])
+    #     plt.subplot(4,5,4)
+    #     plt.plot(tsr,rat1,col[k])
+    #     plt.subplot(4,5,9)
+    #     plt.plot(tsr,rat2,col[k])
+    #     plt.subplot(4,5,5)
+    #     plt.plot(tsr,tns1,col[k])
+    #     plt.subplot(4,5,10)
+    #     plt.plot(tsr,tns2,col[k])
 
-        for i in range(np.size(tsr)):
-            men,spr,scl,rat,tns = velocity(tsr[i],solidity[k])
-            men1[i] = men[0]
-            men2[i] = men[1]
-            men3[i] = men[2]
-            spr1[i] = spr[0]
-            spr2[i] = spr[1]
-            spr3[i] = spr[2]
-            spr4[i] = spr[3]
-            scl1[i] = scl[0]
-            scl2[i] = scl[1]
-            scl3[i] = scl[2]
-            rat1[i] = rat[0]
-            rat2[i] = rat[1]
-            tns1[i] = tns[0]
-            tns2[i] = tns[1]
+
+
+    for k in range(15):
+        men11 = np.zeros_like(solidity)
+        men22 = np.zeros_like(solidity)
+        men33 = np.zeros_like(solidity)
+        spr11 = np.zeros_like(solidity)
+        spr22 = np.zeros_like(solidity)
+        spr33 = np.zeros_like(solidity)
+        spr44 = np.zeros_like(solidity)
+        scl11 = np.zeros_like(solidity)
+        scl22 = np.zeros_like(solidity)
+        scl33 = np.zeros_like(solidity)
+        rat11 = np.zeros_like(solidity)
+        rat22 = np.zeros_like(solidity)
+        tns11 = np.zeros_like(solidity)
+        tns22 = np.zeros_like(solidity)
+
+        for i in range(np.size(solidity)):
+            men,spr,scl,rat,tns = velocity(tsr[k],solidity[i])
+            men11[i] = men[0]
+            men22[i] = men[1]
+            men33[i] = men[2]
+            spr11[i] = spr[0]
+            spr22[i] = spr[1]
+            spr33[i] = spr[2]
+            spr44[i] = spr[3]
+            scl11[i] = scl[0]
+            scl22[i] = scl[1]
+            scl33[i] = scl[2]
+            rat11[i] = rat[0]
+            rat22[i] = rat[1]
+            tns11[i] = tns[0]
+            tns22[i] = tns[1]
 
         plt.figure()
         plt.subplot(4,5,1)
-        plt.plot(tsr,men1,col[k])
+        plt.plot(solidity,men11)
         plt.subplot(4,5,6)
-        plt.plot(tsr,men2,col[k])
+        plt.plot(solidity,men22)
         plt.subplot(4,5,11)
-        plt.plot(tsr,men3,col[k])
+        plt.plot(solidity,men33)
         plt.subplot(4,5,2)
-        plt.plot(tsr,spr1,col[k])
+        plt.plot(solidity,spr11)
         plt.subplot(4,5,7)
-        plt.plot(tsr,spr2,col[k])
+        plt.plot(solidity,spr22)
         plt.subplot(4,5,12)
-        plt.plot(tsr,spr3,col[k])
+        plt.plot(solidity,spr33)
         plt.subplot(4,5,17)
-        plt.plot(tsr,spr4,col[k])
+        plt.plot(solidity,spr44)
         plt.subplot(4,5,3)
-        plt.plot(tsr,scl1,col[k])
+        plt.plot(solidity,scl11)
         plt.subplot(4,5,8)
-        plt.plot(tsr,scl2,col[k])
+        plt.plot(solidity,scl22)
         plt.subplot(4,5,13)
-        plt.plot(tsr,scl3,col[k])
+        plt.plot(solidity,scl33)
         plt.subplot(4,5,4)
-        plt.plot(tsr,rat1,col[k])
+        plt.plot(solidity,rat11)
         plt.subplot(4,5,9)
-        plt.plot(tsr,rat2,col[k])
+        plt.plot(solidity,rat22)
         plt.subplot(4,5,5)
-        plt.plot(tsr,tns1,col[k])
+        plt.plot(solidity,tns11)
         plt.subplot(4,5,10)
-        plt.plot(tsr,tns2,col[k])
+        plt.plot(solidity,tns22)
+
     
 elif type == 'quad':
     scl1 = np.zeros_like(tsr)

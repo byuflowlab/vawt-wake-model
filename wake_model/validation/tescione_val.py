@@ -332,8 +332,8 @@ if rom == True:
             plt.xlabel('$y/D$')
             plt.ylabel(r'$u/U_\infty$')
             plt.text(-0.25,1.05,r'$x/D$ = 1.25')
-        elif k == 1:
-            plt.legend(loc="upper left", bbox_to_anchor=(1,1))
+        # elif k == 1:
+        plt.legend(loc="upper left", bbox_to_anchor=(1,1))
         print '2.5 mod',(min(rom25)-min(y25))/min(y25),rom25error,rom25errorstd
         print '2.5 cfd',(min(vel3)-min(y25))/min(y25),cfd25error,cfd25errorstd
         plt.subplot(2,3,4)

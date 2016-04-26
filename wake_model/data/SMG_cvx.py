@@ -36,12 +36,12 @@ def paramfit(xd,men,spr,scl,rat,tns):
     # scl_v = scl[0]*xd**2 + scl[1]*xd + scl[2]
 
     rat_v = rat[0]*xd + rat[1]
-    # if rat_v < 0.:
-    #     rat_v = 0.
+    if rat_v < 0.:
+        rat_v = 0.
 
     tns_v = tns[0]*xd + tns[1]
-    # if tns_v < 0.:
-    #     tns_v = 0.
+    if tns_v < 0.:
+        tns_v = 0.
 
     return men_v,spr_v,scl_v,rat_v,tns_v
 

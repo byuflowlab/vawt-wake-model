@@ -155,7 +155,7 @@ def velocity(tsr, solidity):
     # Reading in csv file (vorticity database)
     basepath = path.join(path.dirname(path.realpath(__file__)), 'data')
     # fdata = basepath + path.sep + 'velodatabase_SMG.csv'
-    fdata = basepath + path.sep + 'velodatabase_SMG3.csv'
+    fdata = basepath + path.sep + 'velodatabase_SMG4.csv'
     f = open(fdata)
     csv_f = csv.reader(f)
     
@@ -239,8 +239,8 @@ def velocity(tsr, solidity):
         # else:
         #     xs = 1
         #     ys = 1
-        xs = 1
-        ys = 1
+        xs = 3
+        ys = 3
         sm = 0
         s_men1 = RectBivariateSpline(sol_d, tsr_d, z_men1, kx=xs, ky=ys, s=sm)
         s_men2 = RectBivariateSpline(sol_d, tsr_d, z_men2, kx=xs, ky=ys, s=sm)
