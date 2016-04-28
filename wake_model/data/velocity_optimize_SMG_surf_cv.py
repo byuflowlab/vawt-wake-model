@@ -3,28 +3,34 @@ import csv
 import numpy as np
 from numpy import pi,sqrt,exp,fabs,log,sin,arctan,cosh
 import matplotlib.pyplot as plt
+from sklearn.cross_validation import train_test_split
 import database_call as dbc
 # from matplotlib import rcParams
 # rcParams['font.family'] = 'Times New Roman'
 
 
-def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3):
+def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat1,bow4,spr1,bow1,bow2,bow3,scl1,scl2,scl3):
 
-    sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(sdv1)*exp(-sdv1*exp(sdv2*dn))+sdv4
+    # bow = bow3*bow2*bow1*exp(bow2*dn)*exp(bow1)*exp(-bow1*exp(bow2*dn))+bow4
+    bow = 1.#bow1*dn**2+bow2*dn+bow3
 
-    # spr_v = spr3*spr2*spr1*exp(spr2*dn)*exp(spr1)*exp(-spr1*exp(spr2*dn))+spr4
-    spr_v = 1.
+    # sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(sdv1)*exp(-sdv1*exp(sdv2*dn)) + sdv4
+    sdv_v = sdv1
+    rat_v = rat1#rat1*dn + rat2
+    # spr_v = spr2#spr1*dn + spr2
+    # spr_v = spr1*dn**2 + spr2*dn + spr3
+    spr_v = spr1#spr3*spr2*spr1*exp(spr2*dn)*exp(spr1)*exp(-spr1*exp(spr2*dn)) + spr4
 
-    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat*fabs((lat/spr_v))-tns)))
+    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/bow)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat_v*fabs((lat/bow))-spr_v)))
     f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(scl1)*exp(-scl1*exp(scl2*dn))
 
     return f1*f2 + 1.
 
     
 def obj_func(xdict):
-    global posdn
-    global poslt
-    global velod
+    global posdntr
+    global poslttr
+    global velodtr
     
     param = xdict['param']
     funcs = {}
@@ -34,8 +40,8 @@ def obj_func(xdict):
     sdv2 = param[2]
     sdv3 = param[3]
     sdv4 = param[4]
-    rat = param[5]
-    tns = param[6]
+    rat1 = param[5]
+    rat2 = param[6]
     spr1 = param[7]
     spr2 = param[8]
     spr3 = param[9]
@@ -46,13 +52,13 @@ def obj_func(xdict):
     
     error = 0.
 
-    for i in range(np.size(posdn)):
-        if posdn[i] > 0.58:
-            vel = veldist(posdn[i],poslt[i],men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3)
-            error = error + (vel-velod[i])**2
+    for i in range(np.size(posdntr)):
+        if posdntr[i] > 0.58:
+            vel = veldist(posdntr[i],poslttr[i],men,sdv1,sdv2,sdv3,sdv4,rat1,rat2,spr1,spr2,spr3,spr4,scl1,scl2,scl3)
+            error = error + (vel-velodtr[i])**2
 
     ##Print
-    print error
+    # print error
 
     funcs['obj'] = error
     
@@ -396,9 +402,9 @@ def starccm_read2(fdata,dia,windd,opt_print):
 
 
 def fit(s,t,length,plot,comp,read_data,opt_print):
-    global posdn
-    global poslt
-    global velod
+    global posdntr
+    global poslttr
+    global velodtr
     
     t2 = t+'.0'
 
@@ -479,7 +485,8 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
         start = length/30.
         xd = np.linspace(start,length,30)/dia
 
-
+    cvtest = 0.3
+    posdntr,posdnts,poslttr,posltts,velodtr,velodts = train_test_split(posdn,poslt,velod,test_size=cvtest)
 
 ## Optimization
     optProb = Optimization('VAWTWake_Velo', obj_func)
@@ -491,20 +498,26 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     sdv30 = 20.
     sdv40 = 0.5
     rat0 = 10.
-    tns0 = 10.
-    spr10 = 0.5
-    spr20 = 0.1
-    spr30 = 20.
-    spr40 = 1.
-    scl10 = 0.5
-    scl20 = 0.1
-    scl30 = 20.
+    spr0 = 10.
+    bow1 = 0.5
+    bow2 = 0.1
+    bow3 = 20.
+    bow4 = 1.
+    # bow1 = -1.
+    # bow2 = 1.
+    # bow3 = 1.
+    # bow4 = 1.
     
-    param0 = np.array([men0,sdv10,sdv20,sdv30,sdv40,rat0,tns0,spr10,spr20,spr30,spr40,scl10,scl20,scl30])
+    param0 = np.array([men0,sdv10,sdv20,sdv30,sdv40,rat0,bow4,spr0,bow1,bow2,bow3,0.5,0.1,20.])
 
-    param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
-    param_u = np.array([None,10.,1.,50.,None,None,None,1.,1.,50.,None,1.,1.,None])
+    param_l = np.array([None,0.,0.,0.,0.,None,0.,None,0.,0.,0.,0.])
+    param_u = np.array([None,None,None,None,None,0.,None,0.,None,1.,1.,50.])
 
+    param_l = np.array([None,1e-8,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+    param_u = np.array([None,10.,1.,50.,None,None,None,None,1.,1.,50.,1.,1.,None])
+
+    # param_l = np.array([None,0.,0.,0.,0.,0.,None,0.,None,None,None,0.,0.,0.])
+    # param_u = np.array([None,1.,1.,50.,None,None,None,None,None,None,None,1.,1.,50.])
     
     nparam = np.size(param0)
     optProb.addVarGroup('param', nparam, 'c', lower=param_l, upper=param_u, value=param0)
@@ -544,8 +557,8 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     sdv2 = paramf[2]
     sdv3 = paramf[3]
     sdv4 = paramf[4]
-    rat = paramf[5]
-    tns = paramf[6]
+    rat1 = paramf[5]
+    rat2 = paramf[6]
     spr1 = paramf[7]
     spr2 = paramf[8]
     spr3 = paramf[9]
@@ -554,6 +567,18 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     scl2 = paramf[12]
     scl3 = paramf[13]
 
+    cv_error = 0.
+    for i in range(np.size(posdnts)):
+        if posdnts[i] > 0.58:
+            vel = veldist(posdnts[i],posltts[i],men,sdv1,sdv2,sdv3,sdv4,rat1,rat2,spr1,spr2,spr3,spr4,scl1,scl2,scl3)
+            cv_error = cv_error + (vel-velodts[i])**2
+    
+    # men = np.array([paramf[0],paramf[1],paramf[2]])
+    # spr = np.array([paramf[3],paramf[4],paramf[5],paramf[6]])
+    # scl = np.array([paramf[7],paramf[8],paramf[9]])
+    # rat = np.array([paramf[10],paramf[11]])
+    # spr = np.array([paramf[12],paramf[13]])
+    #
     paper = False
 
     if plot == True:
@@ -606,44 +631,78 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
                 color = 'bo'
                 exec('xfit = np.linspace(min(pos'+name+'d)-1.,max(pos'+name+'d)+1.,500)')
                 exec('plt.plot(velo'+name+'d,pos'+name+'d,color)')
-                plt.plot(veldist(xd[i],xfit,men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3),xfit,'r-',linewidth=2)
+                plt.plot(veldist(xd[i],xfit,men,sdv1,sdv2,sdv3,sdv4,rat1,rat2,spr1,spr2,spr3,spr4,scl1,scl2,scl3),xfit,'r-',linewidth=2)
                 plt.xlim(0.,1.5)
                 # plt.ylim(-4.,4.)
                 # plt.legend(loc=1)
                 plt.xlabel('Normalized Velocity')
                 plt.ylabel('$y/D$')
     
-    return men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3
+    return men,sdv1,sdv2,sdv3,sdv4,rat1,rat2,spr1,spr2,spr3,spr4,scl1,scl2,scl3,cv_error
 
 ## Main File
 if __name__ == "__main__":
     cv = False
 
-    s = 's2'
-    t = '400'
-    length = 100.
+    s = 's4'
+    t = '600'
+    length = 24.
 
     dia = 6.
     
     comp = 'mac'
     # comp = 'fsl'
 
-    men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3 = fit(s,t,length,True,'mac',4,True)
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error0 = fit('s1','150',210.,False,comp,4,False)
+    print 0,cv_error0
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error1 = fit('s1','325',165.,False,comp,4,False)
+    print 1,cv_error1
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error2 = fit('s1','500',108.,False,comp,4,False)
+    print 2,cv_error2
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error3 = fit('s2','200',185.,False,comp,4,False)
+    print 3,cv_error3
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error4 = fit('s2','375',96.,False,comp,4,False)
+    print 4,cv_error4
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error5 = fit('s2','550',60.,False,comp,4,False)
+    print 5,cv_error5
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error6 = fit('s3','250',83.,False,comp,4,False)
+    print 6,cv_error6
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error7 = fit('s3','425',41.,False,comp,4,False)
+    print 7,cv_error7
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error8 = fit('s3','600',28.,False,comp,4,False)
+    print 8,cv_error8
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error9 = fit('s4','300',42.,False,comp,4,False)
+    print 9,cv_error9
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error10 = fit('s4','475',24.,False,comp,4,False)
+    print 10,cv_error10
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error11 = fit('s4','650',22.,False,comp,4,False)
+    print 11,cv_error11
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error12 = fit('s5','350',26.,False,comp,4,False)
+    print 12,cv_error12
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error13 = fit('s5','525',19.,False,comp,4,False)
+    print 13,cv_error13
+    _,_,_,_,_,_,_,_,_,_,_,_,_,_,cv_error14 = fit('s5','700',14.,False,comp,4,False)
+    print 14,cv_error14
     
-    print '\n'
-    print 'men =',men
-    print 'sdv1 =',sdv1
-    print 'sdv2 =',sdv2
-    print 'sdv3 =',sdv3
-    print 'sdv4 =',sdv4
-    print 'rat =',rat
-    print 'tns =',tns
-    print 'spr1 =',spr1
-    print 'spr2 =',spr2
-    print 'spr3 =',spr3
-    print 'spr4 =',spr4
-    print 'scl1 =',scl1
-    print 'scl2 =',scl2
-    print 'scl3 =',scl3
+    # print '\n'
+    # print 'men =',men
+    # print 'sdv1 =',sdv1
+    # print 'sdv2 =',sdv2
+    # print 'sdv3 =',sdv3
+    # print 'sdv4 =',sdv4
+    # print 'rat1 =',rat1
+    # print 'rat2 =',rat2
+    # print 'spr1 =',spr1
+    # print 'spr2 =',spr2
+    # print 'spr3 =',spr3
+    # print 'spr4 =',spr4
+    # print 'scl1 =',scl1
+    # print 'scl2 =',scl2
+    # print 'scl3 =',scl3
+
+    cv_errortot = np.average([cv_error0, cv_error1, cv_error2, cv_error3, cv_error4, cv_error5, cv_error6, cv_error7, cv_error8, cv_error9, cv_error10, cv_error11, cv_error12, cv_error13,cv_error14])
+
+
+    print 'error:',cv_errortot
 
 plt.show()

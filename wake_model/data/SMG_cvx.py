@@ -8,50 +8,43 @@ import database_call as dbc
 # rcParams['font.family'] = 'Times New Roman'
 
 
-def veldist(x,men,spr,scl,rat,tns):
-    g = 1./(1 + exp(rat*fabs(x)-tns))
-    y = (-scl/(spr*sqrt(2.*pi))*exp(-(x+men)**2/(2.*spr**2)))*g + 1.
+def overlay(xt,ys,tsr,sol):
+    ntsr = np.size(tsr)
+    nsol = np.size(sol)
 
-    return y
+    dtsr = 'f1 = 0.'
+    for i in range(ntsr):
+        tpow = '+'+str(tsr[i])+'*xt**'+str(ntsr-1-i)
+        dtsr = dtsr+tpow
 
-def paramfit(xd,men,spr,scl,rat,tns):
-    men_v = men[0]*xd**2 + men[1]*xd + men[2]
-    # men_v = men[0]*xd + men[1]
-    # if men_v > 0.5:
-    #     men_v = 0.5
-    # elif men_v < -0.5:
-    #     men_v = -0.5
+    dsol = 'f2 = 0.'
+    for i in range(nsol):
+        spow = '+'+str(sol[i])+'*ys**'+str(nsol-1-i)
+        dsol = dsol+spow
 
-    # spr_v = spr[2]/(spr[1]*sqrt(2.*pi))*exp(-(xd-spr[0])**2/(2.*spr[1]**2))
-    # spr_v = spr[0]*xd**2 + spr[1]*xd + spr[2]
-    spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*xd)*exp(spr[0])*exp(-spr[0]*exp(spr[1]*xd)) + spr[3] #gom
-    # if spr_v < 0.35:
-    #     spr_v = 0.35
-    # elif spr_v > 4.:
-    #     spr_v = 4.
-
-    # scl_v = scl[2]/(scl[1]*sqrt(2.*pi))*exp(-(xd-scl[0])**2/(2.*scl[1]**2))
-    # scl_v = scl[2]/(scl[1]*sqrt(2.*pi))*(exp(-(xd-scl[0])**2/(2.*scl[1]**2))+exp(-(xd+scl[0])**2/(2.*scl[1]**2))) #fold
-    scl_v = scl[2]*scl[1]*scl[0]*exp(scl[1]*xd)*exp(scl[0])*exp(-scl[0]*exp(scl[1]*xd)) #gom
-    # scl_v = scl[0]*xd**2 + scl[1]*xd + scl[2]
-
-    rat_v = rat[0]*xd + rat[1]
-    if rat_v < 0.:
-        rat_v = 0.
-
-    tns_v = tns[0]*xd + tns[1]
-    if tns_v < 0.:
-        tns_v = 0.
-
-    return men_v,spr_v,scl_v,rat_v,tns_v
+    exec(dtsr)
+    exec(dsol)
+    return f1*f2
 
 
 
-def starccm_read(fdata,dia,windd,opt_print):
-    for q in range(30):
-        name = str(q+1)
-        exec('pos'+name+'d = np.array([])')
-        exec('velo'+name+'d = np.array([])')
+def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3):
+
+    sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(sdv1)*exp(-sdv1*exp(sdv2*dn))+sdv4
+
+    spr_v = spr3*spr2*spr1*exp(spr2*dn)*exp(spr1)*exp(-spr1*exp(spr2*dn))+spr4
+    # spr_v = 1.
+
+    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat*fabs((lat/spr_v))-tns)))
+    f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(scl1)*exp(-scl1*exp(scl2*dn))
+
+    return f1*f2 + 1.
+
+
+
+def starccm_read(fdata,dia,windd,length,opt_print):
+    start = length/30.
+    lendat =  np.linspace(start,length,30)/dia
 
     for j in range(np.size(fdata)):
         for k in range(30):
@@ -195,9 +188,12 @@ def starccm_read(fdata,dia,windd,opt_print):
             print 'Imported Data Set',j+1
         # print 'DATA IMPORTED'
 
-
+        posdn = np.array([])
+        poslt = np.array([])
+        velod = np.array([])
         for i in range(30):
             name = str(i+1)
+            ind = str(i)
 
             #Ordering the data numerically by the position
             exec('pos'+name+', velo'+name+' = (list(t) for t in zip(*sorted(zip(pos'+name+', velo'+name+'))))')
@@ -207,9 +203,10 @@ def starccm_read(fdata,dia,windd,opt_print):
             exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif pos'+name+'[j] > 5. or pos'+name+'[j] < -5.:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
             #Deleting values greater than 1*wind
             exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif velo'+name+'[j] > 1. or fabs(pos'+name+'[j]) > 1.2:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
-            exec('pos'+name+'d = np.append(pos'+name+'d,pos'+name+')\nvelo'+name+'d = np.append(velo'+name+'d,velo'+name+')')
+            exec('lensize = np.size(pos'+name+')')
+            exec('posdn = np.append(posdn,np.ones(lensize)*lendat['+ind+'])\nposlt = np.append(poslt,pos'+name+')\nvelod = np.append(velod,velo'+name+')')
 
-    return pos1d,pos2d,pos3d,pos4d,pos5d,pos6d,pos7d,pos8d,pos9d,pos10d,pos11d,pos12d,pos13d,pos14d,pos15d,pos16d,pos17d,pos18d,pos19d,pos20d,pos21d,pos22d,pos23d,pos24d,pos25d,pos26d,pos27d,pos28d,pos29d,pos30d,velo1d,velo2d,velo3d,velo4d,velo5d,velo6d,velo7d,velo8d,velo9d,velo10d,velo11d,velo12d,velo13d,velo14d,velo15d,velo16d,velo17d,velo18d,velo19d,velo20d,velo21d,velo22d,velo23d,velo24d,velo25d,velo26d,velo27d,velo28d,velo29d,velo30d
+    return posdn,poslt,velod
 
 
 def obj_func(xdict):
@@ -217,21 +214,329 @@ def obj_func(xdict):
         for t in range(23):
             sname = str(s+1)
             tname = str(t+1)
-            exec('global xds'+sname+'t'+tname)
-            for d in range(30):
-                exec('global ')
+            exec('global posdns'+sname+'t'+tname)
+            exec('global poslts'+sname+'t'+tname)
+            exec('global velods'+sname+'t'+tname)
 
+    ment = xdict['ment']
+    sdv1t = xdict['sdv1t']
+    sdv2t = xdict['sdv2t']
+    sdv3t = xdict['sdv3t']
+    sdv4t = xdict['sdv4t']
+    ratt = xdict['ratt']
+    tnst = xdict['tnst']
+    spr1t = xdict['spr1t']
+    spr2t = xdict['spr2t']
+    spr3t = xdict['spr3t']
+    spr4t = xdict['spr4t']
+    scl1t = xdict['scl1t']
+    scl2t = xdict['scl2t']
+    scl3t = xdict['scl3t']
 
+    mens = xdict['mens']
+    sdv1s = xdict['sdv1s']
+    sdv2s = xdict['sdv2s']
+    sdv3s = xdict['sdv3s']
+    sdv4s = xdict['sdv4s']
+    rats = xdict['rats']
+    tnss = xdict['tnss']
+    spr1s = xdict['spr1s']
+    spr2s = xdict['spr2s']
+    spr3s = xdict['spr3s']
+    spr4s = xdict['spr4s']
+    scl1s = xdict['scl1s']
+    scl2s = xdict['scl2s']
+    scl3s = xdict['scl3s']
 
+    funcs = {}
 
+    error = 0.
+    tsrd = np.linspace(1.5,7.,23)
+    sold = np.array([0.15,0.25,0.5,0.75,1.0])
+    for s in range(5):
+        for t in range(23):
+            sname = str(s+1)
+            tname = str(t+1)
+            xt = tsrd[t]
+            ys = sold[s]
+            men = overlay(xt,ys,ment,mens)
+            sdv1 = overlay(xt,ys,sdv1t,sdv1s)
+            sdv2 = overlay(xt,ys,sdv2t,sdv2s)
+            sdv3 = overlay(xt,ys,sdv3t,sdv3s)
+            sdv4 = overlay(xt,ys,sdv4t,sdv4s)
+            rat = overlay(xt,ys,ratt,rats)
+            tns = overlay(xt,ys,tnst,tnss)
+            spr1 = overlay(xt,ys,spr1t,spr1s)
+            spr2 = overlay(xt,ys,spr2t,spr2s)
+            spr3 = overlay(xt,ys,spr3t,spr3s)
+            spr4 = overlay(xt,ys,spr4t,spr4s)
+            scl1 = overlay(xt,ys,scl1t,scl1s)
+            scl2 = overlay(xt,ys,scl2t,scl2s)
+            scl3 = overlay(xt,ys,scl3t,scl3s)
 
+            exec('for i in range(np.size(posdns'+sname+'t'+tname+')):\n\tif posdns'+sname+'t'+tname+'[i] > 0.58:\n\t\tvel = veldist(posdns'+sname+'t'+tname+'[i],poslts'+sname+'t'+tname+'[i],men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3)\n\t\terror = error + (vel-velods'+sname+'t'+tname+'[i])**2')
 
+    funcs['obj'] = error
 
     fail = False
 
     return funcs, fail
 
+if __name__ == "__main__":
 
+    comp = 'mac'
+    opt_print = True
+    read_data = 4
+
+    for s in range(5):
+        for t in range(23):
+            sname = str(s+1)
+            tname = str(t+1)
+            exec('global posdns'+sname+'t'+tname)
+            exec('global poslts'+sname+'t'+tname)
+            exec('global velods'+sname+'t'+tname)
+
+
+    s1length = np.array([210,210,205,196,185,178,170,165,160,145,140,123,115,112,108,101,101,90,85,80,78,75,70])
+    s2length = np.array([197,193,185,176,140,146,126,114,103,96,100,86,77,72,70,68,60,64,54,50,47,45,44])
+    s3length = np.array([185,150,100,95,83,76,72,63,60,49,50,41,39,36,34,33,30,31,28,30,29,28,27])
+    s4length = np.array([145,100,73,60,53,44,42,37,38,30,33,26,22,24,23,21,21,19,24,23,22,21,20])
+    s5length = np.array([78,70,52,43,37,32,29,27,26,23,20,20,23,21,20,19,19,18,18,16,16,15,14])
+    solidity = np.array(['s1','s2','s3','s4','s5'])
+    tsr = np.linspace(150,700,23)
+
+    s = np.array([])
+    t = np.array([])
+    for i in range(np.size(solidity)):
+        for j in range(np.size(tsr)):
+            s = np.append(s,solidity[i])
+            t = np.append(t,str(int(tsr[j])))
+
+    slength = np.array([])
+    slength = np.append(slength,s1length)
+    slength = np.append(slength,s2length)
+    slength = np.append(slength,s3length)
+    slength = np.append(slength,s4length)
+    slength = np.append(slength,s5length)
+    slength = slength*1.
+
+    q = 0
+    for i in range(5):
+        for j in range(23):
+            sname = str(i+1)
+            tname = str(j+1)
+
+            t2 = t[q]+'.0'
+
+            wfit = s[q]+'_'+t2
+            wfit2 = s[q]+'_'+t2
+            wfit3 = s[q]+'_'+t2
+            wfit4 = s[q]+'_'+t2
+            wfit5 = s[q]+'_'+t2
+            wfit6 = s[q]+'_'+t2
+
+            length2 = slength[q]
+            length3 = slength[q]
+            length4 = slength[q]
+            length5 = slength[q]
+            length6 = slength[q]
+            wind = 15.
+            wind2 = 14.
+            wind3 = 12.
+            wind4 = 16.
+
+            rad = 3.
+            dia = rad*2.
+            tsr = float(wfit[3]+'.'+wfit[4]+wfit[5])
+            rot = tsr*wind/rad
+            rot2 = tsr*wind2/rad
+            rot3 = tsr*wind3/rad
+            rot4 = tsr*wind4/rad
+            rot5 = 17.
+            rot6 = 18.
+            wind5 = rot5*rad/tsr
+            wind6 = rot6*rad/tsr
+
+            if comp == 'mac':
+                # fdata = '/Users/ning1/Documents/Flow Lab/STAR-CCM+/NACA0021/MoveForward/test.csv'
+                fdata = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/Velocity Sections/'+wfit+'.csv'
+                fdata2 = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/CrossValidate/vel14/Velocity/'+wfit2+'.csv'
+                fdata3 = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/CrossValidate/vel12/Velocity/'+wfit3+'.csv'
+                fdata4 = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/CrossValidate/vel16/Velocity/'+wfit4+'.csv'
+                fdata5 = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/CrossValidate/rot17/Velocity/'+wfit5+'.csv'
+                fdata6 = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/CrossValidate/rot18/Velocity/'+wfit6+'.csv'
+            elif comp == 'fsl':
+                fdata = '/fslhome/ebtingey/compute/moveForward/Velocity/'+wfit+'.csv'
+                fdata2 = '/fslhome/ebtingey/compute/moveForward/vel14/Velocity/'+wfit2+'.csv'
+                fdata3 = '/fslhome/ebtingey/compute/moveForward/vel12/Velocity/'+wfit3+'.csv'
+                fdata4 = '/fslhome/ebtingey/compute/moveForward/vel16/Velocity/'+wfit4+'.csv'
+                fdata5 = '/fslhome/ebtingey/compute/moveForward/rot17/Velocity/'+wfit5+'.csv'
+                fdata6 = '/fslhome/ebtingey/compute/moveForward/rot18/Velocity/'+wfit6+'.csv'
+
+            if read_data ==1:
+                posdn,poslt,velod = starccm_read(np.array([fdata]),dia,np.array([wind]),slength[q],opt_print)
+            if read_data ==2:
+                posdn,poslt,velod = starccm_read(np.array([fdata,fdata2]),dia,np.array([wind,wind2]),slength[q],opt_print)
+            if read_data ==3:
+                posdn,poslt,velod = starccm_read(np.array([fdata,fdata2,fdata3]),dia,np.array([wind,wind2,wind3]),slength[q],opt_print)
+            if read_data ==4:
+                posdn,poslt,velod = starccm_read(np.array([fdata,fdata2,fdata3,fdata4]),dia,np.array([wind,wind2,wind3,wind4]),slength[q],opt_print)
+            if read_data ==5:
+                posdn,poslt,velod = starccm_read(np.array([fdata,fdata2,fdata3,fdata4,fdata5]),dia,np.array([wind,wind2,wind3,wind4,wind5]),slength[q],opt_print)
+            if read_data ==6:
+                posdn,poslt,velod = starccm_read(np.array([fdata,fdata2,fdata3,fdata4,fdata5,fdata6]),dia,np.array([wind,wind2,wind3,wind4,wind5,wind6]),slength[q],opt_print)
+
+            exec('posdns'+sname+'t'+tname+' = posdn')
+            exec('poslts'+sname+'t'+tname+' = poslt')
+            exec('velods'+sname+'t'+tname+' = velod')
+
+            print t[q],s[q]
+            q += 1
+
+    # Optimization
+    optProb = Optimization('VAWTWake_Sheet', obj_func)
+    optProb.addObj('obj')
+
+    ordt = 5
+    ords = 3
+
+    ment0 = np.linspace(1,1,ordt)
+    sdv1t0 = np.linspace(1,1,ordt)
+    sdv2t0 = np.linspace(1,1,ordt)
+    sdv3t0 = np.linspace(1,1,ordt)
+    sdv4t0 = np.linspace(1,1,ordt)
+    ratt0 = np.linspace(1,1,ordt)
+    tnst0 = np.linspace(1,1,ordt)
+    spr1t0 = np.linspace(1,1,ordt)
+    spr2t0 = np.linspace(1,1,ordt)
+    spr3t0 = np.linspace(1,1,ordt)
+    spr4t0 = np.linspace(1,1,ordt)
+    scl1t0 = np.linspace(1,1,ordt)
+    scl2t0 = np.linspace(1,1,ordt)
+    scl3t0 = np.linspace(1,1,ordt)
+
+    mens0 = np.linspace(1,1,ords)
+    sdv1s0 = np.linspace(1,1,ords)
+    sdv2s0 = np.linspace(1,1,ords)
+    sdv3s0 = np.linspace(1,1,ords)
+    sdv4s0 = np.linspace(1,1,ords)
+    rats0 = np.linspace(1,1,ords)
+    tnss0 = np.linspace(1,1,ords)
+    spr1s0 = np.linspace(1,1,ords)
+    spr2s0 = np.linspace(1,1,ords)
+    spr3s0 = np.linspace(1,1,ords)
+    spr4s0 = np.linspace(1,1,ords)
+    scl1s0 = np.linspace(1,1,ords)
+    scl2s0 = np.linspace(1,1,ords)
+    scl3s0 = np.linspace(1,1,ords)
+
+    optProb.addVarGroup('ment', ordt, 'c', lower=None, upper=None, value=ment0)
+    optProb.addVarGroup('sdv1t', ordt, 'c', lower=None, upper=None, value=sdv1t0)
+    optProb.addVarGroup('sdv2t', ordt, 'c', lower=None, upper=None, value=sdv2t0)
+    optProb.addVarGroup('sdv3t', ordt, 'c', lower=None, upper=None, value=sdv3t0)
+    optProb.addVarGroup('sdv4t', ordt, 'c', lower=None, upper=None, value=sdv4t0)
+    optProb.addVarGroup('ratt', ordt, 'c', lower=None, upper=None, value=ratt0)
+    optProb.addVarGroup('tnst', ordt, 'c', lower=None, upper=None, value=tnst0)
+    optProb.addVarGroup('spr1t', ordt, 'c', lower=None, upper=None, value=spr1t0)
+    optProb.addVarGroup('spr2t', ordt, 'c', lower=None, upper=None, value=spr2t0)
+    optProb.addVarGroup('spr3t', ordt, 'c', lower=None, upper=None, value=spr3t0)
+    optProb.addVarGroup('spr4t', ordt, 'c', lower=None, upper=None, value=spr4t0)
+    optProb.addVarGroup('scl1t', ordt, 'c', lower=None, upper=None, value=scl1t0)
+    optProb.addVarGroup('scl2t', ordt, 'c', lower=None, upper=None, value=scl2t0)
+    optProb.addVarGroup('scl3t', ordt, 'c', lower=None, upper=None, value=scl3t0)
+
+    optProb.addVarGroup('mens', ords, 'c', lower=None, upper=None, value=mens0)
+    optProb.addVarGroup('sdv1s', ords, 'c', lower=None, upper=None, value=sdv1s0)
+    optProb.addVarGroup('sdv2s', ords, 'c', lower=None, upper=None, value=sdv2s0)
+    optProb.addVarGroup('sdv3s', ords, 'c', lower=None, upper=None, value=sdv3s0)
+    optProb.addVarGroup('sdv4s', ords, 'c', lower=None, upper=None, value=sdv4s0)
+    optProb.addVarGroup('rats', ords, 'c', lower=None, upper=None, value=rats0)
+    optProb.addVarGroup('tnss', ords, 'c', lower=None, upper=None, value=tnss0)
+    optProb.addVarGroup('spr1s', ords, 'c', lower=None, upper=None, value=spr1s0)
+    optProb.addVarGroup('spr2s', ords, 'c', lower=None, upper=None, value=spr2s0)
+    optProb.addVarGroup('spr3s', ords, 'c', lower=None, upper=None, value=spr3s0)
+    optProb.addVarGroup('spr4s', ords, 'c', lower=None, upper=None, value=spr4s0)
+    optProb.addVarGroup('scl1s', ords, 'c', lower=None, upper=None, value=scl1s0)
+    optProb.addVarGroup('scl2s', ords, 'c', lower=None, upper=None, value=scl2s0)
+    optProb.addVarGroup('scl3s', ords, 'c', lower=None, upper=None, value=scl3s0)
+
+
+    opt = SNOPT()
+    opt.setOption('Scale option',0)
+    if comp == 'mac':
+        opt.setOption('Print file','/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/data/OptSheet/SNOPT_print.out')
+        opt.setOption('Summary file','/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/data/OptSheet/SNOPT_summary.out')
+    elif comp == 'fsl':
+        opt.setOption('Print file','/fslhome/ebtingey/compute/VAWTWakeModel/SNOPT_OptSheet_print.out')
+        opt.setOption('Summary file','/fslhome/ebtingey/compute/VAWTWakeModel/SNOPT_OptSheet_summary.out')
+    res = opt(optProb, sens=None)
+    if opt_print == True:
+        print res
+
+    error = res.fStar
+
+    mentf = res.xStar['ment']
+    sdv1tf = res.xStar['sdv1t']
+    sdv2tf = res.xStar['sdv2t']
+    sdv3tf = res.xStar['sdv3t']
+    sdv4tf = res.xStar['sdv4t']
+    rattf = res.xStar['ratt']
+    tnstf = res.xStar['tnst']
+    spr1tf = res.xStar['spr1t']
+    spr2tf = res.xStar['spr2t']
+    spr3tf = res.xStar['spr3t']
+    spr4tf = res.xStar['spr4t']
+    scl1tf = res.xStar['scl1t']
+    scl2tf = res.xStar['scl2t']
+    scl3tf = res.xStar['scl3t']
+
+    mensf = res.xStar['mens']
+    sdv1sf = res.xStar['sdv1s']
+    sdv2sf = res.xStar['sdv2s']
+    sdv3sf = res.xStar['sdv3s']
+    sdv4sf = res.xStar['sdv4s']
+    ratsf = res.xStar['rats']
+    tnssf = res.xStar['tnss']
+    spr1sf = res.xStar['spr1s']
+    spr2sf = res.xStar['spr2s']
+    spr3sf = res.xStar['spr3s']
+    spr4sf = res.xStar['spr4s']
+    scl1sf = res.xStar['scl1s']
+    scl2sf = res.xStar['scl2s']
+    scl3sf = res.xStar['scl3s']
+
+    print '\n'
+    print 'Total Error:',error,'\n'
+
+    print 'ment = np.array(',mentf.tolist(),')'
+    print 'sdv1t = np.array(',sdv1tf.tolist(),')'
+    print 'sdv2t = np.array(',sdv2tf.tolist(),')'
+    print 'sdv3t = np.array(',sdv3tf.tolist(),')'
+    print 'sdv4t = np.array(',sdv4tf.tolist(),')'
+    print 'ratt = np.array(',rattf.tolist(),')'
+    print 'tnst = np.array(',tnstf.tolist(),')'
+    print 'spr1t = np.array(',spr1tf.tolist(),')'
+    print 'spr2t = np.array(',spr2tf.tolist(),')'
+    print 'spr3t = np.array(',spr3tf.tolist(),')'
+    print 'spr4t = np.array(',spr4tf.tolist(),')'
+    print 'scl1t = np.array(',scl1tf.tolist(),')'
+    print 'scl2t = np.array(',scl2tf.tolist(),')'
+    print 'scl3t = np.array(',scl3tf.tolist(),')'
+
+    print 'mens = np.array(',mensf.tolist(),')'
+    print 'sdv1s = np.array(',sdv1sf.tolist(),')'
+    print 'sdv2s = np.array(',sdv2sf.tolist(),')'
+    print 'sdv3s = np.array(',sdv3sf.tolist(),')'
+    print 'sdv4s = np.array(',sdv4sf.tolist(),')'
+    print 'rats = np.array(',ratsf.tolist(),')'
+    print 'tnss = np.array(',tnssf.tolist(),')'
+    print 'spr1s = np.array(',spr1sf.tolist(),')'
+    print 'spr2s = np.array(',spr2sf.tolist(),')'
+    print 'spr3s = np.array(',spr3sf.tolist(),')'
+    print 'spr4s = np.array(',spr4sf.tolist(),')'
+    print 'scl1s = np.array(',scl1sf.tolist(),')'
+    print 'scl2s = np.array(',scl2sf.tolist(),')'
+    print 'scl3s = np.array(',scl3sf.tolist(),')'
 
 
 

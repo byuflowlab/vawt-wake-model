@@ -235,8 +235,10 @@ if rom == True:
             param = np.array([loc,spr,skw,scl])
             
         elif cfd_data == 'velo':
-            men,spr,scl,rat,tns = velocity(tsr,sol)
-            param = np.array([men,spr,scl,rat,tns])
+            # men,spr,scl,rat,tns = velocity(tsr,sol)
+            # param = np.array([men,spr,scl,rat,tns])
+            men,sdv,rat,spr,scl1,scl2,scl3 = velocity(tsr,sol)
+            param = np.array([men,sdv,rat,spr,scl1,scl2,scl3])
             
         elif cfd_data == 'quad':
             scl,trn = quad(tsr,sol)

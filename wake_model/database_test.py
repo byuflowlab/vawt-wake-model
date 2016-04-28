@@ -11,6 +11,7 @@ from scipy.interpolate import RectBivariateSpline
 # print velocity(4.,0.25)
 type = 'vort'
 type = 'velo'
+type = 'velo2'
 # type = 'quad'
 
 
@@ -197,6 +198,107 @@ elif type == 'velo':
         plt.plot(solidity,tns11)
         plt.subplot(4,5,10)
         plt.plot(solidity,tns22)
+
+
+elif type == 'velo2':
+    for k in range(np.size(solidity)):
+        men = np.zeros_like(tsr)
+        sdv = np.zeros_like(tsr)
+        rat = np.zeros_like(tsr)
+        spr = np.zeros_like(tsr)
+        scl1 = np.zeros_like(tsr)
+        scl2 = np.zeros_like(tsr)
+        scl3 = np.zeros_like(tsr)
+
+        for i in range(np.size(tsr)):
+            mend,sdvd,ratd,sprd,scl1d,scl2d,scl3d = velocity(tsr[i],solidity[k])
+            men[i] = mend
+            sdv[i] = sdvd
+            rat[i] = ratd
+            spr[i] = sprd
+            scl1[i] = scl1d
+            scl2[i] = scl2d
+            scl3[i] = scl3d
+
+        plt.figure()
+        plt.subplot(4,2,1)
+        plt.plot(tsr,men,col[k])
+        plt.subplot(4,2,3)
+        plt.plot(tsr,sdv,col[k])
+        plt.subplot(4,2,5)
+        plt.plot(tsr,rat,col[k])
+        plt.subplot(4,2,7)
+        plt.plot(tsr,spr,col[k])
+        plt.subplot(4,2,2)
+        plt.plot(tsr,scl1,col[k])
+        plt.subplot(4,2,4)
+        plt.plot(tsr,scl2,col[k])
+        plt.subplot(4,2,6)
+        plt.plot(tsr,scl3,col[k])
+
+
+    # for k in range(15):
+    #     men11 = np.zeros_like(solidity)
+    #     men22 = np.zeros_like(solidity)
+    #     men33 = np.zeros_like(solidity)
+    #     spr11 = np.zeros_like(solidity)
+    #     spr22 = np.zeros_like(solidity)
+    #     spr33 = np.zeros_like(solidity)
+    #     spr44 = np.zeros_like(solidity)
+    #     scl11 = np.zeros_like(solidity)
+    #     scl22 = np.zeros_like(solidity)
+    #     scl33 = np.zeros_like(solidity)
+    #     rat11 = np.zeros_like(solidity)
+    #     rat22 = np.zeros_like(solidity)
+    #     tns11 = np.zeros_like(solidity)
+    #     tns22 = np.zeros_like(solidity)
+    #
+    #     for i in range(np.size(solidity)):
+    #         men,spr,scl,rat,tns = velocity(tsr[k],solidity[i])
+    #         men11[i] = men[0]
+    #         men22[i] = men[1]
+    #         men33[i] = men[2]
+    #         spr11[i] = spr[0]
+    #         spr22[i] = spr[1]
+    #         spr33[i] = spr[2]
+    #         spr44[i] = spr[3]
+    #         scl11[i] = scl[0]
+    #         scl22[i] = scl[1]
+    #         scl33[i] = scl[2]
+    #         rat11[i] = rat[0]
+    #         rat22[i] = rat[1]
+    #         tns11[i] = tns[0]
+    #         tns22[i] = tns[1]
+    #
+    #     plt.figure()
+    #     plt.subplot(4,5,1)
+    #     plt.plot(solidity,men11)
+    #     plt.subplot(4,5,6)
+    #     plt.plot(solidity,men22)
+    #     plt.subplot(4,5,11)
+    #     plt.plot(solidity,men33)
+    #     plt.subplot(4,5,2)
+    #     plt.plot(solidity,spr11)
+    #     plt.subplot(4,5,7)
+    #     plt.plot(solidity,spr22)
+    #     plt.subplot(4,5,12)
+    #     plt.plot(solidity,spr33)
+    #     plt.subplot(4,5,17)
+    #     plt.plot(solidity,spr44)
+    #     plt.subplot(4,5,3)
+    #     plt.plot(solidity,scl11)
+    #     plt.subplot(4,5,8)
+    #     plt.plot(solidity,scl22)
+    #     plt.subplot(4,5,13)
+    #     plt.plot(solidity,scl33)
+    #     plt.subplot(4,5,4)
+    #     plt.plot(solidity,rat11)
+    #     plt.subplot(4,5,9)
+    #     plt.plot(solidity,rat22)
+    #     plt.subplot(4,5,5)
+    #     plt.plot(solidity,tns11)
+    #     plt.subplot(4,5,10)
+    #     plt.plot(solidity,tns22)
 
     
 elif type == 'quad':

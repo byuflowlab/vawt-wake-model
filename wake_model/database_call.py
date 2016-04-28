@@ -155,7 +155,7 @@ def velocity(tsr, solidity):
     # Reading in csv file (vorticity database)
     basepath = path.join(path.dirname(path.realpath(__file__)), 'data')
     # fdata = basepath + path.sep + 'velodatabase_SMG.csv'
-    fdata = basepath + path.sep + 'velodatabase_SMG4.csv'
+    fdata = basepath + path.sep + 'velodatabase_SMG_surf.csv'
     f = open(fdata)
     csv_f = csv.reader(f)
     
@@ -184,7 +184,8 @@ def velocity(tsr, solidity):
     for i in range(np.size(sol_d)):
         sol = str(i+1)
         
-        exec('s'+sol+'_men1 = velodat[i*14]\ns'+sol+'_men2 = velodat[i*14+1]\ns'+sol+'_men3 = velodat[i*14+2]\ns'+sol+'_spr1 = velodat[i*14+3]\ns'+sol+'_spr2 = velodat[i*14+4]\ns'+sol+'_spr3 = velodat[i*14+5]\ns'+sol+'_spr4 = velodat[i*14+6]\ns'+sol+'_scl1 = velodat[i*14+7]\ns'+sol+'_scl2 = velodat[i*14+8]\ns'+sol+'_scl3 = velodat[i*14+9]\ns'+sol+'_rat1 = velodat[i*14+10]\ns'+sol+'_rat2 = velodat[i*14+11]\ns'+sol+'_tns1 = velodat[i*14+12]\ns'+sol+'_tns2 = velodat[i*14+13]\n')
+        # exec('s'+sol+'_men1 = velodat[i*14]\ns'+sol+'_men2 = velodat[i*14+1]\ns'+sol+'_men3 = velodat[i*14+2]\ns'+sol+'_spr1 = velodat[i*14+3]\ns'+sol+'_spr2 = velodat[i*14+4]\ns'+sol+'_spr3 = velodat[i*14+5]\ns'+sol+'_spr4 = velodat[i*14+6]\ns'+sol+'_scl1 = velodat[i*14+7]\ns'+sol+'_scl2 = velodat[i*14+8]\ns'+sol+'_scl3 = velodat[i*14+9]\ns'+sol+'_rat1 = velodat[i*14+10]\ns'+sol+'_rat2 = velodat[i*14+11]\ns'+sol+'_tns1 = velodat[i*14+12]\ns'+sol+'_tns2 = velodat[i*14+13]\n')
+        exec('s'+sol+'_men = velodat[i*7]\ns'+sol+'_sdv = velodat[i*7+1]\ns'+sol+'_rat = velodat[i*7+2]\ns'+sol+'_spr = velodat[i*7+3]\ns'+sol+'_scl1 = velodat[i*7+4]\ns'+sol+'_scl2 = velodat[i*7+5]\ns'+sol+'_scl3 = velodat[i*7+6]')
 
     spline = True
     # spline = False
@@ -198,39 +199,53 @@ def velocity(tsr, solidity):
         jz = np.size(tsr_d)
 
         # Initializing rectangular matrices
-        z_men1 = np.zeros((iz,  jz))
-        z_men2 = np.zeros((iz, jz))
-        z_men3 = np.zeros((iz, jz))
-        z_spr1 = np.zeros((iz, jz))
-        z_spr2 = np.zeros((iz, jz))
-        z_spr3 = np.zeros((iz, jz))
-        z_spr4 = np.zeros((iz, jz))
-        z_scl1 = np.zeros((iz, jz))
-        z_scl2 = np.zeros((iz, jz))
-        z_scl3 = np.zeros((iz, jz))
-        z_rat1 = np.zeros((iz, jz))
-        z_rat2 = np.zeros((iz, jz))
-        z_tns1 = np.zeros((iz, jz))
-        z_tns2 = np.zeros((iz, jz))
+        # z_men1 = np.zeros((iz,  jz))
+        # z_men2 = np.zeros((iz, jz))
+        # z_men3 = np.zeros((iz, jz))
+        # z_spr1 = np.zeros((iz, jz))
+        # z_spr2 = np.zeros((iz, jz))
+        # z_spr3 = np.zeros((iz, jz))
+        # z_spr4 = np.zeros((iz, jz))
+        # z_scl1 = np.zeros((iz, jz))
+        # z_scl2 = np.zeros((iz, jz))
+        # z_scl3 = np.zeros((iz, jz))
+        # z_rat1 = np.zeros((iz, jz))
+        # z_rat2 = np.zeros((iz, jz))
+        # z_tns1 = np.zeros((iz, jz))
+        # z_tns2 = np.zeros((iz, jz))
+        z_men = np.zeros((iz,  jz))
+        z_sdv = np.zeros((iz,  jz))
+        z_rat = np.zeros((iz,  jz))
+        z_spr = np.zeros((iz,  jz))
+        z_scl1 = np.zeros((iz,  jz))
+        z_scl2 = np.zeros((iz,  jz))
+        z_scl3 = np.zeros((iz,  jz))
 
         # Transferring raw data into rectangular matrices
         for i in range(iz):
             for j in range(jz):
                 sol = str(i+1)
-                exec('z_men1[i,j] = s'+sol+'_men1[j]')
-                exec('z_men2[i,j] = s'+sol+'_men2[j]')
-                exec('z_men3[i,j] = s'+sol+'_men3[j]')
-                exec('z_spr1[i,j] = s'+sol+'_spr1[j]')
-                exec('z_spr2[i,j] = s'+sol+'_spr2[j]')
-                exec('z_spr3[i,j] = s'+sol+'_spr3[j]')
-                exec('z_spr4[i,j] = s'+sol+'_spr4[j]')
+                # exec('z_men1[i,j] = s'+sol+'_men1[j]')
+                # exec('z_men2[i,j] = s'+sol+'_men2[j]')
+                # exec('z_men3[i,j] = s'+sol+'_men3[j]')
+                # exec('z_spr1[i,j] = s'+sol+'_spr1[j]')
+                # exec('z_spr2[i,j] = s'+sol+'_spr2[j]')
+                # exec('z_spr3[i,j] = s'+sol+'_spr3[j]')
+                # exec('z_spr4[i,j] = s'+sol+'_spr4[j]')
+                # exec('z_scl1[i,j] = s'+sol+'_scl1[j]')
+                # exec('z_scl2[i,j] = s'+sol+'_scl2[j]')
+                # exec('z_scl3[i,j] = s'+sol+'_scl3[j]')
+                # exec('z_rat1[i,j] = s'+sol+'_rat1[j]')
+                # exec('z_rat2[i,j] = s'+sol+'_rat2[j]')
+                # exec('z_tns1[i,j] = s'+sol+'_tns1[j]')
+                # exec('z_tns2[i,j] = s'+sol+'_tns2[j]')
+                exec('z_men[i,j] = s'+sol+'_men[j]')
+                exec('z_sdv[i,j] = s'+sol+'_sdv[j]')
+                exec('z_rat[i,j] = s'+sol+'_rat[j]')
+                exec('z_spr[i,j] = s'+sol+'_spr[j]')
                 exec('z_scl1[i,j] = s'+sol+'_scl1[j]')
                 exec('z_scl2[i,j] = s'+sol+'_scl2[j]')
                 exec('z_scl3[i,j] = s'+sol+'_scl3[j]')
-                exec('z_rat1[i,j] = s'+sol+'_rat1[j]')
-                exec('z_rat2[i,j] = s'+sol+'_rat2[j]')
-                exec('z_tns1[i,j] = s'+sol+'_tns1[j]')
-                exec('z_tns2[i,j] = s'+sol+'_tns2[j]')
 
         # Creating a rectangular bivariate spline of the parameter data
         # if tsr > 2.:
@@ -239,46 +254,60 @@ def velocity(tsr, solidity):
         # else:
         #     xs = 1
         #     ys = 1
-        xs = 3
-        ys = 3
+        xs = 1
+        ys = 1
         sm = 0
-        s_men1 = RectBivariateSpline(sol_d, tsr_d, z_men1, kx=xs, ky=ys, s=sm)
-        s_men2 = RectBivariateSpline(sol_d, tsr_d, z_men2, kx=xs, ky=ys, s=sm)
-        s_men3 = RectBivariateSpline(sol_d, tsr_d, z_men3, kx=xs, ky=ys, s=sm)
-        s_spr1 = RectBivariateSpline(sol_d, tsr_d, z_spr1, kx=xs, ky=ys, s=sm)
-        s_spr2 = RectBivariateSpline(sol_d, tsr_d, z_spr2, kx=xs, ky=ys, s=sm)
-        s_spr3 = RectBivariateSpline(sol_d, tsr_d, z_spr3, kx=xs, ky=ys, s=sm)
-        s_spr4 = RectBivariateSpline(sol_d, tsr_d, z_spr4, kx=xs, ky=ys, s=sm)
+        # s_men1 = RectBivariateSpline(sol_d, tsr_d, z_men1, kx=xs, ky=ys, s=sm)
+        # s_men2 = RectBivariateSpline(sol_d, tsr_d, z_men2, kx=xs, ky=ys, s=sm)
+        # s_men3 = RectBivariateSpline(sol_d, tsr_d, z_men3, kx=xs, ky=ys, s=sm)
+        # s_spr1 = RectBivariateSpline(sol_d, tsr_d, z_spr1, kx=xs, ky=ys, s=sm)
+        # s_spr2 = RectBivariateSpline(sol_d, tsr_d, z_spr2, kx=xs, ky=ys, s=sm)
+        # s_spr3 = RectBivariateSpline(sol_d, tsr_d, z_spr3, kx=xs, ky=ys, s=sm)
+        # s_spr4 = RectBivariateSpline(sol_d, tsr_d, z_spr4, kx=xs, ky=ys, s=sm)
+        # s_scl1 = RectBivariateSpline(sol_d, tsr_d, z_scl1, kx=xs, ky=ys, s=sm)
+        # s_scl2 = RectBivariateSpline(sol_d, tsr_d, z_scl2, kx=xs, ky=ys, s=sm)
+        # s_scl3 = RectBivariateSpline(sol_d, tsr_d, z_scl3, kx=xs, ky=ys, s=sm)
+        # s_rat1 = RectBivariateSpline(sol_d, tsr_d, z_rat1, kx=xs, ky=ys, s=sm)
+        # s_rat2 = RectBivariateSpline(sol_d, tsr_d, z_rat2, kx=xs, ky=ys, s=sm)
+        # s_tns1 = RectBivariateSpline(sol_d, tsr_d, z_tns1, kx=xs, ky=ys, s=sm)
+        # s_tns2 = RectBivariateSpline(sol_d, tsr_d, z_tns2, kx=xs, ky=ys, s=sm)
+        s_men = RectBivariateSpline(sol_d, tsr_d, z_men, kx=xs, ky=ys, s=sm)
+        s_sdv = RectBivariateSpline(sol_d, tsr_d, z_sdv, kx=xs, ky=ys, s=sm)
+        s_rat = RectBivariateSpline(sol_d, tsr_d, z_rat, kx=xs, ky=ys, s=sm)
+        s_spr = RectBivariateSpline(sol_d, tsr_d, z_spr, kx=xs, ky=ys, s=sm)
         s_scl1 = RectBivariateSpline(sol_d, tsr_d, z_scl1, kx=xs, ky=ys, s=sm)
         s_scl2 = RectBivariateSpline(sol_d, tsr_d, z_scl2, kx=xs, ky=ys, s=sm)
         s_scl3 = RectBivariateSpline(sol_d, tsr_d, z_scl3, kx=xs, ky=ys, s=sm)
-        s_rat1 = RectBivariateSpline(sol_d, tsr_d, z_rat1, kx=xs, ky=ys, s=sm)
-        s_rat2 = RectBivariateSpline(sol_d, tsr_d, z_rat2, kx=xs, ky=ys, s=sm)
-        s_tns1 = RectBivariateSpline(sol_d, tsr_d, z_tns1, kx=xs, ky=ys, s=sm)
-        s_tns2 = RectBivariateSpline(sol_d, tsr_d, z_tns2, kx=xs, ky=ys, s=sm)
 
         # Selecting the specific parameters to use for TSR and solidity
-        men1 = s_men1(solidity, tsr)
-        men2 = s_men2(solidity, tsr)
-        men3 = s_men3(solidity, tsr)
-        spr1 = s_spr1(solidity, tsr)
-        spr2 = s_spr2(solidity, tsr)
-        spr3 = s_spr3(solidity, tsr)
-        spr4 = s_spr4(solidity, tsr)
+        # men1 = s_men1(solidity, tsr)
+        # men2 = s_men2(solidity, tsr)
+        # men3 = s_men3(solidity, tsr)
+        # spr1 = s_spr1(solidity, tsr)
+        # spr2 = s_spr2(solidity, tsr)
+        # spr3 = s_spr3(solidity, tsr)
+        # spr4 = s_spr4(solidity, tsr)
+        # scl1 = s_scl1(solidity, tsr)
+        # scl2 = s_scl2(solidity, tsr)
+        # scl3 = s_scl3(solidity, tsr)
+        # rat1 = s_rat1(solidity, tsr)
+        # rat2 = s_rat2(solidity, tsr)
+        # tns1 = s_tns1(solidity, tsr)
+        # tns2 = s_tns2(solidity, tsr)
+        men = s_men(solidity, tsr)
+        sdv = s_sdv(solidity, tsr)
+        rat = s_rat(solidity, tsr)
+        spr = s_spr(solidity, tsr)
         scl1 = s_scl1(solidity, tsr)
         scl2 = s_scl2(solidity, tsr)
         scl3 = s_scl3(solidity, tsr)
-        rat1 = s_rat1(solidity, tsr)
-        rat2 = s_rat2(solidity, tsr)
-        tns1 = s_tns1(solidity, tsr)
-        tns2 = s_tns2(solidity, tsr)
 
         # Creating arrays of the parameters
-        men = np.array([men1[0, 0], men2[0, 0], men3[0, 0]])
-        spr = np.array([spr1[0, 0], spr2[0, 0], spr3[0, 0], spr4[0, 0]])
-        scl = np.array([scl1[0, 0], scl2[0, 0], scl3[0, 0]])
-        rat = np.array([rat1[0, 0], rat2[0, 0]])
-        tns = np.array([tns1[0, 0], tns2[0, 0]])
+        # men = np.array([men1[0, 0], men2[0, 0], men3[0, 0]])
+        # spr = np.array([spr1[0, 0], spr2[0, 0], spr3[0, 0], spr4[0, 0]])
+        # scl = np.array([scl1[0, 0], scl2[0, 0], scl3[0, 0]])
+        # rat = np.array([rat1[0, 0], rat2[0, 0]])
+        # tns = np.array([tns1[0, 0], tns2[0, 0]])
 
     elif grid == True:
         iz = np.size(sol_d)
@@ -342,7 +371,8 @@ def velocity(tsr, solidity):
 
 
 
-    return men, spr, scl, rat, tns
+    # return men, spr, scl, rat, tns
+    return men, sdv, rat, spr, scl1, scl2, scl3
 
 
 def quad(tsr, solidity):

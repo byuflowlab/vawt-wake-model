@@ -101,33 +101,46 @@ def velocity_field(xt, yt, x0, y0, velf, dia, tsr, solidity, cfd_data, param):
         x0d = x0/dia
         y0d = y0/dia
 
+        # # Calculating SMG distribution parameters
+        # men = param[0]
+        # spr = param[1]
+        # scl = param[2]
+        # rat = param[3]
+        # tns = param[4]
+        #
+        # men_v = men[0]*x0d**2 + men[1]*x0d + men[2]
+        # if men_v > 1.5:
+        #     men_v = 1.5
+        # elif men_v < -1.5:
+        #     men_v = -1.5
+        #
+        # spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*x0d)*exp(spr[0])*exp(-spr[0]*exp(spr[1]*x0d)) + spr[3]
+        #
+        # scl_v = scl[2]*scl[1]*scl[0]*exp(scl[1]*x0d)*exp(scl[0])*exp(-scl[0]*exp(scl[1]*x0d))
+        #
+        # rat_v = rat[0]*x0d + rat[1]
+        # if rat_v < 0.:
+        #     rat_v = 0.
+        #
+        # tns_v = tns[0]*x0d + tns[1]
+        # if tns_v < 0.:
+        #     tns_v = 0.
+        #
+        # vel = (-scl_v/(spr_v*sqrt(2.*pi))*exp(-(y0d+men_v)**2/(2.*spr_v**2))) * \
+        #       (1./(1 + exp(rat_v*fabs(y0d)-tns_v))) + 1.  # Normal distribution with sigmoid weighting
+
         # Calculating SMG distribution parameters
         men = param[0]
-        spr = param[1]
-        scl = param[2]
-        rat = param[3]
-        tns = param[4]
+        sdv = param[1]
+        rat = param[2]
+        spr = param[3]
+        scl1 = param[4]
+        scl2 = param[5]
+        scl3 = param[6]
 
-        men_v = men[0]*x0d**2 + men[1]*x0d + men[2]
-        if men_v > 1.5:
-            men_v = 1.5
-        elif men_v < -1.5:
-            men_v = -1.5
-        
-        spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*x0d)*exp(spr[0])*exp(-spr[0]*exp(spr[1]*x0d)) + spr[3]
-        
-        scl_v = scl[2]*scl[1]*scl[0]*exp(scl[1]*x0d)*exp(scl[0])*exp(-scl[0]*exp(scl[1]*x0d))
-        
-        rat_v = rat[0]*x0d + rat[1]
-        if rat_v < 0.:
-            rat_v = 0.
-        
-        tns_v = tns[0]*x0d + tns[1]
-        if tns_v < 0.:
-            tns_v = 0.
-
-        vel = (-scl_v/(spr_v*sqrt(2.*pi))*exp(-(y0d+men_v)**2/(2.*spr_v**2))) * \
-              (1./(1 + exp(rat_v*fabs(y0d)-tns_v))) + 1.  # Normal distribution with sigmoid weighting
+        f1 = -1./(sdv*sqrt(2.*pi))*exp(-(y0d-men)**2/(2.*sdv**2))*(1./(1.+exp(rat*fabs(y0d)-spr)))
+        f2 = scl3*scl2*scl1*exp(scl2*x0d)*exp(scl1)*exp(-scl1*exp(scl2*x0d))
+        vel = f1*f2 + 1.
 
         if x0 < xt:
             vel = 1.  # Velocity is free stream in front and to the sides of the turbine
