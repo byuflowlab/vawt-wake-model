@@ -11,11 +11,11 @@ import database_call as dbc
 
 def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat1,bow4,spr1,bow1,bow2,bow3,scl1,scl2,scl3):
 
-    # bow = bow3*bow2*bow1*exp(bow2*dn)*exp(bow1)*exp(-bow1*exp(bow2*dn))+bow4
-    bow = 1.#bow1*dn**2+bow2*dn+bow3
+    bow = bow3*bow2*bow1*exp(bow2*dn)*exp(-bow1*exp(bow2*dn))#+bow4
+    # bow = 1.#bow1*dn**2+bow2*dn+bow3
 
-    # sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(sdv1)*exp(-sdv1*exp(sdv2*dn)) + sdv4
-    sdv_v = sdv1
+    sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(-sdv1*exp(sdv2*dn)) + sdv4
+    # sdv_v = sdv1
     rat_v = rat1#rat1*dn + rat2
     # spr_v = spr2#spr1*dn + spr2
     # spr_v = spr1*dn**2 + spr2*dn + spr3
@@ -495,7 +495,7 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     men0 = 0.
     sdv10 = 0.5
     sdv20 = 0.1
-    sdv30 = 20.
+    sdv30 = 10.
     sdv40 = 0.5
     rat0 = 10.
     spr0 = 10.
@@ -513,8 +513,11 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     param_l = np.array([None,0.,0.,0.,0.,None,0.,None,0.,0.,0.,0.])
     param_u = np.array([None,None,None,None,None,0.,None,0.,None,1.,1.,50.])
 
-    param_l = np.array([None,1e-8,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+    param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
     param_u = np.array([None,10.,1.,50.,None,None,None,None,1.,1.,50.,1.,1.,None])
+
+    # param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+    # param_u = np.array([None,None,None,None,None,None,None,None,None,None,None,1.,1.,None])
 
     # param_l = np.array([None,0.,0.,0.,0.,0.,None,0.,None,None,None,0.,0.,0.])
     # param_u = np.array([None,1.,1.,50.,None,None,None,None,None,None,None,1.,1.,50.])

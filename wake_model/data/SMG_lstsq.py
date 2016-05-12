@@ -9,8 +9,8 @@ import database_call as dbc
 
 
 def overlay(xt,ys,tsr,sol):
-    ntsr = np.size(tsr)
-    nsol = np.size(sol)
+    ntsr = np.size(tsr[0])
+    nsol = np.size(sol[0])
 
     dtsr = 'f1 = 0.'
     for i in range(ntsr):
@@ -276,12 +276,26 @@ def obj_func(xdict):
 
             exec('for i in range(np.size(posdns'+sname+'t'+tname+')):\n\tif posdns'+sname+'t'+tname+'[i] > 0.58:\n\t\tvel = veldist(posdns'+sname+'t'+tname+'[i],poslts'+sname+'t'+tname+'[i],men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3)\n\t\terror = error + (vel-velods'+sname+'t'+tname+'[i])**2')
 
-    # print error
+    print error
     funcs['obj'] = error
 
     fail = False
 
     return funcs, fail
+
+
+def Amat(posdn,poslt,tsr,sol):
+    fit = np.size(tsr*sol)
+
+    mat = np.zeros((posdn,fit))
+
+    for i in range(posdn):
+        for j in range(fit):
+            mat[i,j] =
+
+
+
+
 
 if __name__ == "__main__":
 

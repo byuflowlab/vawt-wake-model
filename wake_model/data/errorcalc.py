@@ -9,7 +9,7 @@ import csv
 
 velf = 15.0 # free stream wind speed (m/s)
 dia = 6.0  # turbine diameter (m)
-tsr = 3.5  # tip speed ratio
+tsr = 4.25  # tip speed ratio
 B = 3. # number of blades
 chord = 0.75 # chord lenth (m)
 solidity = (chord*B)/(dia/2.)
@@ -22,20 +22,39 @@ y0 = 0. # lateral position of velocity calculation from turbine (m)
 
 # Choose whether CFD vorticity or velocity data will be used as the basis
 cfd_data = 'vort'
-# cfd_data = 'velo'
+cfd_data = 'velo'
 
 if cfd_data == 'vort':
     loc,spr,skw,scl = vorticity(tsr,solidity)
     param = np.array([loc,spr,skw,scl])
     
 elif cfd_data == 'velo':
-    men,spr,scl,rat,tns = velocity(tsr,solidity)
-    param = np.array([men,spr,scl,rat,tns])
+    men1,sdv1,rat1,tns1,spr1,scl1,tsrn1,_ = velocity(tsr-0.1249,solidity)
+    men2,sdv2,rat2,tns2,spr2,scl2,tsrn2,_ = velocity(tsr+0.1249,solidity)
+    if solidity >= 0.35:
+        men3,sdv3,rat3,tns3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.1249)
+        men4,sdv4,rat4,tns4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.1249)
+    elif solidity >=0.25:
+        men3,sdv3,rat3,tns3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.049)
+        men4,sdv4,rat4,tns4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.1249)
+    else:
+        men3,sdv3,rat3,tns3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.049)
+        men4,sdv4,rat4,tns4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.049)
+    if tsrn1 == tsrn2:
+        p = 0.
+    else:
+        p = (tsr-tsrn1)/(tsrn2-tsrn1)
+    if soln1 == soln2:
+        q = 0.
+    else:
+        q = (sol-soln1)/(soln2-soln1)
+
+    param = np.array([men1,sdv1,rat1,tns1,spr1,scl1,men2,sdv2,rat2,tns2,spr2,scl2,men3,sdv3,rat3,tns3,spr3,scl3,men4,sdv4,rat4,tns4,spr4,scl4,p,q])
 
 
 ## Reading in STAR-CCM+ File
-wfit = 's4_350.0'
-fdata = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/Velocity Sections/'+wfit+'.csv'
+wfit = 's4_425.0'
+fdata = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/Velocity Sections/Dia_test_'+wfit+'.csv'
 
 for i in range(30):
     name = str(i+1)
@@ -198,6 +217,7 @@ error6 = np.zeros_like(pos6)
 error8 = np.zeros_like(pos8)
 error10 = np.zeros_like(pos10)
 error15 = np.zeros_like(pos15)
+error20 = np.zeros_like(pos20)
 
 tot2 = np.size(pos2)
 tot4 = np.size(pos4)
@@ -205,6 +225,7 @@ tot6 = np.size(pos6)
 tot8 = np.size(pos8)
 tot10 = np.size(pos10)
 tot15 = np.size(pos15)
+tot20 = np.size(pos20)
 
 for i in range(np.size(pos2)):
     velp = velocity_field(xt,yt,2*dia,pos2[i],velf,dia,tsr,solidity,cfd_data,param)
@@ -230,6 +251,10 @@ for i in range(np.size(pos15)):
     velp = velocity_field(xt,yt,15*dia,pos15[i],velf,dia,tsr,solidity,cfd_data,param)
     error15[i] = (velp-velo15[i])/velo15[i]
     print '15D',i,'of',tot15
+for i in range(np.size(pos20)):
+    velp = velocity_field(xt,yt,20*dia,pos20[i],velf,dia,tsr,solidity,cfd_data,param)
+    error20[i] = (velp-velo20[i])/velo20[i]
+    print '20D',i,'of',tot20,'TSR:',tsr,'Solidity:',solidity
 
 error2m = np.average(error2)
 error2std = np.std(error2)
@@ -243,6 +268,8 @@ error10m = np.average(error10)
 error10std = np.std(error10)
 error15m = np.average(error15)
 error15std = np.std(error15)
+error20m = np.average(error20)
+error20std = np.std(error20)
 
 print 'x = 2D',error2m,error2std
 print 'x = 4D',error4m,error4std
@@ -250,6 +277,7 @@ print 'x = 6D',error6m,error6std
 print 'x = 8D',error8m,error8std
 print 'x = 10D',error10m,error10std
 print 'x = 15D',error15m,error15std
+print 'x = 20D',error20m,error20std
 
 
 

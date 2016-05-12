@@ -24,7 +24,7 @@ def paramfit(xd,men,spr,scl,rat,tns):
     
     # spr_v = spr[2]/(spr[1]*sqrt(2.*pi))*exp(-(xd-spr[0])**2/(2.*spr[1]**2))
     # spr_v = spr[0]*xd**2 + spr[1]*xd + spr[2]
-    spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*xd)*exp(spr[0])*exp(-spr[0]*exp(spr[1]*xd)) + spr[3] #gom
+    spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*xd)*exp(-spr[0]*exp(spr[1]*xd)) + spr[3] #gom
     # if spr_v < 0.35:
     #     spr_v = 0.35
     # elif spr_v > 4.:
@@ -32,7 +32,7 @@ def paramfit(xd,men,spr,scl,rat,tns):
     
     # scl_v = scl[2]/(scl[1]*sqrt(2.*pi))*exp(-(xd-scl[0])**2/(2.*scl[1]**2))
     # scl_v = scl[2]/(scl[1]*sqrt(2.*pi))*(exp(-(xd-scl[0])**2/(2.*scl[1]**2))+exp(-(xd+scl[0])**2/(2.*scl[1]**2))) #fold
-    scl_v = scl[2]*scl[1]*scl[0]*exp(scl[1]*xd)*exp(scl[0])*exp(-scl[0]*exp(scl[1]*xd)) #gom
+    scl_v = scl[2]*scl[1]*scl[0]*exp(scl[1]*xd)*exp(-scl[0]*exp(scl[1]*xd)) #gom
     # scl_v = scl[0]*xd**2 + scl[1]*xd + scl[2]
     
     rat_v = rat[0]*xd + rat[1]

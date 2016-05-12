@@ -2,8 +2,10 @@ from pyoptsparse import Optimization, SNOPT, pyOpt_solution
 import csv
 import numpy as np
 from numpy import pi,sqrt,exp,fabs,log,sin,arctan,cosh
+from sklearn.cross_validation import train_test_split
 import matplotlib.pyplot as plt
 import database_call as dbc
+from sys import argv
 # from matplotlib import rcParams
 # rcParams['font.family'] = 'Times New Roman'
 
@@ -28,15 +30,20 @@ def overlay(xt,ys,tsr,sol):
 
 
 
-def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3):
+def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3,sdv_gom,spr_gom):
 
-    sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(sdv1)*exp(-sdv1*exp(sdv2*dn))+sdv4
+    if sdv_gom == 0:
+        sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(-sdv1*exp(sdv2*dn))+sdv4
+    elif sdv_gom == 1:
+        sdv_v = sdv1
 
-    spr_v = spr3*spr2*spr1*exp(spr2*dn)*exp(spr1)*exp(-spr1*exp(spr2*dn))+spr4
-    # spr_v = 1.
+    if spr_gom == 0:
+        spr_v = spr3*spr2*spr1*exp(spr2*dn)*exp(-spr1*exp(spr2*dn))+spr4
+    elif spr_gom == 1:
+        spr_v = 1.
 
     f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat*fabs((lat/spr_v))-tns)))
-    f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(scl1)*exp(-scl1*exp(scl2*dn))
+    f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(-scl1*exp(scl2*dn))
 
     return f1*f2 + 1.
 
@@ -210,13 +217,15 @@ def starccm_read(fdata,dia,windd,length,opt_print):
 
 
 def obj_func(xdict):
-    for s in range(5):
-        for t in range(23):
-            sname = str(s+1)
-            tname = str(t+1)
-            exec('global posdns'+sname+'t'+tname)
-            exec('global poslts'+sname+'t'+tname)
-            exec('global velods'+sname+'t'+tname)
+    for i in range(80):
+        name = str(i+1)
+        exec('global posdn'+name+'tr')
+        exec('global poslt'+name+'tr')
+        exec('global velod'+name+'tr')
+        exec('global xt'+name+'tr')
+        exec('global ys'+name+'tr')
+    global sdv_gom
+    global spr_gom
 
     ment = xdict['ment']
     sdv1t = xdict['sdv1t']
@@ -251,32 +260,26 @@ def obj_func(xdict):
     funcs = {}
 
     error = 0.
-    tsrd = np.linspace(1.5,7.,23)
-    sold = np.array([0.15,0.25,0.5,0.75,1.0])
-    for s in range(5):
-        for t in range(23):
-            sname = str(s+1)
-            tname = str(t+1)
-            xt = tsrd[t]
-            ys = sold[s]
-            men = overlay(xt,ys,ment,mens)
-            sdv1 = overlay(xt,ys,sdv1t,sdv1s)
-            sdv2 = overlay(xt,ys,sdv2t,sdv2s)
-            sdv3 = overlay(xt,ys,sdv3t,sdv3s)
-            sdv4 = overlay(xt,ys,sdv4t,sdv4s)
-            rat = overlay(xt,ys,ratt,rats)
-            tns = overlay(xt,ys,tnst,tnss)
-            spr1 = overlay(xt,ys,spr1t,spr1s)
-            spr2 = overlay(xt,ys,spr2t,spr2s)
-            spr3 = overlay(xt,ys,spr3t,spr3s)
-            spr4 = overlay(xt,ys,spr4t,spr4s)
-            scl1 = overlay(xt,ys,scl1t,scl1s)
-            scl2 = overlay(xt,ys,scl2t,scl2s)
-            scl3 = overlay(xt,ys,scl3t,scl3s)
+    for i in range(80):
+        name = str(i+1)
+        exec('men = overlay(xt'+name+'tr,ys'+name+'tr,ment,mens)')
+        exec('sdv1 = overlay(xt'+name+'tr,ys'+name+'tr,sdv1t,sdv1s)')
+        exec('sdv2 = overlay(xt'+name+'tr,ys'+name+'tr,sdv2t,sdv2s)')
+        exec('sdv3 = overlay(xt'+name+'tr,ys'+name+'tr,sdv3t,sdv3s)')
+        exec('sdv4 = overlay(xt'+name+'tr,ys'+name+'tr,sdv4t,sdv4s)')
+        exec('rat = overlay(xt'+name+'tr,ys'+name+'tr,ratt,rats)')
+        exec('tns = overlay(xt'+name+'tr,ys'+name+'tr,tnst,tnss)')
+        exec('spr1 = overlay(xt'+name+'tr,ys'+name+'tr,spr1t,spr1s)')
+        exec('spr2 = overlay(xt'+name+'tr,ys'+name+'tr,spr2t,spr2s)')
+        exec('spr3 = overlay(xt'+name+'tr,ys'+name+'tr,spr3t,spr3s)')
+        exec('spr4 = overlay(xt'+name+'tr,ys'+name+'tr,spr4t,spr4s)')
+        exec('scl1 = overlay(xt'+name+'tr,ys'+name+'tr,scl1t,scl1s)')
+        exec('scl2 = overlay(xt'+name+'tr,ys'+name+'tr,scl2t,scl2s)')
+        exec('scl3 = overlay(xt'+name+'tr,ys'+name+'tr,scl3t,scl3s)')
 
-            exec('for i in range(np.size(posdns'+sname+'t'+tname+')):\n\tif posdns'+sname+'t'+tname+'[i] > 0.58:\n\t\tvel = veldist(posdns'+sname+'t'+tname+'[i],poslts'+sname+'t'+tname+'[i],men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3)\n\t\terror = error + (vel-velods'+sname+'t'+tname+'[i])**2')
+        exec('for i in range(np.size(posdn'+name+'tr)):\n\tif posdn'+name+'tr[i] > 0.58:\n\t\tvel = veldist(posdn'+name+'tr[i],poslt'+name+'tr[i],men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3,sdv_gom,spr_gom)\n\t\terror = error + (vel-velod'+name+'tr[i])**2')
 
-    # print error
+    print error
     funcs['obj'] = error
 
     fail = False
@@ -286,16 +289,48 @@ def obj_func(xdict):
 if __name__ == "__main__":
 
     comp = 'mac'
-    opt_print = True
-    read_data = 4
+    # comp = 'fsl'
 
-    for s in range(5):
-        for t in range(23):
-            sname = str(s+1)
-            tname = str(t+1)
-            exec('global posdns'+sname+'t'+tname)
-            exec('global poslts'+sname+'t'+tname)
-            exec('global velods'+sname+'t'+tname)
+    global sdv_gom
+    global spr_gom
+
+    if comp == 'mac':
+        opt_print = True
+        sdv_gom = int(argv[3])
+        spr_gom = int(argv[4])
+        print 'TSR Order:',int(argv[1])-1
+        print 'Solidity Order:',int(argv[2])-1
+        if int(argv[3]) == 0:
+            print 'sdv_gom is True'
+        elif int(argv[3]) == 1:
+            print 'sdv_gom is False'
+        if int(argv[4]) == 0:
+            print 'spr_gom is True'
+        elif int(argv[4]) == 1:
+            print 'spr_gom is False'
+    elif comp == 'fsl':
+        opt_print = False
+        sdv_gom = int(argv[3])
+        spr_gom = int(argv[4])
+        print 'TSR Order:',int(argv[1])-1
+        print 'Solidity Order:',int(argv[2])-1
+        if int(argv[3]) == 0:
+            print 'sdv_gom is True'
+        elif int(argv[3]) == 1:
+            print 'sdv_gom is False'
+        if int(argv[4]) == 0:
+            print 'spr_gom is True'
+        elif int(argv[4]) == 1:
+            print 'spr_gom is False'
+    read_data = 1
+
+    for i in range(80):
+        name = str(i+1)
+        exec('global posdn'+name+'tr')
+        exec('global poslt'+name+'tr')
+        exec('global velod'+name+'tr')
+        exec('global xt'+name+'tr')
+        exec('global ys'+name+'tr')
 
 
     s1length = np.array([210,210,205,196,185,178,170,165,160,145,140,123,115,112,108,101,101,90,85,80,78,75,70])
@@ -304,14 +339,27 @@ if __name__ == "__main__":
     s4length = np.array([145,100,73,60,53,44,42,37,38,30,33,26,22,24,23,21,21,19,24,23,22,21,20])
     s5length = np.array([78,70,52,43,37,32,29,27,26,23,20,20,23,21,20,19,19,18,18,16,16,15,14])
     solidity = np.array(['s1','s2','s3','s4','s5'])
+    solidity_cv = np.array([1,2,3,4,5])
+    sol_cv = np.array([0.15,0.25,0.5,0.75,1.0])
+    tsr_cv = np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23])
     tsr = np.linspace(150,700,23)
+    tsrr_cv = tsr/100.
 
     s = np.array([])
     t = np.array([])
+    scv = np.array([])
+    tcv = np.array([])
+    xtcv = np.array([])
+    yscv = np.array([])
     for i in range(np.size(solidity)):
         for j in range(np.size(tsr)):
             s = np.append(s,solidity[i])
             t = np.append(t,str(int(tsr[j])))
+            scv = np.append(scv,solidity_cv[i])
+            tcv = np.append(tcv,tsr_cv[j])
+            xtcv = np.append(xtcv,tsrr_cv[j])
+            yscv = np.append(yscv,sol_cv[i])
+
 
     slength = np.array([])
     slength = np.append(slength,s1length)
@@ -394,14 +442,37 @@ if __name__ == "__main__":
             print t[q],s[q]
             q += 1
 
+    cvtest = 0.3
+    scvtr,scvts,tcvtr,tcvts,xttr,xtts,ystr,ysts = train_test_split(scv,tcv,xtcv,yscv,test_size=cvtest)
+
+    for i in range(np.size(scvtr)):
+        name = str(i+1)
+        exec('posdn'+name+'tr = posdns'+str(int(scvtr[i]))+'t'+str(int(tcvtr[i])))
+        exec('poslt'+name+'tr = poslts'+str(int(scvtr[i]))+'t'+str(int(tcvtr[i])))
+        exec('velod'+name+'tr = velods'+str(int(scvtr[i]))+'t'+str(int(tcvtr[i])))
+        exec('xt'+name+'tr = xttr[i]')
+        exec('ys'+name+'tr = ystr[i]')
+
+    for i in range(np.size(scvts)):
+        name = str(i+1)
+        exec('posdn'+name+'ts = posdns'+str(int(scvts[i]))+'t'+str(int(tcvts[i])))
+        exec('poslt'+name+'ts = poslts'+str(int(scvts[i]))+'t'+str(int(tcvts[i])))
+        exec('velod'+name+'ts = velods'+str(int(scvts[i]))+'t'+str(int(tcvts[i])))
+        exec('xt'+name+'ts = xtts[i]')
+        exec('ys'+name+'ts = ysts[i]')
+
     # Optimization
     optProb = Optimization('VAWTWake_Sheet', obj_func)
     optProb.addObj('obj')
 
-    ordt = 5
-    ords = 3
+    if comp == 'mac':
+        ordt = int(argv[1])
+        ords = int(argv[2])
+    elif comp == 'fsl':
+        ordt = int(argv[1])
+        ords = int(argv[2])
 
-    ment0 = np.linspace(0.,0.,ordt)
+    ment0 = np.linspace(0.,0.,3)
     sdv1t0 = np.linspace(0.,0.,ordt)
     sdv2t0 = np.linspace(0.,0.,ordt)
     sdv3t0 = np.linspace(0.,0.,ordt)
@@ -461,7 +532,7 @@ if __name__ == "__main__":
     scl2s0[-1] = 0.5
     scl3s0[-1] = 10.
 
-    optProb.addVarGroup('ment', ordt, 'c', lower=None, upper=None, value=ment0)
+    optProb.addVarGroup('ment', 3, 'c', lower=None, upper=None, value=ment0)
     optProb.addVarGroup('sdv1t', ordt, 'c', lower=None, upper=None, value=sdv1t0)
     optProb.addVarGroup('sdv2t', ordt, 'c', lower=None, upper=None, value=sdv2t0)
     optProb.addVarGroup('sdv3t', ordt, 'c', lower=None, upper=None, value=sdv3t0)
@@ -495,11 +566,11 @@ if __name__ == "__main__":
     opt = SNOPT()
     opt.setOption('Scale option',0)
     if comp == 'mac':
-        opt.setOption('Print file','/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/data/OptSheet/SNOPT_print.out')
-        opt.setOption('Summary file','/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/data/OptSheet/SNOPT_summary.out')
+        opt.setOption('Print file','/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/data/OptSheet/cv_cvx_'+argv[1]+argv[2]+argv[3]+argv[4]+'_SNOPT_print.out')
+        opt.setOption('Summary file','/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/data/OptSheet/cv_cvx_SNOPT_'+argv[1]+argv[2]+argv[3]+argv[4]+'_summary.out')
     elif comp == 'fsl':
-        opt.setOption('Print file','/fslhome/ebtingey/compute/VAWTWakeModel/SNOPT_OptSheet_print.out')
-        opt.setOption('Summary file','/fslhome/ebtingey/compute/VAWTWakeModel/SNOPT_OptSheet_summary.out')
+        opt.setOption('Print file','/fslhome/ebtingey/compute/VAWTWakeModel/OptSheet/cv_cvx_'+argv[1]+argv[2]+argv[3]+argv[4]+'_SNOPT_OptSheet_print.out')
+        opt.setOption('Summary file','/fslhome/ebtingey/compute/VAWTWakeModel/OptSheet/cv_cvx_'+argv[1]+argv[2]+argv[3]+argv[4]+'_SNOPT_OptSheet_summary.out')
     res = opt(optProb, sens=None)
     if opt_print == True:
         print res
@@ -536,6 +607,28 @@ if __name__ == "__main__":
     scl2sf = res.xStar['scl2s']
     scl3sf = res.xStar['scl3s']
 
+    error_cv = 0.
+    for i in range(35):
+        name = str(i+1)
+        exec('men = overlay(xt'+name+'ts,ys'+name+'ts,mentf,mensf)')
+        exec('sdv1 = overlay(xt'+name+'ts,ys'+name+'ts,sdv1tf,sdv1sf)')
+        exec('sdv2 = overlay(xt'+name+'ts,ys'+name+'ts,sdv2tf,sdv2sf)')
+        exec('sdv3 = overlay(xt'+name+'ts,ys'+name+'ts,sdv3tf,sdv3sf)')
+        exec('sdv4 = overlay(xt'+name+'ts,ys'+name+'ts,sdv4tf,sdv4sf)')
+        exec('rat = overlay(xt'+name+'ts,ys'+name+'ts,rattf,ratsf)')
+        exec('tns = overlay(xt'+name+'ts,ys'+name+'ts,tnstf,tnssf)')
+        exec('spr1 = overlay(xt'+name+'ts,ys'+name+'ts,spr1tf,spr1sf)')
+        exec('spr2 = overlay(xt'+name+'ts,ys'+name+'ts,spr2tf,spr2sf)')
+        exec('spr3 = overlay(xt'+name+'ts,ys'+name+'ts,spr3tf,spr3sf)')
+        exec('spr4 = overlay(xt'+name+'ts,ys'+name+'ts,spr4tf,spr4sf)')
+        exec('scl1 = overlay(xt'+name+'ts,ys'+name+'ts,scl1tf,scl1sf)')
+        exec('scl2 = overlay(xt'+name+'ts,ys'+name+'ts,scl2tf,scl2sf)')
+        exec('scl3 = overlay(xt'+name+'ts,ys'+name+'ts,scl3tf,scl3sf)')
+
+        exec('for i in range(np.size(posdn'+name+'ts)):\n\tif posdn'+name+'ts[i] > 0.58:\n\t\tvel = veldist(posdn'+name+'ts[i],poslt'+name+'ts[i],men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3,sdv_gom,spr_gom)\n\t\terror_cv = error_cv + (vel-velod'+name+'ts[i])**2')
+
+
+
     print '\n'
     print 'Total Error:',error,'\n'
 
@@ -568,6 +661,9 @@ if __name__ == "__main__":
     print 'scl1s = np.array(',scl1sf.tolist(),')'
     print 'scl2s = np.array(',scl2sf.tolist(),')'
     print 'scl3s = np.array(',scl3sf.tolist(),')'
+
+
+    print '\nCross Validation Error:',error_cv
 
 
 

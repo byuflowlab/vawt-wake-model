@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numpy import pi
 from VAWT_Wake_Model import velocity_field
-from database_call import vorticity,velocity,quad
+from database_call import vorticity,velocity
 import csv
 
 # Enter the values desired
@@ -24,7 +24,6 @@ y0 = 0. # lateral position of velocity calculation from turbine (m)
 # Choose whether CFD vorticity or velocity data will be used as the basis
 cfd_data = 'vort'
 cfd_data = 'velo'
-# cfd_data = 'quad'
 
 s = np.array([])
 t = np.array([])
@@ -45,8 +44,8 @@ for i in range(np.size(solidityf)):
         sole = np.append(sole,solf[i])
         tsre = np.append(tsre,tsrf[j]/100.)
 
-error = np.zeros((6,np.size(s)))
-std = np.zeros((6,np.size(s)))
+error = np.zeros((7,np.size(s)))
+std = np.zeros((7,np.size(s)))
 
 for k in range(np.size(s)):
     
@@ -62,16 +61,28 @@ for k in range(np.size(s)):
         loc,spr,skw,scl = vorticity(tsr,solidity)
         param = np.array([loc,spr,skw,scl])
     elif cfd_data == 'velo':
-        men,spr,scl,rat,tns = velocity(tsr,solidity)
-        # men = np.array( [-0.0006344223751663201, 0.01055675755786011, -0.004073212523707764] )
-        # spr = np.array( [-0.005187125854670714, 0.06397918461247416, 0.543874357807372] )
-        # scl = np.array( [6.667328694868336, 5.617498827673229, 21.520026361522778] )
-        # rat = np.array( [-2.129054494312758, 45.17191461412915] )
-        # tns = np.array( [-1.5569348878268718, 31.913143231782648] )
-        param = np.array([men,spr,scl,rat,tns])
-    elif cfd_data == 'quad':
-        scl,trn = quad(tsr,solidity)
-        param = np.array([scl,trn])
+        men1,sdv1,rat1,tns1,spr1,scl1,tsrn1,_ = velocity(tsr-0.1249,solidity)
+        men2,sdv2,rat2,tns2,spr2,scl2,tsrn2,_ = velocity(tsr+0.1249,solidity)
+        if solidity >= 0.35:
+            men3,sdv3,rat3,tns3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.1249)
+            men4,sdv4,rat4,tns4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.1249)
+        elif solidity >=0.25:
+            men3,sdv3,rat3,tns3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.049)
+            men4,sdv4,rat4,tns4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.1249)
+        else:
+            men3,sdv3,rat3,tns3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.049)
+            men4,sdv4,rat4,tns4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.049)
+        if tsrn1 == tsrn2:
+            p = 0.
+        else:
+            p = (tsr-tsrn1)/(tsrn2-tsrn1)
+        if soln1 == soln2:
+            q = 0.
+        else:
+            q = (sol-soln1)/(soln2-soln1)
+
+        param = np.array([men1,sdv1,rat1,tns1,spr1,scl1,men2,sdv2,rat2,tns2,spr2,scl2,men3,sdv3,rat3,tns3,spr3,scl3,men4,sdv4,rat4,tns4,spr4,scl4,p,q])
+
     
 
     ## Reading in STAR-CCM+ File
@@ -79,7 +90,7 @@ for k in range(np.size(s)):
 
 
 # def starccm_read(fdata,length,rad,wind,rot,tsr,s):
-    fdata = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/Velocity Sections/'+wfit+'.csv'
+    fdata = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/Velocity Sections/Dia_test_'+wfit+'.csv'
     
     for i in range(30):
         name = str(i+1)
@@ -248,6 +259,7 @@ for k in range(np.size(s)):
     error8 = np.zeros_like(pos8)
     error10 = np.zeros_like(pos10)
     error15 = np.zeros_like(pos15)
+    error20 = np.zeros_like(pos20)
     
     tot2 = np.size(pos2)
     tot4 = np.size(pos4)
@@ -255,6 +267,7 @@ for k in range(np.size(s)):
     tot8 = np.size(pos8)
     tot10 = np.size(pos10)
     tot15 = np.size(pos15)
+    tot20 = np.size(pos20)
     
     for i in range(np.size(pos2)):
         velp = velocity_field(xt,yt,2*dia,pos2[i],velf,dia,tsr,solidity,cfd_data,param)
@@ -280,6 +293,10 @@ for k in range(np.size(s)):
         velp = velocity_field(xt,yt,15*dia,pos15[i],velf,dia,tsr,solidity,cfd_data,param)
         error15[i] = (velp-velo15[i])/velo15[i]
         print '15D',i,'of',tot15,'TSR:',tsr,'Solidity:',solidity
+    for i in range(np.size(pos20)):
+        velp = velocity_field(xt,yt,20*dia,pos20[i],velf,dia,tsr,solidity,cfd_data,param)
+        error20[i] = (velp-velo20[i])/velo20[i]
+        print '20D',i,'of',tot20,'TSR:',tsr,'Solidity:',solidity
     
     error2m = np.average(error2)
     error2std = np.std(error2)
@@ -293,6 +310,8 @@ for k in range(np.size(s)):
     error10std = np.std(error10)
     error15m = np.average(error15)
     error15std = np.std(error15)
+    error20m = np.average(error20)
+    error20std = np.std(error20)
     
     error[0,k] = error2m
     error[1,k] = error4m
@@ -300,12 +319,14 @@ for k in range(np.size(s)):
     error[3,k] = error8m
     error[4,k] = error10m
     error[5,k] = error15m
+    error[6,k] = error20m
     std[0,k] = error2std
     std[1,k] = error4std
     std[2,k] = error6std
     std[3,k] = error8std
     std[4,k] = error10std
     std[5,k] = error15std
+    std[6,k] = error20std
     
     
     # print 'x = 2D',error2m,error2std
@@ -314,9 +335,10 @@ for k in range(np.size(s)):
     # print 'x = 8D',error8m,error8std
     # print 'x = 10D',error10m,error10std
     # print 'x = 15D',error15m,error15std
+    # print 'x = 20D',error20m,error20std
     
 ## Write
-fdata = '/Users/ning1/Documents/Flow Lab/VAWTWakeModel/wake_model/validation/error_cfd_SMG2.csv'
+fdata = '/Users/ning1/Documents/Flow Lab/VAWTWakeModel/wake_model/validation/error_cfd_SMG_surf.csv'
 
 q = 0
 with open(fdata,'w') as fp:
@@ -335,19 +357,21 @@ with open(fdata,'w') as fp:
             solrow = np.append(solrow,'')
         data = np.vstack([data,solrow])
         
-        errorval = np.zeros((12,np.size(tsrf)+1)).astype(np.str)
+        errorval = np.zeros((14,np.size(tsrf)+1)).astype(np.str)
         errorval[0,0] = '2D_error'
-        errorval[6,0] = '2D_std'
+        errorval[7,0] = '2D_std'
         errorval[1,0] = '4D_error'
-        errorval[7,0] = '4D_std'
+        errorval[8,0] = '4D_std'
         errorval[2,0] = '6D_error'
-        errorval[8,0] = '6D_std'
+        errorval[9,0] = '6D_std'
         errorval[3,0] = '8D_error'
-        errorval[9,0] = '8D_std'
+        errorval[10,0] = '8D_std'
         errorval[4,0] = '10D_error'
-        errorval[10,0] = '10D_std'
+        errorval[11,0] = '10D_std'
         errorval[5,0] = '15D_error'
-        errorval[11,0] = '15D_std'
+        errorval[12,0] = '15D_std'
+        errorval[6,0] = '20D_error'
+        errorval[13,0] = '20D_std'
         
         for j in range(np.size(tsrf)):
             errorval[0,j+1] = error[0,q]
@@ -356,12 +380,14 @@ with open(fdata,'w') as fp:
             errorval[3,j+1] = error[3,q]
             errorval[4,j+1] = error[4,q]
             errorval[5,j+1] = error[5,q]
-            errorval[6,j+1] = std[0,q]
-            errorval[7,j+1] = std[1,q]
-            errorval[8,j+1] = std[2,q]
-            errorval[9,j+1] = std[3,q]
-            errorval[10,j+1] = std[4,q]
-            errorval[11,j+1] = std[5,q]
+            errorval[6,j+1] = error[6,q]
+            errorval[7,j+1] = std[0,q]
+            errorval[8,j+1] = std[1,q]
+            errorval[9,j+1] = std[2,q]
+            errorval[10,j+1] = std[3,q]
+            errorval[11,j+1] = std[4,q]
+            errorval[12,j+1] = std[5,q]
+            errorval[13,j+1] = std[6,q]
             q += 1
             
         data = np.vstack([data,errorval])
@@ -369,59 +395,6 @@ with open(fdata,'w') as fp:
     a.writerows(data)
 
 
-## Plotting velocity profiles
-fs = 15 # font size for plots
 
-# Option to plot velocity profiles
-vel_slice = True
-vel_slice = False # comment this out if desired on
-
-if vel_slice == True:
-    leng = 100 # data points in the velocity profile
-    wide = 2.0*dia # width of the profile
-    
-    d_lab1 = str(wide/dia) # y-axis label
-    d_lab2 = str(wide/(2*dia)) # y-axis label
-    
-    x = np.array([2*dia,4*dia,6*dia,8*dia,10*dia,15*dia]) # plotting at 2D, 4D, 6D, 8D, 10D, and 15D (changeable)
-    y = np.linspace(-wide,wide,leng)
-    
-    color = np.array(['b','c','g','y','r','m']) # identifying six colors to use for differentiation
-    
-    iterp = 0
-    for i in range(int(np.size(x))):
-        vel = np.array([])
-        val = str(x[i]/dia)
-        lab = '$x/D$ = '+val
-        for j in range(int(np.size(y))):
-            velp = velocity_field(xt,yt,x[i],y[j],velf,dia,tsr,solidity,cfd_data,param)
-            vel = np.append(vel,velp)
-            iterp += 1
-            print 'Vel Slice ('+str(iterp)+' of '+str(leng*np.size(x))+')'
-        plt.figure(1)
-        plt.plot(vel,y,color[i],label=lab)
-    
-    tix = np.array([-wide,-wide/2.,0.,wide/2.,wide])
-    tixl = np.array([d_lab1,d_lab2,'0.0',d_lab2,d_lab1])
-    # plt.legend(loc="upper left",bbox_to_anchor=(1, 1),fontsize=fs) # legend off to the side
-    plt.legend(loc=2,fontsize=fs) # legend in the plot
-    plt.xlim(0.,1.2)
-    plt.ylim(-wide,wide)
-    plt.xticks(fontsize=fs)
-    plt.yticks(tix,tixl,fontsize=fs)
-    plt.xlabel(r'$u/U_\infty$', fontsize=fs)
-    plt.ylabel('$y/D$',fontsize=fs)
-
-    
-
-plt.show()
-
-
-# x = 2D -0.0390882979871 0.0523644511862
-# x = 4D -0.0386888996738 0.0412770950732
-# x = 6D -0.0337707026147 0.0293425108821
-# x = 8D -0.0331687565618 0.0272483053483
-# x = 10D -0.026554754511 0.0179845075491
-# x = 15D -0.0161324655252 0.0258669721121
 
 

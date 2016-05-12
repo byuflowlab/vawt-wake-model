@@ -1,7 +1,8 @@
 # VAWT Wake Model
 
 Parameterized VAWT Wake Model using CFD vorticity and velocity data
-Developed by Eric Tingey at Brigham Young University
+
+Developed by Eric Tingey at Brigham Young University, 2015-2016
 
 This code models the wake behind a vertical-axis wind turbine based on parameters like tip-speed ratio, solidity and wind speed by using databases of curve fit coefficients to produce velocity information. The model uses CFD data obtained from STAR-CCM+ of simulated turbines to make the wake model as accurate as possible.
 

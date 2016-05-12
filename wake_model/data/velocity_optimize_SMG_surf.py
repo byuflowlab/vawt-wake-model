@@ -8,15 +8,21 @@ import database_call as dbc
 # rcParams['font.family'] = 'Times New Roman'
 
 
-def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3):
+def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3):
 
-    sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(sdv1)*exp(-sdv1*exp(sdv2*dn))+sdv4
+    sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(-sdv1*exp(sdv2*dn))+sdv4
+    # sdv_v = sdv1*dn**2 + sdv2*dn + sdv3
+    # sdv_v = sdv4
 
-    # spr_v = spr3*spr2*spr1*exp(spr2*dn)*exp(spr1)*exp(-spr1*exp(spr2*dn))+spr4
-    spr_v = 1.
+    spr_v = spr3*spr2*spr1*exp(spr2*dn)*exp(-spr1*exp(spr2*dn))#+spr4
+    # spr_v = spr1*dn**2 + spr2*dn + spr3
+    # spr_v = 1.
 
-    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat*fabs((lat/spr_v))-tns)))
-    f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(scl1)*exp(-scl1*exp(scl2*dn))
+    wdt_v = wdt
+    rat_v = rat#-spr4*dn + rat
+
+    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat_v*fabs((lat/spr_v))-wdt_v)))
+    f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(-scl1*exp(scl2*dn))
 
     return f1*f2 + 1.
 
@@ -35,7 +41,7 @@ def obj_func(xdict):
     sdv3 = param[3]
     sdv4 = param[4]
     rat = param[5]
-    tns = param[6]
+    wdt = param[6]
     spr1 = param[7]
     spr2 = param[8]
     spr3 = param[9]
@@ -48,7 +54,7 @@ def obj_func(xdict):
 
     for i in range(np.size(posdn)):
         if posdn[i] > 0.58:
-            vel = veldist(posdn[i],poslt[i],men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3)
+            vel = veldist(posdn[i],poslt[i],men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3)
             error = error + (vel-velod[i])**2
 
     ##Print
@@ -488,24 +494,48 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     men0 = 0.
     sdv10 = 0.5
     sdv20 = 0.1
-    sdv30 = 20.
+    sdv30 = 10.
     sdv40 = 0.5
     rat0 = 10.
-    tns0 = 10.
+    wdt0 = 10.
     spr10 = 0.5
     spr20 = 0.1
     spr30 = 20.
     spr40 = 1.
     scl10 = 0.5
     scl20 = 0.1
-    scl30 = 20.
+    scl30 = 40.
+
+
+    # men0 = 0.107980482
+    # sdv10 = 5.09E-01
+    # sdv20 = 0.056288195
+    # sdv30 = 50
+    # sdv40 = 0.5
+    # rat0 = 13.19127977
+    # wdt0 = 14.20436344
+    # spr10 = 1
+    # spr20 = 0.010825
+    # spr30 = 132.4282087
+    # spr40 = 1
+    # scl10 = 0.365635251
+    # scl20 = 0.082475724
+    # scl30 = 37.61946447
+
+
+
     
-    param0 = np.array([men0,sdv10,sdv20,sdv30,sdv40,rat0,tns0,spr10,spr20,spr30,spr40,scl10,scl20,scl30])
+    param0 = np.array([men0,sdv10,sdv20,sdv30,sdv40,rat0,wdt0,spr10,spr20,spr30,spr40,scl10,scl20,scl30])
 
     param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
     param_u = np.array([None,10.,1.,50.,None,None,None,1.,1.,50.,None,1.,1.,None])
 
-    
+    # param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+    # param_u = np.array([None,10.,1.,None,None,None,None,None,None,None,None,1.,1.,None])
+
+    # param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
+    # param_u = np.array([None,None,None,None,None,None,None,None,None,None,None,1.,1.,None])
+
     nparam = np.size(param0)
     optProb.addVarGroup('param', nparam, 'c', lower=param_l, upper=param_u, value=param0)
     
@@ -545,7 +575,7 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     sdv3 = paramf[3]
     sdv4 = paramf[4]
     rat = paramf[5]
-    tns = paramf[6]
+    wdt = paramf[6]
     spr1 = paramf[7]
     spr2 = paramf[8]
     spr3 = paramf[9]
@@ -606,29 +636,38 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
                 color = 'bo'
                 exec('xfit = np.linspace(min(pos'+name+'d)-1.,max(pos'+name+'d)+1.,500)')
                 exec('plt.plot(velo'+name+'d,pos'+name+'d,color)')
-                plt.plot(veldist(xd[i],xfit,men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3),xfit,'r-',linewidth=2)
+                plt.plot(veldist(xd[i],xfit,men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3),xfit,'r-',linewidth=2)
                 plt.xlim(0.,1.5)
                 # plt.ylim(-4.,4.)
                 # plt.legend(loc=1)
                 plt.xlabel('Normalized Velocity')
                 plt.ylabel('$y/D$')
     
-    return men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3
+    return men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3
 
 ## Main File
 if __name__ == "__main__":
     cv = False
 
-    s = 's2'
-    t = '400'
-    length = 100.
+# 1.5   1.75	2	    2.25	2.5	    2.75	3	3.25	3.5	    3.75	4	4.25	4.5	    4.75	5	5.25	5.5	    5.75	6	6.25	6.5	    6.75	7
+# 210	210	    205	    196	    185	    178	    170	165	    160	    145	    140	123	    115	    112	    108	101	    101	    90	    85	80	    78	    75	    70
+# 197	193	    185	    176	    140	    146	    126	114	    103	    96	    100	86	    77	    72	    70	68	    60	    64	    54	50	    47	    45	    44
+# 185	150	    100	    95	    83	    76	    72	63	    60	    49	    50	41	    39	    36	    34	33	    30	    31	    28	30	    29	    28  	27
+# 145	100	    73	    60	    53	    44	    42	37	    38	    30	    33	26	    22	    24	    23	21	    21	    19	    24	23	    22	    21	    20
+# 78	70	    52	    43	    37	    32	    29	27	    26	    23	    20	20	    23	    21	    20	19	    19	    18	    18	16	    16	    15	    14
+
+
+
+    s = 's1'
+    t = '150'
+    length = 210.
 
     dia = 6.
     
     comp = 'mac'
     # comp = 'fsl'
 
-    men,sdv1,sdv2,sdv3,sdv4,rat,tns,spr1,spr2,spr3,spr4,scl1,scl2,scl3 = fit(s,t,length,True,'mac',4,True)
+    men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3 = fit(s,t,length,True,'mac',4,True)
     
     print '\n'
     print 'men =',men
@@ -637,7 +676,7 @@ if __name__ == "__main__":
     print 'sdv3 =',sdv3
     print 'sdv4 =',sdv4
     print 'rat =',rat
-    print 'tns =',tns
+    print 'wdt =',wdt
     print 'spr1 =',spr1
     print 'spr2 =',spr2
     print 'spr3 =',spr3

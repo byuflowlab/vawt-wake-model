@@ -1,15 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from database_call import vorticity,velocity,quad
+from database_call import vorticity,velocity,velocity2
 from VAWT_Wake_Model import velocity_field
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
+import time
+
+start = time.time()
 
 # Enter the values desired
 
 velf = 15.0 # free stream wind speed (m/s)
 dia = 6.0  # turbine diameter (m)
-tsr = 4.0  # tip speed ratio
+tsr = 4.  # tip speed ratio
 B = 3. # number of blades
 chord = 0.25 # chord lenth (m)
 solidity = (chord*B)/(dia/2.)
@@ -23,21 +26,38 @@ y0 = 0. # lateral distance from turbine for velocity calculation (m)
 # Choose whether CFD vorticity or velocity data will be used as the basis
 cfd_data = 'vort'
 cfd_data = 'velo'
-# cfd_data = 'quad'
+# cfd_data = 'velo2'
 
 if cfd_data == 'vort':
     loc,spr,skw,scl = vorticity(tsr,solidity)
     param = np.array([loc,spr,skw,scl])
     
 elif cfd_data == 'velo':
-    # men,spr,scl,rat,tns = velocity(tsr,solidity)
-    # param = np.array([men,spr,scl,rat,tns])
-    men,sdv,rat,spr,scl1,scl2,scl3 = velocity(tsr,solidity)
-    param = np.array([men,sdv,rat,spr,scl1,scl2,scl3])
-    
-elif cfd_data == 'quad':
-    scl,trn = quad(tsr,solidity)
-    param = np.array([scl,trn])
+    men1,sdv1,rat1,wdt1,spr1,scl1,tsrn1,_ = velocity(tsr-0.1249,solidity)
+    men2,sdv2,rat2,wdt2,spr2,scl2,tsrn2,_ = velocity(tsr+0.1249,solidity)
+    if solidity >= 0.35:
+        men3,sdv3,rat3,wdt3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.1249)
+        men4,sdv4,rat4,wdt4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.1249)
+    elif solidity >=0.25:
+        men3,sdv3,rat3,wdt3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.049)
+        men4,sdv4,rat4,wdt4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.1249)
+    else:
+        men3,sdv3,rat3,wdt3,spr3,scl3,_,soln1 = velocity(tsr,solidity-0.049)
+        men4,sdv4,rat4,wdt4,spr4,scl4,_,soln2 = velocity(tsr,solidity+0.049)
+    if tsrn1 == tsrn2:
+        p = 0.
+    else:
+        p = (tsr-tsrn1)/(tsrn2-tsrn1)
+    if soln1 == soln2:
+        q = 0.
+    else:
+        q = (solidity-soln1)/(soln2-soln1)
+
+    param = np.array([men1,sdv1,rat1,wdt1,spr1,scl1,men2,sdv2,rat2,wdt2,spr2,scl2,men3,sdv3,rat3,wdt3,spr3,scl3,men4,sdv4,rat4,wdt4,spr4,scl4,p,q])
+
+elif cfd_data == 'velo2':
+    men,sdv,rat,wdt,spr,scl = velocity2(tsr,solidity)
+    param = np.array([men,sdv,rat,wdt,spr,scl])
 
 vel = velocity_field(xt,yt,xt + x0,yt + y0,velf,dia,tsr,solidity,cfd_data,param)
 
@@ -131,4 +151,7 @@ if plot_dist == True:
     circ = plt.Circle((xt/dia,yt/dia),0.5,edgecolor='k',fill=False)
     plt.gca().add_patch(circ)
 
+print time.time()-start
 plt.show()
+
+
