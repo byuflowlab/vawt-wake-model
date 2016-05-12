@@ -42,4 +42,5 @@
 CFD_plotting.py
 velocity.csv
 /wake_model/data/OptVel/*
+/wake_model/_velcalc.so.dSYM/*
 *.xml

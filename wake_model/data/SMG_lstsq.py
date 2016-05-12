@@ -284,14 +284,14 @@ def obj_func(xdict):
     return funcs, fail
 
 
-def Amat(posdn,poslt,tsr,sol):
-    fit = np.size(tsr*sol)
-
-    mat = np.zeros((posdn,fit))
-
-    for i in range(posdn):
-        for j in range(fit):
-            mat[i,j] =
+# def Amat(posdn,poslt,tsr,sol):
+#     fit = np.size(tsr*sol)
+#
+#     mat = np.zeros((posdn,fit))
+#
+#     for i in range(posdn):
+#         for j in range(fit):
+#             mat[i,j] =
 
 
 
