@@ -10,18 +10,23 @@ import database_call as dbc
 
 def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3):
 
-    sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(-sdv1*exp(sdv2*dn))+sdv4
-    # sdv_v = sdv1*dn**2 + sdv2*dn + sdv3
+    # sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(-sdv1*exp(sdv2*dn))+sdv4
+    sdv_v = sdv1*dn**2 + sdv2*dn + sdv3
+    # sdv_v = sdv2**dn + sdv3
     # sdv_v = sdv4
 
-    spr_v = spr3*spr2*spr1*exp(spr2*dn)*exp(-spr1*exp(spr2*dn))#+spr4
-    # spr_v = spr1*dn**2 + spr2*dn + spr3
-    # spr_v = 1.
+    # rat_v = spr3*spr2*spr1*exp(spr2*dn)*exp(-spr1*exp(spr2*dn))#+spr4
+    rat_v = spr1*dn**2 + spr2*dn + spr3
+    # sdv_v = spr_v
+    spr_v = spr4
 
     wdt_v = wdt
-    rat_v = rat#-spr4*dn + rat
+    # rat_v = rat
+    # spr_v = rat#-spr4*dn + rat
+    # spr_v = sdv2*dn+sdv3
 
-    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat_v*fabs((lat/spr_v))-wdt_v)))
+    # f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat_v*fabs((lat/spr_v))-wdt_v)))
+    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat_v*fabs((lat))-spr_v)))
     f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(-scl1*exp(scl2*dn))
 
     return f1*f2 + 1.
@@ -452,6 +457,13 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
         fdata4 = '/fslhome/ebtingey/compute/moveForward/vel16/Velocity/'+wfit4+'.csv'
         fdata5 = '/fslhome/ebtingey/compute/moveForward/rot17/Velocity/'+wfit5+'.csv'
         fdata6 = '/fslhome/ebtingey/compute/moveForward/rot18/Velocity/'+wfit6+'.csv'
+    elif comp == 'win':
+        fdata = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//Velocity Sections//'+wfit+'.csv'
+        fdata2 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel14//Velocity//'+wfit2+'.csv'
+        fdata3 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel12//Velocity//'+wfit3+'.csv'
+        fdata4 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel16//Velocity//'+wfit4+'.csv'
+        fdata5 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//rot17//Velocity//'+wfit5+'.csv'
+        fdata6 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//rot18//Velocity//'+wfit6+'.csv'
 
 
 
@@ -521,6 +533,36 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     # scl10 = 0.365635251
     # scl20 = 0.082475724
     # scl30 = 37.61946447
+    
+    men0 = -0.0138439642406
+    sdv10 = 0.0
+    sdv20 = 0.17803796067
+    sdv30 = 9.69044107271
+    sdv40 = 0.50982003115
+    rat0 = 0.0
+    wdt0 = 10.0
+    spr10 = 0.998862596849
+    spr20 = 1.47011550439e-05
+    spr30 = 22.5386579407
+    spr40 = 1.0
+    scl10 = 0.380051328623
+    scl20 = 0.134712758388
+    scl30 = 45.7788575653
+    
+    men0 = -0.0384248691061
+    sdv10 = 0.0
+    sdv20 = 0.17803796067
+    sdv30 = 9.69044107271
+    sdv40 = 0.81447171018
+    rat0 = 0.0
+    wdt0 = 10.0
+    spr10 = 0.0232236137751
+    spr20 = 0.0
+    spr30 = 12.6315271162
+    spr40 = 9.75322269238
+    scl10 = 0.357152390403
+    scl20 = 0.135756021609
+    scl30 = 33.8432403717
 
 
 
@@ -547,6 +589,9 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     elif comp == 'fsl':
         opt.setOption('Print file','/fslhome/ebtingey/compute/VAWTWakeModel/OptVel/SNOPT_print'+s+'_'+t+'.out')
         opt.setOption('Summary file','/fslhome/ebtingey/compute/VAWTWakeModel/OptVel/SNOPT_summary'+s+'_'+t+'.out')
+    elif comp == 'win':
+        opt.setOption('Print file','C://Users//TingeyPC//Documents//FLOW Lab//VAWTWakeModel//wake_model//data//optVel//SNOPT_print'+s+'_'+t+'.out')
+        opt.setOption('Summary file','C://Users//TingeyPC//Documents//FLOW Lab//VAWTWakeModel//wake_model//data//OptVel//SNOPT_summary'+s+'_'+t+'.out')
     res = opt(optProb, sens=None)
     if opt_print == True:
         print res
@@ -658,16 +703,17 @@ if __name__ == "__main__":
 
 
 
-    s = 's1'
-    t = '150'
-    length = 210.
+    s = 's3'
+    t = '400'
+    length = 50.
 
     dia = 6.
     
     comp = 'mac'
     # comp = 'fsl'
+    comp = 'win'
 
-    men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3 = fit(s,t,length,True,'mac',4,True)
+    men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3 = fit(s,t,length,True,comp,4,True)
     
     print '\n'
     print 'men =',men

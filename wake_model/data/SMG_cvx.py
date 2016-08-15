@@ -373,6 +373,13 @@ if __name__ == "__main__":
                 fdata4 = '/fslhome/ebtingey/compute/moveForward/vel16/Velocity/'+wfit4+'.csv'
                 fdata5 = '/fslhome/ebtingey/compute/moveForward/rot17/Velocity/'+wfit5+'.csv'
                 fdata6 = '/fslhome/ebtingey/compute/moveForward/rot18/Velocity/'+wfit6+'.csv'
+            elif comp == 'win':
+                fdata = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//Velocity Sections//'+wfit+'.csv'
+                fdata2 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel14//Velocity//'+wfit2+'.csv'
+                fdata3 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel12//Velocity//'+wfit3+'.csv'
+                fdata4 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel16//Velocity//'+wfit4+'.csv'
+                fdata5 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//rot17//Velocity//'+wfit5+'.csv'
+                fdata6 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//rot18//Velocity//'+wfit6+'.csv'
 
             if read_data ==1:
                 posdn,poslt,velod = starccm_read(np.array([fdata]),dia,np.array([wind]),slength[q],opt_print)

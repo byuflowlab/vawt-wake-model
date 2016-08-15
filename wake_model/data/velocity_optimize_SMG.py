@@ -582,6 +582,13 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
         fdata4 = '/fslhome/ebtingey/compute/moveForward/vel16/Velocity/'+wfit4+'.csv'
         fdata5 = '/fslhome/ebtingey/compute/moveForward/rot17/Velocity/'+wfit5+'.csv'
         fdata6 = '/fslhome/ebtingey/compute/moveForward/rot18/Velocity/'+wfit6+'.csv'
+    elif comp == 'win':
+        fdata = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//Velocity Sections//'+wfit+'.csv'
+        fdata2 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel14//Velocity//'+wfit2+'.csv'
+        fdata3 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel12//Velocity//'+wfit3+'.csv'
+        fdata4 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//vel16//Velocity//'+wfit4+'.csv'
+        fdata5 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//rot17//Velocity//'+wfit5+'.csv'
+        fdata6 = 'C://Users//TingeyPC//Documents//zStar-CCM//STAR-CCM//NACA0021//MoveForward//CrossValidate//rot18//Velocity//'+wfit6+'.csv'
 
 
 
@@ -629,6 +636,9 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     elif comp == 'fsl':
         opt.setOption('Print file','/fslhome/ebtingey/compute/VAWTWakeModel/OptVel/SNOPT_print'+s+'_'+t+'.out')
         opt.setOption('Summary file','/fslhome/ebtingey/compute/VAWTWakeModel/OptVel/SNOPT_summary'+s+'_'+t+'.out')
+    elif comp == 'win':
+        opt.setOption('Print file','C://Users//TingeyPC//Documents//FLOW Lab//VAWTWakeModel//wake_model//data//optVel//SNOPT_print'+s+'_'+t+'.out')
+        opt.setOption('Summary file','C://Users//TingeyPC//Documents//FLOW Lab//VAWTWakeModel//wake_model//data//OptVel//SNOPT_summary'+s+'_'+t+'.out')
     res = opt(optProb, sens=None)
     if opt_print == True:
         print res
@@ -729,10 +739,11 @@ if __name__ == "__main__":
 
     dia = 6.
     
-    comp = 'mac'
+    # comp = 'mac'
     # comp = 'fsl'
+    comp = 'win'
 
-    men,spr,scl,rat,tns = fit(s,t,length,True,'mac',4,True)
+    men,spr,scl,rat,tns = fit(s,t,length,True,comp,4,True)
     
     print '\n'
     print 'men = np.array(',men.tolist(),')'
