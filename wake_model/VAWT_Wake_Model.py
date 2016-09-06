@@ -329,32 +329,23 @@ def velocity_field(xt, yt, x0, y0, velf, dia, tsr, solidity, cfd_data, param):
         y0d = y0/dia
 
         # Calculating SMG distribution parameters
-        men = param[0]
-        sdv = param[1]
-        rat = param[2]
-        wdt = param[3]
-        spr = param[4]
-        scl = param[5]
+        spr1 = param[0]
+        pow1 = param[1]
+        pow2 = param[2]
+        spr2 = param[3]
+        skw = param[4]
+        scl1 = param[5]
+        scl2 = param[6]
+        scl3 = param[7]
 
+        pow = pow1-pow2*x0d**2
+        if pow < 1.5:
+            pow = 1.5
+        exp_v = exp(-spr1*fabs(y0d)**pow)
+        quad = spr2*(y0d-skw)**2-1.
+        scl_v = scl3*scl2*scl1*exp(scl2*x0d)*exp(-scl1*exp(scl2*x0d))
 
-        sdv_v = sdv[2]*sdv[1]*sdv[0]*exp(sdv[1]*x0d)*exp(-sdv[0]*exp(sdv[2]*x0d))+sdv[3]
-
-
-        spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*x0d)*exp(-spr[0]*exp(spr[1]*x0d)) + spr[3]
-
-
-        vel = -1./(sdv_v*sqrt(2.*pi))*exp(-((y0d/spr_v)-men[0])**2/(2.*sdv_v**2))*(1./(1.+exp(rat[0]*fabs((y0d/spr_v))-wdt[0])))*\
-              scl[2]*scl[1]*scl[0]*exp(scl[1]*x0d)*exp(-scl[0]*exp(scl[1]*x0d)) + 1.
-
-
-        # sdv_v = sdv[2]*sdv[1]*sdv[0]*exp(sdv[1]*x0d)*exp(sdv[0])*exp(-sdv[0]*exp(sdv[2]*x0d))+sdv[3]
-        #
-        #
-        # spr_v = spr[2]*spr[1]*spr[0]*exp(spr[1]*x0d)*exp(spr[0])*exp(-spr[0]*exp(spr[1]*x0d)) + spr[3]
-        #
-        #
-        # vel = -1./(sdv_v*sqrt(2.*pi))*exp(-((y0d/spr_v)-men[0])**2/(2.*sdv_v**2))*(1./(1.+exp(rat[0]*fabs((y0d/spr_v))-wdt[0])))*\
-        #       scl[2]*scl[1]*scl[0]*exp(scl[1]*x0d)*exp(scl[0])*exp(-scl[0]*exp(scl[1]*x0d)) + 1.
+        vel = exp_v*quad*scl_v + 1.
 
         if x0 < xt:
             vel = 1.  # Velocity is free stream in front and to the sides of the turbine

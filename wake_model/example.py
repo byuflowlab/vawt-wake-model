@@ -26,7 +26,7 @@ y0 = 0. # lateral distance from turbine for velocity calculation (m)
 # Choose whether CFD vorticity or velocity data will be used as the basis
 cfd_data = 'vort'
 cfd_data = 'velo'
-# cfd_data = 'velo2'
+cfd_data = 'velo2'
 
 if cfd_data == 'vort':
     loc,spr,skw,scl = vorticity(tsr,solidity)
@@ -56,8 +56,8 @@ elif cfd_data == 'velo':
     param = np.array([men1,sdv1,rat1,wdt1,spr1,scl1,men2,sdv2,rat2,wdt2,spr2,scl2,men3,sdv3,rat3,wdt3,spr3,scl3,men4,sdv4,rat4,wdt4,spr4,scl4,p,q])
 
 elif cfd_data == 'velo2':
-    men,sdv,rat,wdt,spr,scl = velocity2(tsr,solidity)
-    param = np.array([men,sdv,rat,wdt,spr,scl])
+    spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3 = velocity2(tsr,solidity)
+    param = np.array([spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3])
 
 vel = velocity_field(xt,yt,xt + x0,yt + y0,velf,dia,tsr,solidity,cfd_data,param)
 

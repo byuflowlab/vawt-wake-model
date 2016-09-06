@@ -271,8 +271,8 @@ if rom == True:
             param = np.array([men1,sdv1,rat1,wdt1,spr1,scl1,men2,sdv2,rat2,wdt2,spr2,scl2,men3,sdv3,rat3,wdt3,spr3,scl3,men4,sdv4,rat4,wdt4,spr4,scl4,p,q])
 
         elif cfd_data == 'velo2':
-            men,sdv,rat,wdt,spr,scl = velocity2(tsr,sol)
-            param = np.array([men,sdv,rat,wdt,spr,scl])
+            spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3 = velocity2(tsr,sol)
+            param = np.array([spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3])
             # print param
             # import time
             #
@@ -362,7 +362,7 @@ if rom == True:
         if k == 0:
             plt.plot(x25,y25,'b.',label='PIV')
             plt.plot(pos3,vel3,'r-',label='CFD')
-            plt.plot(x25,rom25,'m-',label='Vorticity')
+            plt.plot(x25,rom25,'m-',label='Velocity')
         elif k == 1:
             plt.plot(x25,rom25,'g-',label='Velocity')
         if k == 0:

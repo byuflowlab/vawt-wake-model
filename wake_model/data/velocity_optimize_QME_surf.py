@@ -1,4 +1,5 @@
 from pyoptsparse import Optimization, SNOPT, pyOpt_solution
+from scipy.optimize import curve_fit
 import csv
 import numpy as np
 from numpy import pi,sqrt,exp,fabs,log,sin,arctan,cosh
@@ -8,28 +9,29 @@ import database_call as dbc
 # rcParams['font.family'] = 'Times New Roman'
 
 
-def veldist(dn,lat,men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3):
+def veldist(dn,lat,spr1,pow1,pow2,pow3,spr2,skw,scl1,scl2,scl3):
+    pow = pow1-pow2*dn**2.
+    # spr2 = 1./((log(0.0001)/-spr1)**(1./pow)+fabs(skw))**2
 
-    # sdv_v = sdv3*sdv2*sdv1*exp(sdv2*dn)*exp(-sdv1*exp(sdv2*dn))+sdv4
-    sdv_v = sdv1*dn**2 + sdv2*dn + sdv3
-    # sdv_v = sdv2**dn + sdv3
-    # sdv_v = sdv4
 
-    # rat_v = spr3*spr2*spr1*exp(spr2*dn)*exp(-spr1*exp(spr2*dn))#+spr4
-    rat_v = spr1*dn**2 + spr2*dn + spr3
-    # sdv_v = spr_v
-    spr_v = spr4
+    exp_v = exp(-spr1*fabs(lat)**pow)
+    quad = spr2*(lat-skw)**2-1.
+    scl_v = scl3*scl2*scl1*exp(scl2*dn)*exp(-scl1*exp(scl2*dn))
 
-    wdt_v = wdt
-    # rat_v = rat
-    # spr_v = rat#-spr4*dn + rat
-    # spr_v = sdv2*dn+sdv3
+    return exp_v*quad*scl_v+1.
 
-    # f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat/spr_v)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat_v*fabs((lat/spr_v))-wdt_v)))
-    f1 = -1./(sdv_v*sqrt(2.*pi))*exp(-((lat)-men)**2/(2.*sdv_v**2))*(1./(1.+exp(rat_v*fabs((lat))-spr_v)))
-    f2 = scl3*scl2*scl1*exp(scl2*dn)*exp(-scl1*exp(scl2*dn))
+def sheet(posdntr,param0,param1,param2,param3,param4,param5,param6,param7,param8):
 
-    return f1*f2 + 1.
+    vel = np.zeros_like(posdntr[0,:])
+
+    for i in range(np.size(posdn)):
+        vel[i] = veldist(posdntr[0,i],posdntr[1,i],param0,param1,param2,param3,param4,param5,param6,param7,param8)
+
+    return vel
+
+
+
+
 
 
 def obj_func(xdict):
@@ -40,26 +42,21 @@ def obj_func(xdict):
     param = xdict['param']
     funcs = {}
 
-    men = param[0]
-    sdv1 = param[1]
-    sdv2 = param[2]
-    sdv3 = param[3]
-    sdv4 = param[4]
-    rat = param[5]
-    wdt = param[6]
-    spr1 = param[7]
-    spr2 = param[8]
-    spr3 = param[9]
-    spr4 = param[10]
-    scl1 = param[11]
-    scl2 = param[12]
-    scl3 = param[13]
+    spr1 = param[0]
+    pow1 = param[1]
+    pow2 = param[2]
+    pow3 = param[3]
+    spr2 = param[4]
+    skw = param[5]
+    scl1 = param[6]
+    scl2 = param[7]
+    scl3 = param[8]
 
     error = 0.
 
     for i in range(np.size(posdn)):
         if posdn[i] > 0.58:
-            vel = veldist(posdn[i],poslt[i],men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3)
+            vel = veldist(posdn[i],poslt[i],spr1,pow1,pow2,pow3,spr2,skw,scl1,scl2,scl3)
             error = error + (vel-velod[i])**2
 
     ##Print
@@ -503,80 +500,30 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     optProb = Optimization('VAWTWake_Velo', obj_func)
     optProb.addObj('obj')
 
-    men0 = 0.
-    sdv10 = 0.5
-    sdv20 = 0.1
-    sdv30 = 10.
-    sdv40 = 0.5
-    rat0 = 10.
-    wdt0 = 10.
-    spr10 = 0.5
-    spr20 = 0.1
-    spr30 = 20.
-    spr40 = 1.
+    # spr10 = 10.0
+    # pow10 = 5.0
+    # pow20 = 0.5
+    # pow30 = 1.0
+    # spr20 = 2.0
+    # skw0 = 0.0
+    # scl10 = 0.5
+    # scl20 = 0.1
+    # scl30 = 20.0
+
+    spr10 = 10.0
+    pow10 = 10.0
+    pow20 = 0.5
+    pow30 = 0.0#1.0
+    spr20 = 2.0
+    skw0 = 0.0
     scl10 = 0.5
     scl20 = 0.1
-    scl30 = 40.
+    scl30 = 10.0
 
+    param0 = np.array([spr10,pow10,pow20,pow30,spr20,skw0,scl10,scl20,scl30])
 
-    # men0 = 0.107980482
-    # sdv10 = 5.09E-01
-    # sdv20 = 0.056288195
-    # sdv30 = 50
-    # sdv40 = 0.5
-    # rat0 = 13.19127977
-    # wdt0 = 14.20436344
-    # spr10 = 1
-    # spr20 = 0.010825
-    # spr30 = 132.4282087
-    # spr40 = 1
-    # scl10 = 0.365635251
-    # scl20 = 0.082475724
-    # scl30 = 37.61946447
-
-    men0 = -0.0138439642406
-    sdv10 = 0.0
-    sdv20 = 0.17803796067
-    sdv30 = 9.69044107271
-    sdv40 = 0.50982003115
-    rat0 = 0.0
-    wdt0 = 10.0
-    spr10 = 0.998862596849
-    spr20 = 1.47011550439e-05
-    spr30 = 22.5386579407
-    spr40 = 1.0
-    scl10 = 0.380051328623
-    scl20 = 0.134712758388
-    scl30 = 45.7788575653
-
-    men0 = -0.0384248691061
-    sdv10 = 0.0
-    sdv20 = 0.17803796067
-    sdv30 = 9.69044107271
-    sdv40 = 0.81447171018
-    rat0 = 0.0
-    wdt0 = 10.0
-    spr10 = 0.0232236137751
-    spr20 = 0.0
-    spr30 = 12.6315271162
-    spr40 = 9.75322269238
-    scl10 = 0.357152390403
-    scl20 = 0.135756021609
-    scl30 = 33.8432403717
-
-
-
-
-    param0 = np.array([men0,sdv10,sdv20,sdv30,sdv40,rat0,wdt0,spr10,spr20,spr30,spr40,scl10,scl20,scl30])
-
-    param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
-    param_u = np.array([None,10.,1.,50.,None,None,None,1.,1.,50.,None,1.,1.,None])
-
-    # param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
-    # param_u = np.array([None,10.,1.,None,None,None,None,None,None,None,None,1.,1.,None])
-
-    # param_l = np.array([None,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.,0.])
-    # param_u = np.array([None,None,None,None,None,None,None,None,None,None,None,1.,1.,None])
+    param_l = np.array([0.,0.,0.,0.,0.,None,0.,0.,0.])
+    param_u = np.array([None,None,None,None,None,None,1.,1.,None])
 
     nparam = np.size(param0)
     optProb.addVarGroup('param', nparam, 'c', lower=param_l, upper=param_u, value=param0)
@@ -608,26 +555,37 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
         print paramf[6]
         print paramf[7]
         print paramf[8]
-        print paramf[9]
-        print paramf[10]
-        print paramf[11]
-        print paramf[12]
-        print paramf[13]
 
-    men = paramf[0]
-    sdv1 = paramf[1]
-    sdv2 = paramf[2]
-    sdv3 = paramf[3]
-    sdv4 = paramf[4]
-    rat = paramf[5]
-    wdt = paramf[6]
-    spr1 = paramf[7]
-    spr2 = paramf[8]
-    spr3 = paramf[9]
-    spr4 = paramf[10]
-    scl1 = paramf[11]
-    scl2 = paramf[12]
-    scl3 = paramf[13]
+
+
+
+
+
+    # spr10 = 10.0
+    # pow10 = 10.0
+    # pow20 = 0.5
+    # pow30 = 0.0#1.0
+    # spr20 = 2.0
+    # skw0 = 0.0
+    # scl10 = 0.5
+    # scl20 = 0.1
+    # scl30 = 10.0
+    # param0 = np.array([spr10,pow10,pow20,pow30,spr20,skw0,scl10,scl20,scl30])
+    #
+    # posdntr = np.vstack([posdn,poslt])
+    #
+    # paramf,_ = curve_fit(sheet,posdntr,velod,p0=param0,maxfev=2820000)
+
+    spr1 = paramf[0]
+    pow1 = paramf[1]
+    pow2 = paramf[2]
+    pow3 = paramf[3]
+    spr2 = paramf[4]
+    skw = paramf[5]
+    scl1 = paramf[6]
+    scl2 = paramf[7]
+    scl3 = paramf[8]
+
 
     paper = False
 
@@ -648,16 +606,16 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
                 if i == 5:
                     exec('xfit = np.linspace(min(pos'+name+'d)-1.,max(pos'+name+'d)+1.,500)')
                     exec('plt.plot(velo'+name+'d,pos'+name+'d,color,label=lab)')
-                    men_v,spr_v,scl_v,rat_v,spr_v = paramfit(xd[i],men,spr,scl,rat,spr)
-                    plt.plot(veldist(xfit,men_v,spr_v,scl_v,rat_v,spr_v),xfit,'r-',linewidth=2,label=lab2)
+                    skw_v,spr_v,scl_v,rat_v,spr_v = paramfit(xd[i],skw,spr,scl,rat,spr)
+                    plt.plot(veldist(xfit,skw_v,spr_v,scl_v,rat_v,spr_v),xfit,'r-',linewidth=2,label=lab2)
                     plt.xlim(0.,1.5)
                     # plt.ylim(-4.,4.)
                     plt.legend(loc="upper left", bbox_to_anchor=(1,1),fontsize=fs)
                 else:
                     exec('xfit = np.linspace(min(pos'+name+'d)-1.,max(pos'+name+'d)+1.,500)')
                     exec('plt.plot(velo'+name+'d,pos'+name+'d,color)')
-                    men_v,spr_v,scl_v,rat_v,spr_v = paramfit(xd[i],men,spr,scl,rat,spr)
-                    plt.plot(veldist(xfit,men_v,spr_v,scl_v,rat_v,spr_v),xfit,'r-',linewidth=2)
+                    skw_v,spr_v,scl_v,rat_v,spr_v = paramfit(xd[i],skw,spr,scl,rat,spr)
+                    plt.plot(veldist(xfit,skw_v,spr_v,scl_v,rat_v,spr_v),xfit,'r-',linewidth=2)
                     plt.xlim(0.,1.5)
                     # plt.ylim(-4.,4.)
                 plt.text(0.3,0.8,tex,fontsize=fs)
@@ -681,14 +639,14 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
                 color = 'bo'
                 exec('xfit = np.linspace(min(pos'+name+'d)-1.,max(pos'+name+'d)+1.,500)')
                 exec('plt.plot(velo'+name+'d,pos'+name+'d,color)')
-                plt.plot(veldist(xd[i],xfit,men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3),xfit,'r-',linewidth=2)
+                plt.plot(veldist(xd[i],xfit,spr1,pow1,pow2,pow3,spr2,skw,scl1,scl2,scl3),xfit,'r-',linewidth=2)
                 plt.xlim(0.,1.5)
                 # plt.ylim(-4.,4.)
                 # plt.legend(loc=1)
                 plt.xlabel('Normalized Velocity')
                 plt.ylabel('$y/D$')
 
-    return men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3
+    return spr1,pow1,pow2,pow3,spr2,skw,scl1,scl2,scl3
 
 ## Main File
 if __name__ == "__main__":
@@ -703,9 +661,9 @@ if __name__ == "__main__":
 
 
 
-    s = 's3'
-    t = '400'
-    length = 50.
+    s = 's5'
+    t = '375'
+    length = 23.
 
     dia = 6.
 
@@ -713,20 +671,15 @@ if __name__ == "__main__":
     # comp = 'fsl'
     # comp = 'win'
 
-    men,sdv1,sdv2,sdv3,sdv4,rat,wdt,spr1,spr2,spr3,spr4,scl1,scl2,scl3 = fit(s,t,length,True,comp,4,True)
+    spr1,pow1,pow2,pow3,spr2,skw,scl1,scl2,scl3 = fit(s,t,length,True,comp,4,True)
 
     print '\n'
-    print 'men =',men
-    print 'sdv1 =',sdv1
-    print 'sdv2 =',sdv2
-    print 'sdv3 =',sdv3
-    print 'sdv4 =',sdv4
-    print 'rat =',rat
-    print 'wdt =',wdt
     print 'spr1 =',spr1
+    print 'pow1 =',pow1
+    print 'pow2 =',pow2
+    print 'pow3 =',pow3
     print 'spr2 =',spr2
-    print 'spr3 =',spr3
-    print 'spr4 =',spr4
+    print 'skw =',skw
     print 'scl1 =',scl1
     print 'scl2 =',scl2
     print 'scl3 =',scl3

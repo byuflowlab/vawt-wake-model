@@ -1,0 +1,27 @@
+for ((a=1; a<3; a++)) do for ((b=1; b<3; b++)) do for ((c=1; c<3; c++)) do for ((d=1; d<3; d++)) do for ((e=1; e<3; e++)) do for ((f=1; f<3; f++)) do for ((g=1; g<3; g++)) do for ((h=1; h<3; h++)) do for ((i=1; i<3; i++)) do echo sbatch cvrunqme.sh 4 0 0 $a $b $c $d $e $f $g $h $i; done; done; done; done; done; done; done; done; done
+
+
+for ((i=11395952; i < 11396044; i++ )) do cat "slurm-$i.out">>qme2pow3nolowsol_cv_error2.out; done
+
+grep -E '^Cross' qme2pow3_cv_error2.out
+grep -E '^Cross' pme_cv_error_rerun.out
+grep -E '^Curve' qme2pow3_cv_error2.out
+grep -E '^Curve' qme_cv_error_rerun1.out
+
+
+for ((a=1; a<3; a++)) do for ((b=1; b<3; b++)) do for ((c=1; c<3; c++)) do for ((d=1; d<3; d++)) do for ((e=1; e<3; e++)) do for ((f=1; f<3; f++)) do for ((g=1; g<3; g++)) do for ((h=1; h<3; h++)) do for ((i=1; i<3; i++)) do for ((j=1; j<3; j++)) do sbatch cvrunpme.sh 4 0 0 $a $b $c $d $e $f $g $h $i $j; done; done; done; done; done; done; done; done; done; done
+
+for ((a=1; a<4; a++)) do for ((b=1; b<4; b++)) do for ((c=1; c<4; c++)) do for ((d=1; d<4; d++)) do for ((e=1; e<4; e++)) do for ((f=1; f<4; f++)) do for ((g=1; g<4; g++)) do for ((h=1; h<4; h++)) do sbatch cvrunqme.sh 4 0 0 $a $b $c $d $e $f $g $h; done; done; done; done; done; done; done; done
+
+for ((a=1; a<4; a++)) do for ((b=1; b<4; b++)) do for ((c=1; c<4; c++)) do for ((d=1; d<4; d++)) do for ((e=1; e<4; e++)) do for ((f=1; f<4; f++)) do echo sbatch cvrunexp.sh 4 0 0 $a $b $c 1 $d $e $f; done; done; done; done; done; done
+
+
+
+for ((b=1; b<4; b++)) do for ((c=1; c<4; c++)) do for ((d=1; d<4; d++)) do for ((e=1; e<4; e++)) do for ((f=1; f<4; f++)) do for ((g=1; g<4; g++)) do for ((h=1; h<4; h++)) do sbatch cvrunqme.sh 4 0 0 3 $b $c $d $e $f $g $h; done; done; done; done; done; done; done
+
+
+
+for ((a=1; a<4; a++)) do for ((b=1; b<4; b++)) do for ((c=1; c<4; c++)) do for ((d=1; d<4; d++)) do for ((e=1; e<4; e++)) do for ((f=1; f<4; f++)) do for ((g=1; g<4; g++)) do sbatch cvrunqme.sh 4 0 0 $a $b $c $d $e $f $g; done; done; done; done; done; done; done
+
+module load starccm+/10.02.010
+eval starccm+ -batch atta_vorticity_read.java VAWT0021_ta_s1_4
