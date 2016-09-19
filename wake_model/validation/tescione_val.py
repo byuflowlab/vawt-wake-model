@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 from VAWT_Wake_Model import velocity_field
-from database_call import vorticity,velocity,velocity2
+from database_call import vorticity,vorticity2,velocity,velocity2
 from scipy.io import loadmat
-from numpy import fabs
+from numpy import fabs, log
 
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
@@ -235,12 +235,16 @@ if rom == True:
         if k == 1:
             cfd_data = 'velo'
         elif k == 0:
-            cfd_data = 'velo2'
+            cfd_data = 'vort2'
         # cfd_data = 'quad'
         
         if cfd_data == 'vort':
             loc,spr,skw,scl = vorticity(tsr,sol)
             param = np.array([loc,spr,skw,scl])
+
+        elif cfd_data == 'vort2':
+            loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3 = vorticity2(tsr,sol)
+            param = np.array([loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3])
             
         elif cfd_data == 'velo':
             men1,sdv1,rat1,wdt1,spr1,scl1,tsrn1,_ = velocity(tsr-0.1249,sol)
@@ -273,7 +277,11 @@ if rom == True:
         elif cfd_data == 'velo2':
             spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3 = velocity2(tsr,sol)
             param = np.array([spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3])
+
+            # pow = pow1
+            # spr2_fix = 1./((log(0.0001)/-spr1)**(1./pow)+fabs(skw))**2
             # print param
+            # print spr2_fix
             # import time
             #
             # time.sleep(10)

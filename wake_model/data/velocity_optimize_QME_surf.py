@@ -2,7 +2,7 @@ from pyoptsparse import Optimization, SNOPT, pyOpt_solution
 from scipy.optimize import curve_fit
 import csv
 import numpy as np
-from numpy import pi,sqrt,exp,fabs,log,sin,arctan,cosh
+from numpy import pi,sqrt,exp,fabs,log,sin,arctan,cosh,cos
 import matplotlib.pyplot as plt
 import database_call as dbc
 # from matplotlib import rcParams
@@ -10,15 +10,52 @@ import database_call as dbc
 
 
 def veldist(dn,lat,spr1,pow1,pow2,pow3,spr2,skw,scl1,scl2,scl3):
-    pow = pow1-pow2*dn**2.
+    pow = pow1-pow2*dn
     # spr2 = 1./((log(0.0001)/-spr1)**(1./pow)+fabs(skw))**2
 
 
-    exp_v = exp(-spr1*fabs(lat)**pow)
-    quad = spr2*(lat-skw)**2-1.
+    # exp_v = exp(-spr1*fabs(lat)**pow)
+    # quad = spr2*(lat-skw)**2-1.
     scl_v = scl3*scl2*scl1*exp(scl2*dn)*exp(-scl1*exp(scl2*dn))
 
-    return exp_v*quad*scl_v+1.
+    # return exp_v*quad*scl_v+pow3
+
+    sprlog = (log(0.01)/-spr1)**(1./pow)
+    sprlat = lat/sprlog
+
+    try:
+        exp_v = (1./(1.-skw))*(-exp(-spr1*fabs(lat)**pow)+skw)/(np.maximum(1.,fabs(sprlat)**pow3))+1.
+    except:
+
+
+        exp_v = np.zeros_like(lat)
+        for i in range(np.size(lat)):
+            exp_v[i] = (1./(1.-skw))*(-exp(-fabs(lat[i])**pow)+skw)/(np.maximum(1.,fabs(sprlat[i])**pow3))+1.
+
+    return scl_v*exp_v
+
+    # spr_v = -spr1*dn**2 + spr2*dn + skw
+    # scl_v = scl3*scl2*scl1*exp(scl2*dn)*exp(-scl1*exp(scl2*dn))
+    # spr_e = 1./((log(0.0001)/-spr_v))**2
+    #
+    # try:
+    #     if fabs(lat) > spr_v:
+    #         vel = 1.
+    #     else:
+    #         # vel = -scl_v*(1.+cos((lat*(pi))/spr_v))/2. + 1.
+    #         vel = -scl_v*exp(-spr_e*fabs(lat)**(2)) + 1.
+    # except:
+    #     vel = np.zeros(np.size(lat))
+    #     for i in range(np.size(lat)):
+    #         if fabs(lat[i]) > spr_v:
+    #             vel[i] = 1.
+    #         else:
+    #             # vel[i] = -scl_v*(1.+cos((lat[i]*(pi))/spr_v))/2. + 1.
+    #             vel[i] = -scl_v*exp(-spr_e*fabs(lat[i])**(2)) + 1.
+
+
+    # return vel
+
 
 def sheet(posdntr,param0,param1,param2,param3,param4,param5,param6,param7,param8):
 
@@ -230,7 +267,7 @@ def starccm_read(fdata,dia,windd,length,opt_print):
             #Deleting wall boundary data
             exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif pos'+name+'[j] > 5. or pos'+name+'[j] < -5.:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
             #Deleting values greater than 1*wind
-            exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif velo'+name+'[j] > 1. or fabs(pos'+name+'[j]) > 1.2:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
+            # exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif velo'+name+'[j] > 1. or fabs(pos'+name+'[j]) > 1.2:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
             exec('lensize = np.size(pos'+name+')')
             exec('posdn = np.append(posdn,np.ones(lensize)*lendat['+ind+'])\nposlt = np.append(poslt,pos'+name+')\nvelod = np.append(velod,velo'+name+')')
 
@@ -396,7 +433,7 @@ def starccm_read2(fdata,dia,windd,opt_print):
             #Deleting wall boundary data
             exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif pos'+name+'[j] > 5. or pos'+name+'[j] < -5.:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
             #Deleting values greater than 1*wind
-            exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif velo'+name+'[j] > 1. or fabs(pos'+name+'[j]) > 1.2:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
+            # exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif velo'+name+'[j] > 1. or fabs(pos'+name+'[j]) > 1.2:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
             exec('pos'+name+'d = np.append(pos'+name+'d,pos'+name+')\nvelo'+name+'d = np.append(velo'+name+'d,velo'+name+')')
 
 
@@ -513,12 +550,22 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     spr10 = 10.0
     pow10 = 10.0
     pow20 = 0.5
-    pow30 = 0.0#1.0
+    pow30 = 1.0#1.0
     spr20 = 2.0
-    skw0 = 0.0
+    skw0 = 0.25
     scl10 = 0.5
     scl20 = 0.1
     scl30 = 10.0
+
+    # spr10 = 0.0141636012494
+    # pow10 = 10.0
+    # pow20 = 0.5
+    # pow30 = 0.0
+    # spr20 = 0.228619805785
+    # skw0 = 0.5
+    # scl10 = 0.5913350627
+    # scl20 = 0.0934430378117
+    # scl30 = 24.3839616214
 
     param0 = np.array([spr10,pow10,pow20,pow30,spr20,skw0,scl10,scl20,scl30])
 
@@ -564,7 +611,7 @@ def fit(s,t,length,plot,comp,read_data,opt_print):
     # spr10 = 10.0
     # pow10 = 10.0
     # pow20 = 0.5
-    # pow30 = 0.0#1.0
+    # pow30 = 1.0#1.0
     # spr20 = 2.0
     # skw0 = 0.0
     # scl10 = 0.5
@@ -661,9 +708,9 @@ if __name__ == "__main__":
 
 
 
-    s = 's5'
-    t = '375'
-    length = 23.
+    s = 's2'
+    t = '400'
+    length = 100.
 
     dia = 6.
 

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 from VAWT_Wake_Model import velocity_field
-from database_call import vorticity,velocity,velocity2
+from database_call import vorticity,vorticity2,velocity,velocity2
 from numpy import fabs
 
 from matplotlib import rcParams
@@ -36,13 +36,17 @@ for k in range(1):
         sol = 0.5
         tsr = 1.6
     elif k == 0:
-        cfd_data = 'velo2'
+        cfd_data = 'vort2'
         sol = 0.5
         tsr = 1.6
     
     if cfd_data == 'vort':
         loc,spr,skw,scl = vorticity(tsr,sol)
         param = np.array([loc,spr,skw,scl])
+
+    elif cfd_data == 'vort2':
+        loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3 = vorticity2(tsr,sol)
+        param = np.array([loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3])
         
     elif cfd_data == 'velo':
         men1,sdv1,rat1,wdt1,spr1,scl1,tsrn1,_ = velocity(tsr-0.1249,sol)

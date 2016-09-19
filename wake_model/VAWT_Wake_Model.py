@@ -32,10 +32,12 @@ rotation is counter-clockwise from the top.
 
 """
 
-from numpy import pi, exp, fabs, sqrt
-from scipy.integrate import dblquad
+from numpy import pi, exp, fabs, sqrt, log
+# from scipy.integrate import dblquad
+from Integrate import dblquad
 
 import _vortmodel
+import _vort_integrate
 
 # from matplotlib import rcParams
 # rcParams['font.family'] = 'Times New Roman'
@@ -324,6 +326,33 @@ def velocity_field(xt, yt, x0, y0, velf, dia, tsr, solidity, cfd_data, param):
         if x0 < xt:
             vel = 1.  # Velocity is free stream in front and to the sides of the turbine
 
+    elif cfd_data == 'vort2':
+        # Calculating EMG distribution parameters
+        loc1 = param[0]
+        loc2 = param[1]
+        loc3 = param[2]
+        spr1 = param[3]
+        spr2 = param[4]
+        skw1 = param[5]
+        skw2 = param[6]
+        scl1 = param[7]
+        scl2 = param[8]
+        scl3 = param[9]
+
+
+        # Integration of the vorticity profile using Fortran code (vorticity.f90)
+        xbound = 45.*dia/max(1, int(tsr*solidity))
+        vel_vs = dblquad(_vortmodel.integrand, 0., xbound, lambda x: -4.*dia, lambda x: 4.*dia,
+                         args=(x0t, y0t, dia, loc1, loc2, loc3, spr1, spr2,
+                               skw1, skw2, scl1, scl2, scl3))
+        # vel_vs = _vort_integrate.runvort(x0t,y0t,dia,xbound,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3)
+
+        # Calculating velocity deficit
+        vel = (vel_vs[0]*rot)/(2.*pi)
+        # vel = (vel_vs*rot)/(2.*pi)
+        vel = (vel + velf)/velf  # normalization of velocity
+
+
     elif cfd_data == 'velo2':
         x0d = x0/dia
         y0d = y0/dia
@@ -341,6 +370,11 @@ def velocity_field(xt, yt, x0, y0, velf, dia, tsr, solidity, cfd_data, param):
         pow = pow1-pow2*x0d**2
         if pow < 1.5:
             pow = 1.5
+        # spr2_fix = 1./((log(0.0001)/-spr1)**(1./pow)+fabs(skw))**2
+        # if spr2 > spr2_fix:
+        #     spr2 = spr2_fix
+        if spr2 < 0.:
+            spr2 = 0.
         exp_v = exp(-spr1*fabs(y0d)**pow)
         quad = spr2*(y0d-skw)**2-1.
         scl_v = scl3*scl2*scl1*exp(scl2*x0d)*exp(-scl1*exp(scl2*x0d))

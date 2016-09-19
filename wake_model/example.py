@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from database_call import vorticity,velocity,velocity2
+from database_call import vorticity,velocity,vorticity2,velocity2
 from VAWT_Wake_Model import velocity_field
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
@@ -12,9 +12,9 @@ start = time.time()
 
 velf = 15.0 # free stream wind speed (m/s)
 dia = 6.0  # turbine diameter (m)
-tsr = 4.  # tip speed ratio
+tsr = 4.5  # tip speed ratio
 B = 3. # number of blades
-chord = 0.25 # chord lenth (m)
+chord = 0.24 # chord lenth (m)
 solidity = (chord*B)/(dia/2.)
 
 # Enter the positions of the turbine and velocity calculation
@@ -25,12 +25,18 @@ y0 = 0. # lateral distance from turbine for velocity calculation (m)
 
 # Choose whether CFD vorticity or velocity data will be used as the basis
 cfd_data = 'vort'
-cfd_data = 'velo'
-cfd_data = 'velo2'
+cfd_data = 'vort2'
+# cfd_data = 'velo'
+# cfd_data = 'velo2'
 
 if cfd_data == 'vort':
     loc,spr,skw,scl = vorticity(tsr,solidity)
     param = np.array([loc,spr,skw,scl])
+
+    print param
+    import time
+
+    time.sleep(10)
     
 elif cfd_data == 'velo':
     men1,sdv1,rat1,wdt1,spr1,scl1,tsrn1,_ = velocity(tsr-0.1249,solidity)
@@ -55,9 +61,20 @@ elif cfd_data == 'velo':
 
     param = np.array([men1,sdv1,rat1,wdt1,spr1,scl1,men2,sdv2,rat2,wdt2,spr2,scl2,men3,sdv3,rat3,wdt3,spr3,scl3,men4,sdv4,rat4,wdt4,spr4,scl4,p,q])
 
+elif cfd_data == 'vort2':
+    loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3 = vorticity2(tsr,solidity)
+    param = np.array([loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3])
+
+    # print param
+    # import time
+    #
+    # time.sleep(10)
+
 elif cfd_data == 'velo2':
     spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3 = velocity2(tsr,solidity)
     param = np.array([spr1,pow1,pow2,spr2,skw,scl1,scl2,scl3])
+
+
 
 vel = velocity_field(xt,yt,xt + x0,yt + y0,velf,dia,tsr,solidity,cfd_data,param)
 
@@ -72,7 +89,7 @@ vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-# plot_dist = False # comment this out if desired on
+plot_dist = False # comment this out if desired on
 
 # Plotting velocity profiles
 if vel_slice == True:
