@@ -14,7 +14,9 @@ rom = True
 r = 0.5
 v = 1.
 
-flip = -1.
+flip = 1.
+veltype = 'velfort'
+# veltype = 'x'
 
 # fdata = 'path/to/tes.csv' # adjust this for your case
 fdata = '/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/Validation/tes.csv'
@@ -218,7 +220,10 @@ plt.ylabel(r'$u/U_\infty$')
 plt.text(-0.25,1.05,r'$x/D$ = 2.0')
 print '4.0 cfd',(min(vel6)-min(y40))/min(y40),cfd40error,cfd40errorstd
 
-print cfdoaerror,cfdoaerrorstd
+
+print '\nOverall Error:',cfdoaerror
+print 'Overall Stand Dev:',cfdoaerrorstd,'\n'
+
 
 
 ## Plot Model
@@ -302,20 +307,20 @@ if rom == True:
         rom35t = np.zeros(33)
         rom40t = np.zeros(26)
         for i in range(33):
-            rom15[i] = velocity_field(xt,yt,0.75,x15[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom15[i],_,_ = velocity_field(xt,yt,0.75*dia,x15[i]*dia,velf,dia,tsr,sol,cfd_data,param,veltype)
             rom15t[i] = (rom15[i]-y15[i])/y15[i]
-            rom20[i] = velocity_field(xt,yt,1.0,x20[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom20[i],_,_ = velocity_field(xt,yt,1.0*dia,x20[i]*dia,velf,dia,tsr,sol,cfd_data,param,veltype)
             rom20t[i] = (rom20[i]-y20[i])/y20[i]
-            rom25[i] = velocity_field(xt,yt,1.25,x25[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom25[i],_,_ = velocity_field(xt,yt,1.25*dia,x25[i]*dia,velf,dia,tsr,sol,cfd_data,param,veltype)
             rom25t[i] = (rom25[i]-y25[i])/y25[i]
-            rom30[i] = velocity_field(xt,yt,1.5,x30[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom30[i],_,_ = velocity_field(xt,yt,1.5*dia,x30[i]*dia,velf,dia,tsr,sol,cfd_data,param,veltype)
             rom30t[i] = (rom30[i]-y30[i])/y30[i]
-            rom35[i] = velocity_field(xt,yt,1.75,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom35[i],_,_ = velocity_field(xt,yt,1.75*dia,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param,veltype)
             rom35t[i] = (rom35[i]-y35[i])/y35[i]
-            rom40f[i] = velocity_field(xt,yt,2.0,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param)
+            rom40f[i],_,_ = velocity_field(xt,yt,2.0*dia,x35[i]*dia,velf,dia,tsr,sol,cfd_data,param,veltype)
             print i
         for i in range(26):
-            rom40[i] = velocity_field(xt,yt,4.0*3.,x40[i]*3.,9.308422677,6.,4.5,0.24,cfd_data,param)
+            rom40[i],_,_ = velocity_field(xt,yt,2.0*dia,x40[i]*dia,velf,dia,tsr,sol,cfd_data,param,veltype)
             rom40t[i] = (rom40[i]-y40[i])/y40[i]
             print i
         
@@ -333,16 +338,19 @@ if rom == True:
         rom40errorstd = np.std(fabs(rom40t))
         oaerror = (rom15error+rom20error+rom25error+rom30error+rom35error+rom40error)/6.
         oaerrorstd = (rom15errorstd+rom20errorstd+rom25errorstd+rom30errorstd+rom35errorstd+rom40errorstd)/6.
-        
+
+
+
+
         fig2 = plt.figure(2,figsize=(12.5,6))
         fig2.subplots_adjust(left=.05,right=.86,wspace=.36,hspace=.35)
         plt.subplot(2,3,1)
         if k == 0:
             plt.plot(x15,y15,'b.')
             plt.plot(pos1,vel1,'r-')
-            plt.plot(x15,rom15,'m-')
-        elif k == 1:
             plt.plot(x15,rom15,'g-')
+        elif k == 1:
+            plt.plot(x15,rom15,'m-')
         if k == 0:
             plt.xlim(-1,1)
             plt.ylim(0.1,1.2)
@@ -355,9 +363,9 @@ if rom == True:
         if k == 0:
             plt.plot(x20,y20,'b.')
             plt.plot(pos2,vel2,'r-')
-            plt.plot(x20,rom20,'m-')
-        elif k == 1:
             plt.plot(x20,rom20,'g-')
+        elif k == 1:
+            plt.plot(x20,rom20,'m-')
         if k == 0:
             plt.xlim(-1,1)
             plt.ylim(0.1,1.2)
@@ -370,9 +378,9 @@ if rom == True:
         if k == 0:
             plt.plot(x25,y25,'b.',label='PIV')
             plt.plot(pos3,vel3,'r-',label='CFD')
-            plt.plot(x25,rom25,'m-',label='Velocity')
+            plt.plot(x25,rom25,'g-',label='Model')
         elif k == 1:
-            plt.plot(x25,rom25,'g-',label='Velocity')
+            plt.plot(x25,rom25,'m-',label='Velocity')
         if k == 0:
             plt.xlim(-1,1)
             plt.ylim(0.1,1.2)
@@ -387,9 +395,9 @@ if rom == True:
         if k == 0:
             plt.plot(x30,y30,'b.')
             plt.plot(pos4,vel4,'r-')
-            plt.plot(x30,rom30,'m-')
-        elif k == 1:
             plt.plot(x30,rom30,'g-')
+        elif k == 1:
+            plt.plot(x30,rom30,'m-')
         if k == 0:
             plt.xlim(-1,1)
             plt.ylim(0.1,1.2)
@@ -402,9 +410,9 @@ if rom == True:
         if k == 0:
             plt.plot(x35,y35,'b.')
             plt.plot(pos5,vel5,'r-')
-            plt.plot(x35,rom35,'m-')
-        elif k == 1:
             plt.plot(x35,rom35,'g-')
+        elif k == 1:
+            plt.plot(x35,rom35,'m-')
         if k == 0:
             plt.xlim(-1,1)
             plt.ylim(0.1,1.2)
@@ -417,9 +425,9 @@ if rom == True:
         if k == 0:
             plt.plot(x40,y40,'b.')
             plt.plot(pos6,vel6,'r-')
-            plt.plot(x35,rom40f,'m-')
-        elif k == 1:
             plt.plot(x35,rom40f,'g-')
+        elif k == 1:
+            plt.plot(x35,rom40f,'m-')
         if k == 0:
             plt.xlim(-1,1)
             plt.ylim(0.1,1.2)
@@ -429,7 +437,8 @@ if rom == True:
         print '4.0 mod',(min(rom40f)-min(y40))/min(y40),rom40error,rom40errorstd
         print '4.0 cfd',(min(vel6)-min(y40))/min(y40),cfd40error,cfd40errorstd
 
-        print oaerror,oaerrorstd
+        print '\nOverall Error:',oaerror
+        print 'Overall Stand Dev:',oaerrorstd
     
 plt.show()
 

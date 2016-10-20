@@ -38,6 +38,7 @@ def vorticity(show):
     # basepath = path.join(path.dirname(path.realpath(__file__)),'data')
     # fdata = basepath + path.sep + 'errordatabase.csv'
     fdata = '/Users/ning1/Documents/Flow Lab/VAWTWakeModel/wake_model/validation/error_cfd_vort2_edit.csv'
+    fdata = '/Users/ning1/Documents/Flow Lab/VAWTWakeModel/wake_model/validation/error_cfd_vort_EMG.csv'
     f = open(fdata)
     csv_f = csv.reader(f)
     
@@ -78,7 +79,7 @@ def vorticity(show):
     fig = plt.figure(figsize=(8,5))
     fig.subplots_adjust(bottom=.12)#,left=.05,right=1.0)
     lb = 0. # lower bound on velocity to display
-    ub = 0.15 # upper bound on velocity to display
+    ub = 0.5 # upper bound on velocity to display
     ran = 50 # number of contours between the velocity bounds
     bounds = np.linspace(lb,ub,ran)
     v = np.linspace(lb,ub,6) # setting the number of tick marks on colorbar
@@ -189,8 +190,8 @@ def velocity(show):
 
 
 ## Main
-vorticity(False)
+vorticity(True)
 velocity(False)
 
 
-plt.show()
+# plt.show()
