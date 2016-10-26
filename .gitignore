@@ -6,6 +6,7 @@
 
 CFD_plotting.py
 database_call.py
+induced_y_plots.py
 sheet_plot.py
 STARCCM_plot.py
 vel_vort_profile_example.py
