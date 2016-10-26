@@ -24,8 +24,10 @@ class Testwakemodel(unittest.TestCase):
         rad = 0.5
         dia = 2*rad
         velf = 9.308422677
-        sol = 0.24
         tsr = 4.5
+        rot = tsr*velf/rad
+        chord = 0.06
+        B = 2
         rom15 = np.zeros_like(x15)
         rom20 = np.zeros_like(x20)
         rom25 = np.zeros_like(x25)
@@ -33,13 +35,13 @@ class Testwakemodel(unittest.TestCase):
         rom35 = np.zeros_like(x35)
         rom40 = np.zeros_like(x40)
         for i in range(np.size(x15)):
-            rom15[i] = velocity_field(0.0,0.0,0.75,x15[i]*dia,velf,dia,tsr,sol)
-            rom20[i] = velocity_field(0.0,0.0,1.0,x20[i]*dia,velf,dia,tsr,sol)
-            rom25[i] = velocity_field(0.0,0.0,1.25,x25[i]*dia,velf,dia,tsr,sol)
-            rom30[i] = velocity_field(0.0,0.0,1.5,x30[i]*dia,velf,dia,tsr,sol)
-            rom35[i] = velocity_field(0.0,0.0,1.75,x35[i]*dia,velf,dia,tsr,sol)
+            rom15[i] = velocity_field(0.0,0.0,0.75,x15[i]*dia,velf,dia,rot,chord,B)
+            rom20[i] = velocity_field(0.0,0.0,1.0,x20[i]*dia,velf,dia,rot,chord,B)
+            rom25[i] = velocity_field(0.0,0.0,1.25,x25[i]*dia,velf,dia,rot,chord,B)
+            rom30[i] = velocity_field(0.0,0.0,1.5,x30[i]*dia,velf,dia,rot,chord,B)
+            rom35[i] = velocity_field(0.0,0.0,1.75,x35[i]*dia,velf,dia,rot,chord,B)
         for i in range(np.size(x40)):
-            rom40[i] = velocity_field(0.0,0.0,2.0,x40[i]*dia,velf,dia,tsr,sol)
+            rom40[i] = velocity_field(0.0,0.0,2.0,x40[i]*dia,velf,dia,rot,chord,B)
             
             
         idx1 = np.array([4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29])
@@ -50,23 +52,26 @@ class Testwakemodel(unittest.TestCase):
         np.testing.assert_allclose(rom30[idx1],y30[idx1],atol=0.4)
         np.testing.assert_allclose(rom35[idx1],y35[idx1],atol=0.4)
         np.testing.assert_allclose(rom40[idx2],y40[idx2],atol=0.6)
-        
-        
-        
+
+
+
         # Wind tunnel test data
         x15wt = np.linspace(-1.7,1.7,21)
         y15wt = np.array([0.98,0.98,0.985,0.99,0.995,1.005,0.96,0.73,0.5,0.44,0.54,0.51,0.66,0.9,1.01,1.0,0.99,0.985,0.98,0.98,0.97])
-        
+
         # Wake model calculation using wind tunnel data specifications
         rad = 0.515
         dia = 2*rad
         velf = 16.0
         sol = 0.5
         tsr = 1.6
+        rot = tsr*velf/rad
+        B = 3
+        chord = sol*rad/B
         rom15wt = np.zeros_like(x15wt)
         for i in range(np.size(rom15wt)):
-            rom15wt[i] = velocity_field(0.0,0.0,1.5*dia,x15wt[i]*dia,velf,dia,tsr,sol)
-        
+            rom15wt[i] = velocity_field(0.0,0.0,1.5*dia,x15wt[i]*dia,velf,dia,rot,chord,B)
+
         np.testing.assert_allclose(rom15wt,y15wt,atol=0.4)
         
 if __name__ == '__main__':

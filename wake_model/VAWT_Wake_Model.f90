@@ -62,7 +62,7 @@ subroutine vorticitystrength(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl
       end if
     end if
 
-    if (spr1 > -0.001_dp) then ! ensure decrease in value
+    if (spr1 > -0.001_dp) then ! ensure decrease in value (more spread downstream)
       spr = -0.001_dp*xd + spr2
     else
       spr = spr1*xd + spr2
@@ -147,7 +147,7 @@ end subroutine integrandy
 
 ! Performing integration to convert vorticity into velocity
 subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,spr2d,&
-  skw1d,skw2d,scl1d,scl2d,scl3d,velf,m,n,int,velx,vely)
+  skw1d,skw2d,scl1d,scl2d,scl3d,velf,m_in,n_in,inte,velx,vely)
     implicit none
 
     integer, parameter :: dp = kind(0.d0)
@@ -156,17 +156,17 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,
     real(dp), intent(in) :: xt,yt,x0t,y0t,dia,rot,chord,blades
     real(dp), dimension(10), intent(in) :: loc1d,loc2d,loc3d,spr1d,spr2d,skw1d,skw2d,scl1d,scl2d,scl3d
     real(dp), intent(in) :: velf
-    integer, intent(in) :: m,n,int
+    integer, intent(in) :: m_in,n_in,inte
 
     ! out
     real(dp), intent(out) :: velx,vely
 
     ! local
-    integer :: i,j
+    integer :: i,j,m,n
     real(dp) :: x0,y0,h,k,velxi,velyi,xsum,ysum,intlim,pi2,tsr,sol,a,b,c,d
     real(dp) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
-    real(dp), dimension(2*m) :: xdiv
-    real(dp), dimension(2*n) :: ydiv
+    real(dp), dimension(m_in) :: xdiv
+    real(dp), dimension(n_in) :: ydiv
     real(dp) :: xval1,xval2,xval3,xval4,yval1,yval2,yval3,yval4
     real(dp) :: xsum1,xsum2,xsum3,xsum4,xsum5,xsum6,xsum7,xsum8,xsum9,xsum10,xsum11,xsum12
     real(dp) :: ysum1,ysum2,ysum3,ysum4,ysum5,ysum6,ysum7,ysum8,ysum9,ysum10,ysum11,ysum12
@@ -197,18 +197,21 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,
     x0 = x0t - xt
     y0 = y0t - yt
 
-    if (int .eq. 1) then
+    if (inte .eq. 1) then
       ! Using 2D Simpson's Rule to integrate****************************************
-      h = (b - a)/(2.0_dp*m)
-      k = (d - c)/(2.0_dp*n)
+      h = (b - a)/(m_in)
+      k = (d - c)/(n_in)
 
-      do i = 1,2*m
+      do i = 1,m_in
         xdiv(i) = a + i*h
       end do
 
-      do j = 1,2*n
+      do j = 1,n_in
         ydiv(j) = c + j*k
       end do
+
+      m = m_in/2
+      n = n_in/2
 
       call integrandx(c,a,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,xval1)
       call integrandx(d,a,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,xval2)
@@ -354,16 +357,16 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,
       4.0_dp*ysum3 + 2.0_dp*ysum4 + 4.0_dp*ysum5 + 4.0_dp*ysum6 + 2.0_dp*ysum7 + 2.0_dp*ysum8 +&
       16.0_dp*ysum9 + 8.0_dp*ysum10 + 8.0_dp*ysum11 + 4.0_dp*ysum12)/9.0_dp)*(rot/pi2)
 
-    else if (int .eq. 2) then
+    else if (inte .eq. 2) then
       ! Using 2D Trapezoidal Rule to integrate****************************************
-      h = (b - a)/m
-      k = (d - c)/n
+      h = (b - a)/m_in
+      k = (d - c)/n_in
 
-      do i = 1,m
+      do i = 1,m_in
         xdiv(i) = a + i*h
       end do
 
-      do j = 1,n
+      do j = 1,n_in
         ydiv(j) = c + j*k
       end do
 
@@ -391,19 +394,19 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,
 
       intlim = 0.0_dp
 
-      do i = 1,m-1
+      do i = 1,m_in-1
         call integrandx(c,xdiv(i),x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,xsum)
         xsum1 = xsum1 + xsum
         call integrandy(c,xdiv(i),x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,ysum)
         ysum1 = ysum1 + ysum
       end do
-      do i = 1,m-1
+      do i = 1,m_in-1
         call integrandx(d,xdiv(i),x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,xsum)
         xsum2 = xsum2 + xsum
         call integrandy(d,xdiv(i),x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,ysum)
         ysum2 = ysum2 + ysum
       end do
-      do j = 1,n-1
+      do j = 1,n_in-1
         if ((ydiv(j) .gt. intlim) .or. (ydiv(j) .lt. -intlim)) then
           call integrandx(ydiv(j),a,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,xsum)
           xsum3 = xsum3 + xsum
@@ -411,7 +414,7 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,
           ysum3 = ysum3 + ysum
         end if
       end do
-      do j = 1,n-1
+      do j = 1,n_in-1
         if ((ydiv(j) .gt. intlim) .or. (ydiv(j) .lt. -intlim)) then
           call integrandx(ydiv(j),b,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,xsum)
           xsum4 = xsum4 + xsum
@@ -419,8 +422,8 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,
           ysum4 = ysum4 + ysum
         end if
       end do
-      do j = 1,n-1
-        do i = 1,m-1
+      do j = 1,n_in-1
+        do i = 1,m_in-1
           if ((ydiv(j) .gt. intlim) .or. (ydiv(j) .lt. -intlim)) then
             call integrandx(ydiv(j),xdiv(i),x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,xsum)
             xsum5 = xsum5 + xsum
@@ -445,8 +448,6 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,loc1d,loc2d,loc3d,spr1d,
 
 end subroutine vel_field
 
-
-!
 
 ! Calculating loading forces on VAWT blades and power of the turbine
 subroutine radialforce(n,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,&

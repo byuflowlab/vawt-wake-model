@@ -1,17 +1,18 @@
-##---Under Current Development---
+## Currently Operational for Velocity Calculations Only
+Blade force and power calculations soon to come
 
 # VAWT Wake Model
 
-Parameterized VAWT Wake Model using CFD vorticity and velocity data
+Parameterized VAWT Wake Model using CFD vorticity data
 
-Developed by Eric Tingey at Brigham Young University, 2015-2016
+Developed by Eric Tingey at Brigham Young University, 2015-2017
 
 This code models the wake behind a vertical-axis wind turbine based on parameters like tip-speed ratio, solidity and wind speed by using databases of curve fit coefficients to produce velocity information. The model uses CFD data obtained from STAR-CCM+ of simulated turbines to make the wake model as accurate as possible.
 
-Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between 0.15 and 1.0. Reynolds numbers should also be around the range of 200,000 to 6,000,000.
+Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between 0.15 and 1.0. Reynolds numbers should also be around the range of 600,000 to 6,000,000.
 
 
-## Installation instructions
+## Installation instructions (without using the setup.py file)
 
 - system requirements: gfortran (using MinGW for Windows in order to use the commands here), python 2.7, numpy, scipy
 - navigate to the directory and run the following command in the terminal to build the Fortran code:
@@ -19,13 +20,13 @@ Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between 0.15 
 Mac
 ```
 $ cd wake_model
-$ f2py -c  --opt=-O2 -m _vortmodel vorticity.f90
+$ f2py -c  --opt=-O2 -m _vawtwake VAWT_Wake_Model.f90
 ```
 
 Windows
 ```
 cd wake_model
-python <\your\path\to\f2py.py> -c --opt=-O2 --compiler=mingw32 --fcompiler=gfortran -m _vortmodel vorticity.f90
+python <\your\path\to\f2py.py> -c --opt=-O2 --compiler=mingw32 --fcompiler=gfortran -m _vawtwake VAWT_Wake_Model.f90
 ```
 (<\your\path\to\f2py.py>: most likely C:\Python27\Scripts\f2py.py)
 
@@ -40,7 +41,7 @@ $ python test.py
 This python code can be run from another file using:
 ```python
 from VAWT_Wake_Model import velocity_field
-velocity_field(x0,y0,velf,dia,tsr,solidity,cfd_data,param)  # velocity calculation at any point (x0,y0) for a given free stream wind speed, turbine diameter, tip-speed ratio, and solidity
+velocity_field(x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',integration='simp',m=220,n=200)  # velocity calculation at any point (x0,y0) for a given free stream wind speed, turbine diameter, tip-speed ratio, and solidity
 ```
 
 An example code is available to see how to call the wake model code and calculate a normalized velocity at a given location. Plotting of a velocity profile at a specific downstream distance as well as plotting the entire flow domain is also demonstrated in the example.
