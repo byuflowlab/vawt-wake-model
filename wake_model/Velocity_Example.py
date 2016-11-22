@@ -7,7 +7,7 @@ import time
 
 start = time.time()
 
-# Option to plot velocity profiles
+# Option to plot velocity profiles at 2D, 4D, 6D, 8D, 10D, and 15D downstream
 vel_slice = True
 vel_slice = False # comment this out if desired on
 
@@ -16,31 +16,32 @@ plot_dist = True
 # plot_dist = False # comment this out if desired on
 
 # Enter the values desired
-
-velf = 15.0 # free stream wind speed (m/s)
-dia = 6.  # turbine diameter (m)
-tsr = 4.  # tip speed ratio
-B = 3. # number of blades
-chord = 0.25 # chord lenth (m)
-rot = tsr*velf/(dia/2.)
+velf = 15.0                 # free stream wind speed (m/s)
+dia = 6.                    # turbine diameter (m)
+tsr = 4.                    # tip speed ratio ((dia/2)*rot/velf)
+B = 3.                      # number of blades
+chord = 0.25                # chord lenth (m)
+rot = tsr*velf/(dia/2.)     # rotation rate (rad/s)
 
 # Enter the positions of the turbine and velocity calculation
-xt = 0. # downstream position of turbine in flow domain (m)
-yt = 0. # later position of turbine in flow domain (m)
-x0 = 24. # downstream distance from turbine for velocity calculation (m)
-y0 = 0. # lateral distance from turbine for velocity calculation (m)
+xt = 0.         # downstream position of turbine in flow domain (m)
+yt = 0.         # later position of turbine in flow domain (m)
+x0 = 24.        # downstream distance for velocity calculation (m)
+y0 = 0.         # lateral distance for velocity calculation (m)
 
-veltype = 'vort'
+# Option to choose the type of velocity calculations to make
+veltype = 'vort'        # calculate only vorticity
 
-veltype = 'all'
-# veltype = 'x'
-# veltype = 'y'
-# veltype = 'ind'
+veltype = 'all'         # calculate velocity magnitude
+veltype = 'x'         # calculate x-velocity
+# veltype = 'y'         # calcuate y-velocity
+# veltype = 'ind'       # calculate induced velocity (in both x and y directions)
 
-integration = 'simp'
-m = 220
-n = 200
-# integration = 'gskr'
+# Option to choose the method of integration
+integration = 'simp'    # use Simpson's Rule integration (Fortran code)
+m = 220                 # number of divisions in the downstream direction (for Simpson's Rule)
+n = 200                 # number of divisions in the lateral direction (for Simpson's Rule)
+# integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
 
 ########################################################################################################################
 ########################################################################################################################
@@ -54,9 +55,9 @@ pointval2 = 0.
 pointval3 = 0.
 
 ## Plotting
-fs = 25 # 18# font size for plots
+fs = 25 # font size for plots
 
-# Plotting velocity profiles
+# PLOTTING VELOCITY PROFILES
 if vel_slice == True:
     leng = 100. # data points in the velocity profile
     wide = 2.0*dia # width of the profile
@@ -95,7 +96,7 @@ if vel_slice == True:
     plt.xlabel(r'$u/U_\infty$', fontsize=fs)
     plt.ylabel('$y/D$',fontsize=fs)
 
-# Plotting full velocity domain
+# PLOTTING FULL VELOCITY DOMAIN
 if plot_dist == True:
     xi = -3.*dia # starting point in downstream direction
     xf = 17.0*dia # ending point in downstream direction
@@ -111,32 +112,33 @@ if plot_dist == True:
     VEL = np.zeros((N, N)) # initiallizing velocity data point array
     VELy = np.zeros((N, N))
 
+    x_check = np.zeros(N*N)
+    y_check = np.zeros(N*N)
+    vel_check = np.zeros(N*N)
+
     iter = 0
     for i in range(N):
         for j in range(N):
             if veltype == 'all' or veltype == 'x' or veltype == 'y' or veltype == 'velfort':
                 VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
+                x_check[iter] = xp[i]
+                y_check[iter] = yp[j]
+                vel_check[iter] = velocity_field(xt,yt,xp[i],yp[j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             elif veltype == 'ind':
                 velfd = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
                 VEL[i,j] = velfd[0]
                 VELy[i,j] = velfd[1]
             elif veltype == 'vort':
                 VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
-            iter = iter +1
+            iter += 1
             print 'Plot ('+str(iter)+' of '+str(N*N)+')'
 
-    if veltype == 'all' or veltype == 'x' or veltype == 'y' or veltype == 'velfort':
+    if veltype == 'all' or veltype == 'x' or veltype == 'y':
         fig = plt.figure(2,figsize=(19,5))
         fig.subplots_adjust(bottom=.16,left=.05,right=1.0)
-        if veltype == 'all' or veltype == 'x' or veltype == 'velfort':
+        if veltype == 'all' or veltype == 'x':
             lb = 0.15 # lower bound on velocity to display
             ub = 1.15 # upper bound on velocity to display
-
-            # lb = -0.75 # lower bound on velocity to display ind x-vel
-            # ub = 0.4 # upper bound on velocity to display ind x-vel
-            # lb = 0.0 # lower bound on velocity to display ind x-vel
-            # ub = 25./15. # upper bound on velocity to display ind x-vel
-
         elif veltype == 'y':
             lb = -0.35 # lower bound on velocity to display
             ub = 0.35 # upper bound on velocity to display
@@ -145,14 +147,14 @@ if plot_dist == True:
         v = np.linspace(lb,ub,6) # setting the number of tick marks on colorbar
         CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.coolwarm) # plotting the contour plot
         CB = plt.colorbar(CS, ticks=v) # creating colorbar
-        CB.ax.set_ylabel(r'$u/U_\infty$',fontsize=fs)
+        if veltype == 'y':
+            CB.ax.set_ylabel(r'$v/U_\infty$',fontsize=fs)
+        else:
+            CB.ax.set_ylabel(r'$u/U_\infty$',fontsize=fs)
         CB.ax.tick_params(labelsize=fs)
         CB.ax.set_aspect(20)
     elif veltype == 'ind':
         fig = plt.figure(2,figsize=(19,5))
-        # fig.subplots_adjust(bottom=.16,left=.05,right=0.81)
-        # CS = plt.quiver(X/dia,Y/dia, VEL, VELy)
-        # plt.quiverkey(Q,1.1,0.8,1,'1 m/s',fontproperties={'size':fs})
         fig.subplots_adjust(bottom=.16,left=.05,right=1.0)
         speed = np.sqrt(VEL*VEL + VELy*VELy)
         CS = plt.streamplot(X/dia, Y/dia, VEL, VELy, density=2, color=speed, cmap=plt.cm.coolwarm)
@@ -181,20 +183,6 @@ if plot_dist == True:
     plt.ylim(yd/dia,yu/dia)
     circ = plt.Circle((xt/dia,yt/dia),0.5,edgecolor='k',fill=False)
     plt.gca().add_patch(circ)
-
-
-    # if veltype == 'all':
-    #     plt.savefig('/Users/ning1/Documents/FLOW Lab/mag-vel.png')
-    # elif veltype == 'x':
-    #     plt.savefig('/Users/ning1/Documents/FLOW Lab/x-vel_newplot.png')
-    # elif veltype == 'y':
-    #     plt.savefig('/Users/ning1/Documents/FLOW Lab/y-vel.png')
-    # elif veltype == 'ind':
-    #     plt.savefig('/Users/ning1/Documents/FLOW Lab/ind-vel.png')
-    # elif veltype == 'vort':
-    #     plt.savefig('/Users/ning1/Documents/FLOW Lab/vort-plot.png')
-    # elif veltype == 'velfort':
-    #     plt.savefig('/Users/ning1/Documents/FLOW Lab/mag-velfort_xind.png')
 
 sec = time.time()-start
 pointval = pointval1+pointval2+pointval3

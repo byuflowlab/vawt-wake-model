@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import csv
 from VAWT_Wake_Model import velocity_field
-from database_call import vorticity,vorticity2,velocity,velocity2
 from numpy import fabs
 
 from matplotlib import rcParams
@@ -12,6 +10,10 @@ r = 0.5 # radius
 v = 1.0 # velocity
 
 veltype = 'x'
+errortype = 'abs'
+errortype = 'rel'
+epsilon = 1e-3
+errortype = 'rms'
 
 x15 = np.linspace(-1.7,1.7,21)
 x15r = np.linspace(-1.75,1.75,100)
@@ -34,10 +36,24 @@ error_test = np.zeros_like(x15)
 
 for i in range(np.size(x15)):
     rom15t[i] = velocity_field(0.,0.,1.5*dia,x15[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
-    error_test[i] = (rom15t[i]-y15o[i])/y15o[i]
+
+    if errortype == 'abs':
+        error_test[i] = fabs((1.-rom15t[i])-(1.-y15o[i]))
+    elif errortype == 'rel':
+        if fabs(1.-y15o[i]) >= epsilon:
+            error_test[i] = fabs(((1.-rom15t[i])-(1.-y15o[i]))/(1.-y15o[i]))
+        else:
+            error_test[i] = fabs((1.-rom15t[i])-(1.-y15o[i]))
+    elif errortype == 'rms':
+        error_test[i] = ((1.-rom15t[i])-(1.-y15o[i]))**2.
     print 'error calc',i+1,'of',np.size(x15)
-error = np.average(fabs(error_test))
-errorstd = np.std(fabs(error_test))
+
+if errortype == 'abs' or errortype == 'rel':
+    error = np.average(fabs(error_test))
+    errorstd = np.std(fabs(error_test))
+elif errortype == 'rms':
+    error = np.sqrt(np.average(error_test))
+    errorstd = 1.
 for i in range(np.size(rom15)):
     rom15[i] = velocity_field(0.,0.,1.5*dia,x15r[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
     print 'plot point',i+1,'of',np.size(x15r)
@@ -59,9 +75,22 @@ plt.legend(loc=1,fontsize=fs)
 # plt.text(-0.5,0.9,'X/D = 1.5')
 # print '1.5 modc',(min(rom15)-min(y15c))/min(y15c)
 print '----1.5 modo----'
-print 'Error at min:',(min(rom15)-min(y15o))/min(y15o)
-print 'Overall Error:',error
-print 'Overall Stand Dev:',errorstd
+if errortype == 'abs':
+    print '\n Average Absolute Error'
+elif errortype == 'rel':
+    print '\n Average Relative Error'
+elif errortype == 'rms':
+    print '\n Root Mean Squared Error'
+print '\nAverage Error:',error
+print 'Average Stand Dev:',errorstd
+low = y15o.min()
+lowrom = rom15.min()
+if errortype == 'abs' or errortype == 'rms':
+     mdferror = fabs((1.-lowrom)-(1.-low))
+elif errortype == 'rel':
+    mdferror = fabs(((1.-lowrom)-(1.-low))/(1.-low))
+print 'Maximum Deficit Error:',mdferror
+
 # plt.savefig('/Users/ning1/Documents/FLOW Lab/bat_val.png')
 
 plt.show()

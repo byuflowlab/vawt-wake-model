@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import csv
 from VAWT_Wake_Model import velocity_field
-from database_call import vorticity,vorticity2,velocity,velocity2
 from scipy.io import loadmat
-from numpy import fabs, log
+from numpy import fabs
 
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
@@ -15,6 +14,10 @@ r = 0.5 # radius
 v = 1.0 # velocity
 
 veltype = 'x'
+errortype = 'abs'
+errortype = 'rel'
+epsilon = 1e-3
+errortype = 'rms'
 
 # Import Star-CCM+ simulation data (from validation study)
 # fdata = 'path/to/tes.csv' # adjust this for your case
@@ -133,27 +136,93 @@ cfd30t = np.zeros(33)
 cfd35t = np.zeros(33)
 cfd40t = np.zeros(26)
 
-for i in range(33):
-    cfd15t[i] = (vel1[int(index15[i])]-y15[i])/y15[i]
-    cfd20t[i] = (vel2[int(index20[i])]-y20[i])/y20[i]
-    cfd25t[i] = (vel3[int(index25[i])]-y25[i])/y25[i]
-    cfd30t[i] = (vel4[int(index30[i])]-y30[i])/y30[i]
-    cfd35t[i] = (vel5[int(index35[i])]-y35[i])/y35[i]
-for i in range(26):
-    cfd40t[i] = (vel6[int(index40[i])]-y40[i])/y40[i]
 
-cfd15error = np.average(fabs(cfd15t))
-cfd15errorstd = np.std(cfd15t)
-cfd20error = np.average(fabs(cfd20t))
-cfd20errorstd = np.std(cfd20t)
-cfd25error = np.average(fabs(cfd25t))
-cfd25errorstd = np.std(cfd25t)
-cfd30error = np.average(fabs(cfd30t))
-cfd30errorstd = np.std(cfd30t)
-cfd35error = np.average(fabs(cfd35t))
-cfd35errorstd = np.std(cfd35t)
-cfd40error = np.average(fabs(cfd40t))
-cfd40errorstd = np.std(cfd40t)
+for i in range(33):
+    if errortype == 'abs':
+        cfd15t[i] = fabs((1. - vel1[int(index15[i])])-(1. - y15[i]))
+    elif errortype == 'rel':
+        if fabs(1. - y15[i]) >= epsilon:
+            cfd15t[i] = fabs(((1. - vel1[int(index15[i])])-(1. - y15[i]))/(1. - y15[i]))
+        else:
+            cfd15t[i] = fabs((1. - vel1[int(index15[i])])-(1. - y15[i]))
+    elif errortype == 'rms':
+        cfd15t[i] = ((1. - vel1[int(index15[i])])-(1. - y15[i]))**2
+    if errortype == 'abs':
+        cfd20t[i] = fabs((1. - vel2[int(index20[i])])-(1. - y20[i]))
+    elif errortype == 'rel':
+        if fabs(1. - y20[i]) >= epsilon:
+            cfd20t[i] = fabs(((1. - vel2[int(index20[i])])-(1. - y20[i]))/(1. - y20[i]))
+        else:
+            cfd20t[i] = fabs((1. - vel2[int(index20[i])])-(1. - y20[i]))
+    elif errortype == 'rms':
+        cfd20t[i] = ((1. - vel2[int(index20[i])])-(1. - y20[i]))**2
+    if errortype == 'abs':
+        cfd25t[i] = fabs((1. - vel3[int(index25[i])])-(1. - y25[i]))
+    elif errortype == 'rel':
+        if fabs(1. - y25[i]) >= epsilon:
+            cfd25t[i] = fabs(((1. - vel3[int(index25[i])])-(1. - y25[i]))/(1. - y25[i]))
+        else:
+            cfd25t[i] = fabs((1. - vel3[int(index25[i])])-(1. - y25[i]))
+    elif errortype == 'rms':
+        cfd25t[i] = ((1. - vel3[int(index25[i])])-(1. - y25[i]))**2
+    if errortype == 'abs':
+        cfd30t[i] = fabs((1. - vel4[int(index30[i])])-(1. - y30[i]))
+    elif errortype == 'rel':
+        if fabs(1. - y30[i]) >= epsilon:
+            cfd30t[i] = fabs(((1. - vel4[int(index30[i])])-(1. - y30[i]))/(1. - y30[i]))
+        else:
+            cfd30t[i] = fabs((1. - vel4[int(index30[i])])-(1. - y30[i]))
+    elif errortype == 'rms':
+        cfd30t[i] = ((1. - vel4[int(index30[i])])-(1. - y30[i]))**2
+    if errortype == 'abs':
+        cfd35t[i] = fabs((1. - vel5[int(index35[i])])-(1. - y35[i]))
+    elif errortype == 'rel':
+        if fabs(1. - y35[i]) >= epsilon:
+            cfd35t[i] = fabs(((1. - vel5[int(index35[i])])-(1. - y35[i]))/(1. - y35[i]))
+        else:
+            cfd35t[i] = fabs((1. - vel5[int(index35[i])])-(1. - y35[i]))
+    elif errortype == 'rms':
+        cfd35t[i] = ((1. - vel5[int(index35[i])])-(1. - y35[i]))**2
+for i in range(26):
+    if errortype == 'abs':
+        cfd40t[i] = fabs((1. - vel6[int(index40[i])])-(1. - y40[i]))
+    elif errortype == 'rel':
+        if fabs(1. - y40[i]) >= epsilon:
+            cfd40t[i] = fabs(((1. - vel6[int(index40[i])])-(1. - y40[i]))/(1. - y40[i]))
+        else:
+            cfd40t[i] = fabs((1. - vel6[int(index40[i])])-(1. - y40[i]))
+    elif errortype == 'rms':
+        cfd40t[i] = ((1. - vel6[int(index40[i])])-(1. - y40[i]))**2
+
+
+
+if errortype == 'abs' or errortype == 'rel':
+    cfd15error = np.average(cfd15t)
+    cfd15errorstd = np.std(cfd15t)
+    cfd20error = np.average(cfd20t)
+    cfd20errorstd = np.std(cfd20t)
+    cfd25error = np.average(cfd25t)
+    cfd25errorstd = np.std(cfd25t)
+    cfd30error = np.average(cfd30t)
+    cfd30errorstd = np.std(cfd30t)
+    cfd35error = np.average(cfd35t)
+    cfd35errorstd = np.std(cfd35t)
+    cfd40error = np.average(cfd40t)
+    cfd40errorstd = np.std(cfd40t)
+elif errortype == 'rms':
+    cfd15error = np.sqrt(np.average(cfd15t))
+    cfd15errorstd = 1.
+    cfd20error = np.sqrt(np.average(cfd20t))
+    cfd20errorstd = 1.
+    cfd25error = np.sqrt(np.average(cfd25t))
+    cfd25errorstd = 1.
+    cfd30error = np.sqrt(np.average(cfd30t))
+    cfd30errorstd = 1.
+    cfd35error = np.sqrt(np.average(cfd35t))
+    cfd35errorstd = 1.
+    cfd40error = np.sqrt(np.average(cfd40t))
+    cfd40errorstd = 1.
+
 cfdoaerror = (cfd15error+cfd20error+cfd25error+cfd30error+cfd35error+cfd40error)/6.
 cfdoaerrorstd = (cfd15errorstd+cfd20errorstd+cfd25errorstd+cfd30errorstd+cfd35errorstd+cfd40errorstd)/6.
 
@@ -169,7 +238,7 @@ plt.ylim(0.1,1.2)
 plt.xlabel('$y/D$')
 plt.ylabel(r'$u/U_\infty$')
 plt.text(-0.25,1.05,r'$x/D$ = 0.75')
-print '1.5 cfd',(min(vel1)-min(y15))/min(y15),cfd15error,cfd15errorstd
+print '1.5 cfd',cfd15error,cfd15errorstd
 plt.subplot(2,3,2)
 plt.plot(x20,y20,'b.')
 plt.plot(pos2,vel2,'r-')
@@ -178,7 +247,7 @@ plt.ylim(0.1,1.2)
 plt.xlabel('$y/D$')
 plt.ylabel(r'$u/U_\infty$')
 plt.text(-0.25,1.05,r'$x/D$ = 1.0')
-print '2.0 cfd',(min(vel2)-min(y20))/min(y20),cfd20error,cfd20errorstd
+print '2.0 cfd',cfd20error,cfd20errorstd
 plt.subplot(2,3,3)
 plt.plot(x25,y25,'b.',label='PIV')
 plt.plot(pos3,vel3,'r-',label='CFD')
@@ -187,7 +256,7 @@ plt.ylim(0.1,1.2)
 plt.xlabel('$y/D$')
 plt.ylabel(r'$u/U_\infty$')
 plt.text(-0.25,1.05,r'$x/D$ = 1.25')
-print '2.5 cfd',(min(vel3)-min(y25))/min(y25),cfd25error,cfd25errorstd
+print '2.5 cfd',cfd25error,cfd25errorstd
 plt.legend(loc="upper left", bbox_to_anchor=(1,1))
 plt.subplot(2,3,4)
 plt.plot(x30,y30,'b.')
@@ -197,7 +266,7 @@ plt.ylim(0.1,1.2)
 plt.xlabel('$y/D$')
 plt.ylabel(r'$u/U_\infty$')
 plt.text(-0.25,1.05,r'$x/D$ = 1.5')
-print '3.0 cfd',(min(vel4)-min(y30))/min(y30),cfd30error,cfd30errorstd
+print '3.0 cfd',cfd30error,cfd30errorstd
 plt.subplot(2,3,5)
 plt.plot(x35,y35,'b.')
 plt.plot(pos5,vel5,'r-')
@@ -206,7 +275,7 @@ plt.ylim(0.1,1.2)
 plt.xlabel('$y/D$')
 plt.ylabel(r'$u/U_\infty$')
 plt.text(-0.25,1.05,r'$x/D$ = 1.75')
-print '3.5 cfd',(min(vel5)-min(y35))/min(y35),cfd35error,cfd35errorstd
+print '3.5 cfd',cfd35error,cfd35errorstd
 plt.subplot(2,3,6)
 plt.plot(x40,y40,'b.')
 plt.plot(pos6,vel6,'r-')
@@ -215,7 +284,7 @@ plt.ylim(0.1,1.2)
 plt.xlabel('$y/D$')
 plt.ylabel(r'$u/U_\infty$')
 plt.text(-0.25,1.05,r'$x/D$ = 2.0')
-print '4.0 cfd',(min(vel6)-min(y40))/min(y40),cfd40error,cfd40errorstd
+print '4.0 cfd',cfd40error,cfd40errorstd
 
 
 print '\nOverall Error:',cfdoaerror
@@ -250,36 +319,121 @@ if rom == True:
     rom30t = np.zeros(33)
     rom35t = np.zeros(33)
     rom40t = np.zeros(26)
+
+    # for i in range(33):
+    #     rom15[i] = velocity_field(xt,yt,0.75*dia,x15[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
+    #     rom15t[i] = (rom15[i]-y15[i])/y15[i]
+    #     rom20[i] = velocity_field(xt,yt,1.0*dia,x20[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
+    #     rom20t[i] = (rom20[i]-y20[i])/y20[i]
+    #     rom25[i] = velocity_field(xt,yt,1.25*dia,x25[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
+    #     rom25t[i] = (rom25[i]-y25[i])/y25[i]
+    #     rom30[i] = velocity_field(xt,yt,1.5*dia,x30[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
+    #     rom30t[i] = (rom30[i]-y30[i])/y30[i]
+    #     rom35[i] = velocity_field(xt,yt,1.75*dia,x35[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
+    #     rom35t[i] = (rom35[i]-y35[i])/y35[i]
+    #     rom40f[i] = velocity_field(xt,yt,2.0*dia,x35[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
+    #     print i
+    # for i in range(26):
+    #     rom40[i] = velocity_field(xt,yt,2.0*dia,x40[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
+    #     rom40t[i] = (rom40[i]-y40[i])/y40[i]
+    #     print i
+
     for i in range(33):
         rom15[i] = velocity_field(xt,yt,0.75*dia,x15[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
-        rom15t[i] = (rom15[i]-y15[i])/y15[i]
         rom20[i] = velocity_field(xt,yt,1.0*dia,x20[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
-        rom20t[i] = (rom20[i]-y20[i])/y20[i]
         rom25[i] = velocity_field(xt,yt,1.25*dia,x25[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
-        rom25t[i] = (rom25[i]-y25[i])/y25[i]
         rom30[i] = velocity_field(xt,yt,1.5*dia,x30[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
-        rom30t[i] = (rom30[i]-y30[i])/y30[i]
         rom35[i] = velocity_field(xt,yt,1.75*dia,x35[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
-        rom35t[i] = (rom35[i]-y35[i])/y35[i]
         rom40f[i] = velocity_field(xt,yt,2.0*dia,x35[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
         print i
     for i in range(26):
         rom40[i] = velocity_field(xt,yt,2.0*dia,x40[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
-        rom40t[i] = (rom40[i]-y40[i])/y40[i]
         print i
 
-    rom15error = np.average(fabs(rom15t))
-    rom15errorstd = np.std(fabs(rom15t))
-    rom20error = np.average(fabs(rom20t))
-    rom20errorstd = np.std(fabs(rom20t))
-    rom25error = np.average(fabs(rom25t))
-    rom25errorstd = np.std(fabs(rom25t))
-    rom30error = np.average(fabs(rom30t))
-    rom30errorstd = np.std(fabs(rom30t))
-    rom35error = np.average(fabs(rom35t))
-    rom35errorstd = np.std(fabs(rom35t))
-    rom40error = np.average(fabs(rom40t))
-    rom40errorstd = np.std(fabs(rom40t))
+    for i in range(33):
+        if errortype == 'abs':
+            rom15t[i] = fabs((1. - rom15[i])-(1. - y15[i]))
+        elif errortype == 'rel':
+            if fabs(1. - y15[i]) >= epsilon:
+                rom15t[i] = fabs(((1. - rom15[i])-(1. - y15[i]))/(1. - y15[i]))
+            else:
+                rom15t[i] = fabs((1. - rom15[i])-(1. - y15[i]))
+        elif errortype == 'rms':
+            rom15t[i] = ((1. - rom15[i])-(1. - y15[i]))**2.
+        if errortype == 'abs':
+            rom20t[i] = fabs((1. - rom20[i])-(1. - y20[i]))
+        elif errortype == 'rel':
+            if fabs(1. - y20[i]) >= epsilon:
+                rom20t[i] = fabs(((1. - rom20[i])-(1. - y20[i]))/(1. - y20[i]))
+            else:
+                rom20t[i] = fabs((1. - rom20[i])-(1. - y20[i]))
+        elif errortype == 'rms':
+            rom20t[i] = ((1. - rom20[i])-(1. - y20[i]))**2.
+        if errortype == 'abs':
+            rom25t[i] = fabs((1. - rom25[i])-(1. - y25[i]))
+        elif errortype == 'rel':
+            if fabs(1. - y25[i]) >= epsilon:
+                rom25t[i] = fabs(((1. - rom25[i])-(1. - y25[i]))/(1. - y25[i]))
+            else:
+                rom25t[i] = fabs((1. - rom25[i])-(1. - y25[i]))
+        elif errortype == 'rms':
+            rom25t[i] = ((1. - rom25[i])-(1. - y25[i]))**2.
+        if errortype == 'abs':
+            rom30t[i] = fabs((1. - rom30[i])-(1. - y30[i]))
+        elif errortype == 'rel':
+            if fabs(1. - y30[i]) >= epsilon:
+                rom30t[i] = fabs(((1. - rom30[i])-(1. - y30[i]))/(1. - y30[i]))
+            else:
+                rom30t[i] = fabs((1. - rom30[i])-(1. - y30[i]))
+        elif errortype == 'rms':
+            rom30t[i] = ((1. - rom30[i])-(1. - y30[i]))**2.
+        if errortype == 'abs':
+            rom35t[i] = fabs((1. - rom35[i])-(1. - y35[i]))
+        elif errortype == 'rel':
+            if fabs(1. - y35[i]) >= epsilon:
+                rom35t[i] = fabs(((1. - rom35[i])-(1. - y35[i]))/(1. - y35[i]))
+            else:
+                rom35t[i] = fabs((1. - rom35[i])-(1. - y35[i]))
+        elif errortype == 'rms':
+            rom35t[i] = ((1. - rom35[i])-(1. - y35[i]))**2.
+    for i in range(26):
+        if errortype == 'abs':
+            rom40t[i] = fabs((1. - rom40[i])-(1. - y40[i]))
+        elif errortype == 'rel':
+            if fabs(1. - y40[i]) >= epsilon:
+                rom40t[i] = fabs(((1. - rom40[i])-(1. - y40[i]))/(1. - y40[i]))
+            else:
+                rom40t[i] = fabs((1. - rom40[i])-(1. - y40[i]))
+        elif errortype == 'rms':
+            rom40t[i] = ((1. - rom40[i])-(1. - y40[i]))**2.
+
+
+    if errortype == 'abs' or errortype == 'rel':
+        rom15error = np.average(rom15t)
+        rom15errorstd = np.std(rom15t)
+        rom20error = np.average(rom20t)
+        rom20errorstd = np.std(rom20t)
+        rom25error = np.average(rom25t)
+        rom25errorstd = np.std(rom25t)
+        rom30error = np.average(rom30t)
+        rom30errorstd = np.std(rom30t)
+        rom35error = np.average(rom35t)
+        rom35errorstd = np.std(rom35t)
+        rom40error = np.average(rom40t)
+        rom40errorstd = np.std(rom40t)
+    elif errortype == 'rms':
+        rom15error = np.sqrt(np.average(rom15t))
+        rom15errorstd = 1.
+        rom20error = np.sqrt(np.average(rom20t))
+        rom20errorstd = 1.
+        rom25error = np.sqrt(np.average(rom25t))
+        rom25errorstd = 1.
+        rom30error = np.sqrt(np.average(rom30t))
+        rom30errorstd = 1.
+        rom35error = np.sqrt(np.average(rom35t))
+        rom35errorstd = 1.
+        rom40error = np.sqrt(np.average(rom40t))
+        rom40errorstd = 1.
     oaerror = (rom15error+rom20error+rom25error+rom30error+rom35error+rom40error)/6.
     oaerrorstd = (rom15errorstd+rom20errorstd+rom25errorstd+rom30errorstd+rom35errorstd+rom40errorstd)/6.
 
@@ -405,42 +559,70 @@ if rom == True:
     print '4.0 mod',(min(rom40f)-min(y40))/min(y40),rom40error,rom40errorstd
     print '4.0 cfd',(min(vel6)-min(y40))/min(y40),cfd40error,cfd40errorstd
 
-    print '\nOverall Error:',oaerror
-    print 'Overall Stand Dev:',oaerrorstd
+
+    if errortype == 'abs':
+        print '\n Average Absolute Error'
+    elif errortype == 'rel':
+        print '\n Average Relative Error'
+    elif errortype == 'rms':
+        print '\n Root Mean Squared Error'
+    print '\nAverage CFD Error:',cfdoaerror
+    print 'Average CFD Stand Dev:',cfdoaerrorstd
+    print '\nAverage ROM Error:',oaerror
+    print 'Average ROM Stand Dev:',oaerrorstd
+
+    low15 = y15.min()
+    low20 = y20.min()
+    low25 = y25.min()
+    low30 = y30.min()
+    low35 = y35.min()
+    low40 = y40.min()
+    low15cfd = vel1.min()
+    low20cfd = vel2.min()
+    low25cfd = vel3.min()
+    low30cfd = vel4.min()
+    low35cfd = vel5.min()
+    low40cfd = vel6.min()
+    low15rom = rom15.min()
+    low20rom = rom20.min()
+    low25rom = rom25.min()
+    low30rom = rom30.min()
+    low35rom = rom35.min()
+    low40rom = rom40.min()
+
+    if errortype == 'abs' or errortype == 'rms':
+        mdfcfd15 = fabs((1.-low15cfd)-(1.-low15))
+        mdfcfd20 = fabs((1.-low20cfd)-(1.-low20))
+        mdfcfd25 = fabs((1.-low25cfd)-(1.-low25))
+        mdfcfd30 = fabs((1.-low30cfd)-(1.-low30))
+        mdfcfd35 = fabs((1.-low35cfd)-(1.-low35))
+        mdfcfd40 = fabs((1.-low40cfd)-(1.-low40))
+
+        mdfrom15 = fabs((1.-low15rom)-(1.-low15))
+        mdfrom20 = fabs((1.-low20rom)-(1.-low20))
+        mdfrom25 = fabs((1.-low25rom)-(1.-low25))
+        mdfrom30 = fabs((1.-low30rom)-(1.-low30))
+        mdfrom35 = fabs((1.-low35rom)-(1.-low35))
+        mdfrom40 = fabs((1.-low40rom)-(1.-low40))
+
+    elif errortype == 'rel':
+        mdfcfd15 = fabs(((1.-low15cfd)-(1.-low15))/(1.-low15))
+        mdfcfd20 = fabs(((1.-low20cfd)-(1.-low20))/(1.-low20))
+        mdfcfd25 = fabs(((1.-low25cfd)-(1.-low25))/(1.-low25))
+        mdfcfd30 = fabs(((1.-low30cfd)-(1.-low30))/(1.-low30))
+        mdfcfd35 = fabs(((1.-low35cfd)-(1.-low35))/(1.-low35))
+        mdfcfd40 = fabs(((1.-low40cfd)-(1.-low40))/(1.-low40))
+
+        mdfrom15 = fabs(((1.-low15rom)-(1.-low15))/(1.-low15))
+        mdfrom20 = fabs(((1.-low20rom)-(1.-low20))/(1.-low20))
+        mdfrom25 = fabs(((1.-low25rom)-(1.-low25))/(1.-low25))
+        mdfrom30 = fabs(((1.-low30rom)-(1.-low30))/(1.-low30))
+        mdfrom35 = fabs(((1.-low35rom)-(1.-low35))/(1.-low35))
+        mdfrom40 = fabs(((1.-low40rom)-(1.-low40))/(1.-low40))
+
+    print 'Maximum Deficit Error (CFD):',mdfcfd15,mdfcfd20,mdfcfd25,mdfcfd30,mdfcfd35,mdfcfd40,'\n\t',max(mdfcfd15,mdfcfd20,mdfcfd25,mdfcfd30,mdfcfd35,mdfcfd40)
+    print 'Maximum Deficit Error (ROM):',mdfrom15,mdfrom20,mdfrom25,mdfrom30,mdfrom35,mdfrom40,'\n\t',max(mdfrom15,mdfrom20,mdfrom25,mdfrom30,mdfrom35,mdfrom40)
+
     
 plt.show()
-
-# CFD
-# 1.5 cfd 0.085222697309 0.126583824064 0.145411541539
-# 2.0 cfd 0.100156455326 0.128983354685 0.153469587078
-# 2.5 cfd 0.157759607312 0.150857817984 0.170220943027
-# 3.0 cfd 0.229735606591 0.185110325841 0.202881236867
-# 3.5 cfd 0.221745704619 0.221675365171 0.241148027704
-# 4.0 cfd 0.229931173793 0.229559158614 0.230378847745
-# 0.173794974393 0.19058503066
-# Vort
-# 1.5 mod 0.132406448951 0.123814266617 0.0552752953268
-# 2.0 mod 0.0899133305592 0.144327259244 0.0820073765436
-# 2.5 mod 0.121791964707 0.168153726068 0.1329647045
-# 3.0 mod 0.18331069938 0.199964293136 0.162818805975
-# 3.5 mod 0.178599395018 0.243762270671 0.204391618207
-# 4.0 mod 0.195484403221 0.227921962845 0.158527848792
-# 0.18465729643 0.132664274891
-# Velo- val
-# 1.5 mod 0.0764360005636 0.130154973392 0.107578354084
-# 2.0 mod 0.114032956588 0.162965148463 0.11913931666
-# 2.5 mod 0.19796690214 0.207943768574 0.159908756532
-# 3.0 mod 0.296349051996 0.256526949057 0.213454303636
-# 3.5 mod 0.309388725898 0.310579829187 0.2733377453
-# 4.0 mod 0.337190466884 0.230182235911 0.132586893453
-# 0.216392150764 0.167667561611
-# Velo- flip
-# 1.5 mod 0.0768091662811 0.0653944355885 0.0726633578795
-# 2.0 mod 0.114357543787 0.0787570867999 0.0793591266985
-# 2.5 mod 0.198250408813 0.12999380938 0.105127979898
-# 3.0 mod 0.296586892386 0.174819197659 0.15220512067
-# 3.5 mod 0.309562485502 0.226642726267 0.207679397223
-# 4.0 mod 0.337304393801 0.174324433215 0.139728360992
-# 0.141655281485 0.126127223893
-
 

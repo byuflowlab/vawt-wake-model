@@ -1,8 +1,12 @@
+*.h5
+*.out
 *.pyc
 *.pyd
 *.sh
 *.so
+*_test.py
 *.DS_Store
+~*
 
 CFD_plotting.py
 database_call.py

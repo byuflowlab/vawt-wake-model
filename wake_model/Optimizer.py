@@ -1,37 +1,65 @@
 from pyoptsparse import Optimization, SNOPT, pyOpt_solution
+from os import path
 import numpy as np
 from numpy import sqrt
 import matplotlib.pyplot as plt
+import VAWT_Wake_Model as vwm
+from AC_InducedVel import induced_vel
 
-from Wind_Farm_Layout import overlap,powerval
+import _vawtwake
 
 
 def obj_func(xdict):
     global dia
-    global tsr
-    global solidity
-    global Cp
-    global dens
+    global rot
+    global chord
+    global twist
+    global delta
+    global B
+    global H
+    global rho
+    global mu
     global velf
+
+    global af_data
+    global cl_data
+    global cd_data
+    global coef0
+    global coef1
+    global coef2
+    global coef3
+    global coef4
+    global coef5
+    global coef6
+    global coef7
+    global coef8
+    global coef9
+
     global funcs
+
+    ntheta = 36
     
     Vars = xdict['xvars']
     x = xdict['xvars']
     y = xdict['yvars']
     funcs = {}
-    
-    veleff = np.zeros_like(x)
+
     power_turb = np.zeros_like(x)
-    
+
     for i in range(np.size(x)):
-        xp = np.delete(x,i)
-        yp = np.delete(y,i)
-        diap = np.delete(dia,i)
-        tsrp = np.delete(tsr,i)
-        solidityp = np.delete(solidity,i)
-        veleff[i] = overlap(xp,yp,diap,tsrp,solidityp,x[i],y[i],dia[i],velf,True,False)
-        power_turb[i] = powerval(Cp,dens,veleff[i],dia[i])
-        # print i+1
+        xt = np.delete(x,i)
+        yt = np.delete(y,i)
+        diat = np.delete(dia,i)
+        rott = np.delete(rot,i)
+        xt = np.insert(xt,0,x[i])
+        yt = np.insert(yt,0,y[i])
+        diat = np.insert(diat,0,dia[i])
+        rott = np.insert(rott,0,rot[i])
+
+        velx,vely = induced_vel(dia[i]/2.,af_data,cl_data,cd_data,chord,twist,delta,B,rot[i],velf,rho,mu,ntheta)
+
+        power_turb[i],_ = _vawtwake.powercalc(xt,yt,diat,rott,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely)
+        print i+1
     
     power = np.sum(power_turb)
     print power 
@@ -39,7 +67,6 @@ def obj_func(xdict):
     
     sep = sep_func(np.append(x,y))
     funcs['sep'] = sep
-    funcs['veleff'] = veleff
     funcs['power_turb'] = power_turb
     
     fail = False
@@ -73,21 +100,44 @@ if __name__ == "__main__":
     contour = True
     contour = False
     
-    
     global dia
-    global tsr
-    global solidity
-    global Cp
-    global dens
+    global rot
+    global chord
+    global twist
+    global delta
+    global B
+    global H
+    global rho
+    global mu
     global velf
-    global turb_dia
+
+    global af_data
+    global cl_data
+    global cd_data
+    global coef0
+    global coef1
+    global coef2
+    global coef3
+    global coef4
+    global coef5
+    global coef6
+    global coef7
+    global coef8
+    global coef9
+
     global funcs
+
+    foildata = '/Users/ning1/Documents/FLOW Lab/VAWTAC/airfoils/NACA_0021.dat'
+
+    af_data,cl_data,cd_data = vwm.airfoil_data(foildata)
+    coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9 = vwm.coef_val()
     
     # define turbine size
     turb_dia = 6. # m
+    turb_rot = 20. # rad/s
     
     # Scaling grid case
-    nRows = 3     # number of rows and columns in grid
+    nRows = 2     # number of rows and columns in grid
     spacing = 5     # turbine grid spacing in diameters
     
     # Set up position arrays
@@ -96,14 +146,21 @@ if __name__ == "__main__":
     xt = np.ndarray.flatten(xpoints)
     yt = np.ndarray.flatten(ypoints)
     dia = np.ones_like(xt)*turb_dia
-    tsr = np.ones_like(xt)*4.0
-    solidity = np.ones_like(xt)*0.25
-    
-    Cp = 0.4
-    dens = 1.225
+    rot = np.ones_like(xt)*turb_rot
+
+    twist = 0.0
+    delta = 0.0
+    B = 3
+    chord = 0.25
+    H = 5.
+
+    rho = 1.225
+    mu = 1.7894e-5
     velf = 15.
-    
-    power_iso = powerval(Cp,dens,velf,turb_dia)
+
+    ntheta = 36
+    velx,vely = induced_vel(dia[0]/2.,af_data,cl_data,cd_data,chord,twist,delta,B,rot[0],velf,rho,mu,ntheta)
+    power_iso,_ = _vawtwake.powercalc(np.array([0.]),np.array([0.]),np.array([turb_dia]),np.array([turb_rot]),velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely)
     
     x0 = xt
     y0 = yt
@@ -132,15 +189,13 @@ if __name__ == "__main__":
     xf = res.xStar['xvars']
     yf = res.xStar['yvars']
     power_turb = funcs['power_turb']
-    veleff = funcs['veleff']
     
-    print 'The power is:',pow,'kJ'
-    print 'The isolated power is:',power_iso*np.size(xt),'kJ'
+    print 'The power is:',pow,'W'
+    print 'The isolated power is:',power_iso*np.size(xt),'W'
     print 'The x-locations:',xf
     print 'The y-locations:',yf
-    print 'The effective wind speeds:',veleff
-    print 'The power of each turbine (kJ):',power_turb
-    print 'The isolated power of one turbine is:',power_iso,'kJ'
+    print 'The power of each turbine (W):',power_turb
+    print 'The isolated power of one turbine is:',power_iso,'W'
     
     
     plt.figure(1)
@@ -167,7 +222,8 @@ if __name__ == "__main__":
         k = 0
         for i in range(N):
             for j in range(N):
-                Vel[i,j] = overlap(xf,yf,dia,tsr,solidity,X[i,j],Y[i,j],turb_dia,velf,True,False)
+                Velx,Vely = _vawtwake.overlappoint(xt,yt,dia,rot,chord,B,X[i,j],Y[i,j],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,220,200,1)
+                Vel[i,j] = sqrt((Velx+velf)**2 + (Vely)**2)
                 k += 1
                 print k
         

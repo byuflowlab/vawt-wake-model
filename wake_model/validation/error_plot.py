@@ -13,7 +13,10 @@ rcParams['font.family'] = 'Times New Roman'
 def vorticity(show):
     # Reading in csv file (vorticity database)
     basepath = path.join(path.dirname(path.realpath(__file__)))
-    fdata = basepath + path.sep + 'error_cfd_vort_EMG.csv'
+    # fdata = basepath + path.sep + 'error_cfd_vort_EMG.csv'
+    # fdata = basepath + path.sep + 'error_cfd_vort_EMG_deficit_abs.csv'
+    # fdata = basepath + path.sep + 'error_cfd_vort_EMG_deficit_rel.csv'
+    fdata = basepath + path.sep + 'error_cfd_vort_EMG_deficit_rms.csv'
     f = open(fdata)
     csv_f = csv.reader(f)
     
@@ -66,15 +69,18 @@ def vorticity(show):
 
     CS = plt.contourf(data1,data2,data3,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.parula) # plotting the contour plot
     CB = plt.colorbar(CS, ticks=v) # creating colorbar
-    CB.ax.set_ylabel('% Error',fontsize=fs)
+    CB.ax.set_ylabel(r'RMS Error Normalized by $U_\infty$',fontsize=fs)
     CB.ax.tick_params(labelsize=fs)
     CB.ax.set_aspect(20)
     plt.xlabel('TSR',fontsize=fs)
     plt.ylabel('Solidity',fontsize=fs)
+    # plt.title('Average RMS Error')
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
     
     if show == True:
+        plt.savefig('/Users/ning1/Documents/FLOW Lab/tingey-2016-vawt-wake-model/journal_version/images/error_plot.pdf')
+        # plt.savefig('/Users/ning1/Documents/FLOW Lab/error_plot_rms.png')
         plt.show()
     
     return 0
