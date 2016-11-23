@@ -73,7 +73,7 @@ plt.xticks(fontsize=fs)
 plt.yticks(fontsize=fs)
 plt.legend(loc=1,fontsize=fs)
 # plt.text(-0.5,0.9,'X/D = 1.5')
-# print '1.5 modc',(min(rom15)-min(y15c))/min(y15c)
+
 print '----1.5 modo----'
 if errortype == 'abs':
     print '\n Average Absolute Error'
@@ -91,15 +91,8 @@ elif errortype == 'rel':
     mdferror = fabs(((1.-lowrom)-(1.-low))/(1.-low))
 print 'Maximum Deficit Error:',mdferror
 
-# plt.savefig('/Users/ning1/Documents/FLOW Lab/bat_val.png')
 
 plt.show()
 
-# Vort
-# 1.5 modo -0.151387906156 0.0974744457882 0.0791398227522
-# Velo- val
-# 1.5 modo 0.156755962966 0.0837934819892 0.142086247374
-# Velo- flip
-# 1.5 modo 0.156755962966 0.0531856178905 0.0699217546663
 
 

@@ -38,6 +38,8 @@ def obj_func(xdict):
     global funcs
 
     ntheta = 36
+    interp = 1 # linear airfoil interpolation
+    # interp = 2 # cubic spline interpolation
     
     Vars = xdict['xvars']
     x = xdict['xvars']
@@ -56,10 +58,10 @@ def obj_func(xdict):
         diat = np.insert(diat,0,dia[i])
         rott = np.insert(rott,0,rot[i])
 
-        velx,vely = induced_vel(dia[i]/2.,af_data,cl_data,cd_data,chord,twist,delta,B,rot[i],velf,rho,mu,ntheta)
+        velx,vely = induced_vel(dia[i]/2.,af_data,cl_data,cd_data,chord,twist,delta,B,rot[i],velf,rho,mu,ntheta,interp)
 
-        power_turb[i],_ = _vawtwake.powercalc(xt,yt,diat,rott,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely)
-        print i+1
+        power_turb[i],_ = _vawtwake.powercalc(xt,yt,diat,rott,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
+        # print i+1
     
     power = np.sum(power_turb)
     print power 
@@ -137,7 +139,7 @@ if __name__ == "__main__":
     turb_rot = 20. # rad/s
     
     # Scaling grid case
-    nRows = 2     # number of rows and columns in grid
+    nRows = 2       # number of rows and columns in grid
     spacing = 5     # turbine grid spacing in diameters
     
     # Set up position arrays
@@ -159,8 +161,11 @@ if __name__ == "__main__":
     velf = 15.
 
     ntheta = 36
-    velx,vely = induced_vel(dia[0]/2.,af_data,cl_data,cd_data,chord,twist,delta,B,rot[0],velf,rho,mu,ntheta)
-    power_iso,_ = _vawtwake.powercalc(np.array([0.]),np.array([0.]),np.array([turb_dia]),np.array([turb_rot]),velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely)
+    interp = 1 # linear airfoil interpolation
+    # interp = 2 # cubic spline interpolation
+
+    velx,vely = induced_vel(dia[0]/2.,af_data,cl_data,cd_data,chord,twist,delta,B,rot[0],velf,rho,mu,ntheta,interp)
+    power_iso,_ = _vawtwake.powercalc(np.array([0.]),np.array([0.]),np.array([turb_dia]),np.array([turb_rot]),velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
     
     x0 = xt
     y0 = yt

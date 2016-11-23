@@ -1,4 +1,5 @@
 *.h5
+*.mat
 *.out
 *.pyc
 *.pyd
@@ -23,4 +24,5 @@ starccm_velocity_4.0_0.25.csv
 /build/*
 /wake_model/VAWT_Wake_Model.egg-info/*
 /wake_model/vawtwake.egg-info/*
+/wake_model/validation/Figure_11_data/*
 *.xml

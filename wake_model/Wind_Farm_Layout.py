@@ -163,18 +163,18 @@ elif method == 'overlap':
             for j in range(N):
                 xd = np.insert(xt,0,X[i,j])
                 yd = np.insert(yt,0,Y[i,j])
-                power1,_ = _vawtwake.powercalc(xd,yd,np.ones_like(xd)*dia,np.ones_like(xd)*rot,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
+                power1,_ = _vawtwake.powercalc(xd,yd,np.ones_like(xd)*dia,np.ones_like(xd)*-rot,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
                 xd = np.insert(xt,1,X[i,j])
                 yd = np.insert(yt,1,Y[i,j])
-                power2,_ = _vawtwake.powercalc(xd,yd,np.ones_like(xd)*dia,np.ones_like(xd)*-rot,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
+                power2,_ = _vawtwake.powercalc(xd,yd,np.ones_like(xd)*dia,np.ones_like(xd)*rot,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
 
                 P[i,j] = (power1+power2)/(2*power_iso)
                 k += 1
                 print k,'of',N*N
 
         plt.figure()
-        lb = 0.9 # lower bound on velocity to display
-        ub = 1.1 # upper bound on velocity to display
+        lb = 0.7 # lower bound on velocity to display
+        ub = 1.3 # upper bound on velocity to display
         ran = 100 # number of contours between the velocity bounds
         bounds = np.linspace(lb,ub,ran)
         v = np.linspace(lb,ub,5) # setting the number of tick marks on colorbar
@@ -184,7 +184,7 @@ elif method == 'overlap':
             circ = plt.Circle((xt[i]/dia,yt[i]/dia),0.5,color='k',fill=True)
             plt.gca().add_patch(circ)
 
-        plt.savefig('/Users/ning1/Documents/FLOW Lab/overlap_power_windspire_counterrot2.png')
+        plt.savefig('/Users/ning1/Documents/FLOW Lab/overlap_power_windspire_counterrot3.png')
 
     elif plot == 'powerpoint':
         velx,vely = induced_vel(r,af_data,cl_data,cd_data,chord,twist,delta,B,rot,velf,rho,mu,ntheta)
