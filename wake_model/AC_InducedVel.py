@@ -4,6 +4,7 @@ from numpy import pi,sin,cos,arccos,fabs
 from scipy.integrate import quad
 from scipy.optimize import root
 import h5py
+import VAWT_Wake_Model as vwm
 
 import _vawtwake
 
@@ -254,7 +255,6 @@ def actuatorcylinder(centerX,centerY,radii,ntheta,af_data,cl_data,cd_data,r,chor
     tol_root = 1e-6
 
     w0 = np.zeros(ntheta*2)
-
     res = root(residual,w0,args=(A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp),method='hybr',tol=tol_root)
     w = res.x
 
@@ -264,11 +264,19 @@ def actuatorcylinder(centerX,centerY,radii,ntheta,af_data,cl_data,cd_data,r,chor
         uvec[i] = w[i]
         vvec[i] = w[ntheta + i]
 
-    return uvec,vvec
+    _,_,Ct,Cp,Rp,Tp,Zp = _vawtwake.radialforce(uvec,vvec,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp)
+
+    return uvec,vvec,Ct,Cp,Rp,Tp,Zp
 
 
 def induced_vel(r,af_data,cl_data,cd_data,chord,twist,delta,B,rot,velf,rho,mu,ntheta,interp):
 
-    velx,vely = actuatorcylinder(np.array([0.0]),np.array([0.0]),np.array([r]),ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp)
+    velx,vely,_,_,_,_,_ = actuatorcylinder(np.array([0.0]),np.array([0.0]),np.array([r]),ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp)
 
     return velx,vely
+
+def CtCpcalc(r,af_data,cl_data,cd_data,chord,twist,delta,B,rot,velf,rho,mu,ntheta,interp):
+
+    _,_,Ct,Cp,Rp,Tp,Zp = actuatorcylinder(np.array([0.0]),np.array([0.0]),np.array([r]),ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp)
+
+    return Ct,Cp

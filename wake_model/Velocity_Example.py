@@ -3,7 +3,18 @@ import matplotlib.pyplot as plt
 from VAWT_Wake_Model import velocity_field
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
-import time
+import time,sys
+
+# Progress bar for plotting
+def progress_bar(percent):
+    bar_long = 40
+    status = 'Working...'
+    if percent == 1:
+        status = 'Complete\n'
+    bar_seg = int(round(bar_long*percent))
+    text = '\rStatus: [{0}] {1}% {2}'.format( '='*bar_seg + ' '*(bar_long - bar_seg), percent*100, status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
 start = time.time()
 
@@ -16,7 +27,7 @@ plot_dist = True
 # plot_dist = False # comment this out if desired on
 
 # Enter the values desired
-velf = 15.0                 # free stream wind speed (m/s)
+velf = 1.0                  # free stream wind speed (m/s)
 dia = 6.                    # turbine diameter (m)
 tsr = 4.                    # tip speed ratio ((dia/2)*rot/velf)
 B = 3.                      # number of blades
@@ -26,7 +37,7 @@ rot = tsr*velf/(dia/2.)     # rotation rate (rad/s)
 # Enter the positions of the turbine and velocity calculation
 xt = 0.         # downstream position of turbine in flow domain (m)
 yt = 0.         # later position of turbine in flow domain (m)
-x0 = 24.        # downstream distance for velocity calculation (m)
+x0 = 12.        # downstream distance for velocity calculation (m)
 y0 = 0.         # lateral distance for velocity calculation (m)
 
 # Option to choose the type of velocity calculations to make
@@ -59,6 +70,7 @@ fs = 25 # font size for plots
 
 # PLOTTING VELOCITY PROFILES
 if vel_slice == True:
+    print 'Plotting velocity profiles'
     leng = 100. # data points in the velocity profile
     wide = 2.0*dia # width of the profile
 
@@ -81,7 +93,8 @@ if vel_slice == True:
             velp = velocity_field(xt,yt,x[i],y[j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             vel = np.append(vel,velp)
             iterp += 1
-            print 'Vel Slice ('+str(iterp)+' of '+str(pointval2)+')'
+            progress_bar(float(iterp)/(pointval2))
+
         plt.figure(1)
         plt.plot(vel,y,color[i],label=lab)
 
@@ -98,10 +111,16 @@ if vel_slice == True:
 
 # PLOTTING FULL VELOCITY DOMAIN
 if plot_dist == True:
-    xi = -3.*dia # starting point in downstream direction
-    xf = 17.0*dia # ending point in downstream direction
-    yd = -2.5*dia # lateral extent on down side
-    yu = 2.5*dia # lateral extent on up side
+    print 'Plotting full velocity domain:'
+    # xi = -3.*dia # starting point in downstream direction
+    # xf = 17.0*dia # ending point in downstream direction
+    # yd = -2.5*dia # lateral extent on down side
+    # yu = 2.5*dia # lateral extent on up side
+
+    xi = -6.*dia # starting point in downstream direction
+    xf = 6.0*dia # ending point in downstream direction
+    yd = -20.*dia # lateral extent on down side
+    yu = 20.*dia # lateral extent on up side
 
     N = 100 # N**2 = number of data points in domain
     pointval3 = N*N
@@ -112,18 +131,11 @@ if plot_dist == True:
     VEL = np.zeros((N, N)) # initiallizing velocity data point array
     VELy = np.zeros((N, N))
 
-    x_check = np.zeros(N*N)
-    y_check = np.zeros(N*N)
-    vel_check = np.zeros(N*N)
-
     iter = 0
     for i in range(N):
         for j in range(N):
             if veltype == 'all' or veltype == 'x' or veltype == 'y' or veltype == 'velfort':
                 VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
-                x_check[iter] = xp[i]
-                y_check[iter] = yp[j]
-                vel_check[iter] = velocity_field(xt,yt,xp[i],yp[j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             elif veltype == 'ind':
                 velfd = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
                 VEL[i,j] = velfd[0]
@@ -131,14 +143,16 @@ if plot_dist == True:
             elif veltype == 'vort':
                 VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             iter += 1
-            print 'Plot ('+str(iter)+' of '+str(N*N)+')'
+            progress_bar(float(iter)/(N*N))
 
     if veltype == 'all' or veltype == 'x' or veltype == 'y':
         fig = plt.figure(2,figsize=(19,5))
         fig.subplots_adjust(bottom=.16,left=.05,right=1.0)
         if veltype == 'all' or veltype == 'x':
-            lb = 0.15 # lower bound on velocity to display
-            ub = 1.15 # upper bound on velocity to display
+            # lb = 0.15 # lower bound on velocity to display
+            # ub = 1.15 # upper bound on velocity to display
+            lb = 0.9 # lower bound on velocity to display
+            ub = 1.1 # upper bound on velocity to display
         elif veltype == 'y':
             lb = -0.35 # lower bound on velocity to display
             ub = 0.35 # upper bound on velocity to display

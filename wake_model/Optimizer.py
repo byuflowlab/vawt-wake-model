@@ -140,7 +140,7 @@ if __name__ == "__main__":
     
     # Scaling grid case
     nRows = 2       # number of rows and columns in grid
-    spacing = 5     # turbine grid spacing in diameters
+    spacing = 3     # turbine grid spacing in diameters
     
     # Set up position arrays
     points = np.linspace(spacing*turb_dia,nRows*spacing*turb_dia,nRows)
@@ -148,7 +148,10 @@ if __name__ == "__main__":
     xt = np.ndarray.flatten(xpoints)
     yt = np.ndarray.flatten(ypoints)
     dia = np.ones_like(xt)*turb_dia
-    rot = np.ones_like(xt)*turb_rot
+    rot = np.zeros_like(xt)
+    for i in range(nRows):
+        rot[i*nRows] = turb_rot
+        rot[i*nRows+1] = -turb_rot
 
     twist = 0.0
     delta = 0.0
@@ -205,15 +208,24 @@ if __name__ == "__main__":
     
     plt.figure(1)
     for i in range(np.size(xt)):
-        circ = plt.Circle((xt[i],yt[i]),dia[i]/2.,color='b',fill=True)
-        plt.gca().add_patch(circ)
+        if rot[i] > 0.:
+            circ = plt.Circle((xt[i],yt[i]),dia[i]/2.,color='b',fill=True)
+            plt.gca().add_patch(circ)
+        elif rot[i] < 0.:
+            circ = plt.Circle((xt[i],yt[i]),dia[i]/2.,color='c',fill=True)
+            plt.gca().add_patch(circ)
     for i in range(np.size(xt)):
-        circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,color='r',fill=True)
-        plt.gca().add_patch(circ)
+        if rot[i] > 0.:
+            circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,color='r',fill=True)
+            plt.gca().add_patch(circ)
+        elif rot[i] < 0.:
+            circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,color='m',fill=True)
+            plt.gca().add_patch(circ)
     for i in range(np.size(xt)):
         plt.plot([xt[i], xf[i]], [yt[i], yf[i]], '--k')
     plt.xlim(points[0]-spacing*area,points[-1]+spacing*area)
     plt.ylim(points[0]-spacing*area,points[-1]+spacing*area)
+    plt.savefig('/Users/ning1/Documents/FLOW Lab/optimization2.png')
     
     
     if contour == True:
