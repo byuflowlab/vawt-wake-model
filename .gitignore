@@ -26,3 +26,6 @@ starccm_velocity_4.0_0.25.csv
 /wake_model/vawtwake.egg-info/*
 /wake_model/validation/Figure_11_data/*
 *.xml
+
+/wake_model/_bpmvawt.so.dSYM/*
+/wake_model/_vawtwake.so.dSYM/*
