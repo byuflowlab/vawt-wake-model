@@ -8,10 +8,6 @@ import VAWT_Wake_Model as vwm
 
 import _vawtwake
 
-"""
-applies for both Ay and Rx depending on which function ifunc(x, y, phi)
-is passed in
-"""
 def panelIntegration(xvec,yvec,thetavec,ifunc):
 
     # initialize
@@ -30,19 +26,6 @@ def panelIntegration(xvec,yvec,thetavec,ifunc):
 
     return A
 
-"""
-integrand used for computing Dx
-"""
-def Dxintegrand(x,y,phi):
-    v1 = x + sin(phi)
-    v2 = y - cos(phi)
-    # v1 and v2 should never both be zero b.c. we never integrate self.  RxII handles that case.
-    return (v1*sin(phi) - v2*cos(phi))/(2.*pi*(v1*v1 + v2*v2))
-
-
-"""
-integrand used for computing Ay
-"""
 def Ayintegrand(x,y,phi):
     v1 = x + sin(phi)
     v2 = y - cos(phi)
@@ -53,30 +36,6 @@ def Ayintegrand(x,y,phi):
 
 def AyIJ(xvec,yvec,thetavec):
     return panelIntegration(xvec, yvec, thetavec, Ayintegrand)
-
-def DxIJ(xvec,yvec,thetavec):
-    return panelIntegration(xvec, yvec, thetavec, Dxintegrand)
-
-def WxIJ(xvec,yvec,thetavec):
-
-    # initialize
-    nx = np.size(xvec)
-    ntheta = np.size(thetavec)
-    dtheta = thetavec[1] - thetavec[0]  # assumes equally spaced
-    Wx = np.zeros((nx,ntheta))
-
-    for i in range(nx):
-        if yvec[i] >= -1.0 and yvec[i] <= 1.0 and xvec[i] >= 0.0 and xvec[i]^2 + yvec[i]^2 >= 1.0:
-        # if yvec[i] >= -1.0 and yvec[i] <= 1.0 and (xvec[i] >= 0.0 or (xvec[i] >= -1 and xvec[i]^2 + yvec[i]^2 <= 1.0))
-            thetak = arccos(yvec[i])
-            for j in range(ntheta):
-                if thetavec[j] + dtheta/2. > thetak:
-                    k = j
-                    break
-            Wx[i, k] = -1.0
-            Wx[i, ntheta-k+1] = 1.0
-
-    return Wx
 
 def DxII(thetavec):
 
@@ -104,7 +63,6 @@ def WxII(thetavec):
 
     return Wx
 
-
 def precomputeMatrices(ntheta):
 
     # precompute self influence matrices
@@ -126,8 +84,7 @@ def precomputeMatrices(ntheta):
         hf.create_dataset('Wx', data=Wxself)
         hf.create_dataset('Ay', data=Ayself)
 
-
-def matrixAssemble(centerX,centerY,radii,ntheta):
+def matrixAssemble(ntheta):
     """
     centerX, centerY: array of x,y coordinates for centers of the VAWTs in the farm
     radii: corresponding array of their radii
@@ -152,75 +109,26 @@ def matrixAssemble(centerX,centerY,radii,ntheta):
             Wxself = np.array(hf.get('Wx'))
             Ayself = np.array(hf.get('Ay'))
 
-    # print Dxself
-
-
     # initialize global matrices
-    nturbines = np.size(radii)
-    Dx = np.zeros((nturbines*ntheta,nturbines*ntheta))
-    Wx = np.zeros((nturbines*ntheta,nturbines*ntheta))
-    Ay = np.zeros((nturbines*ntheta,nturbines*ntheta))
+    Dx = np.zeros((ntheta,ntheta))
+    Wx = np.zeros((ntheta,ntheta))
+    Ay = np.zeros((ntheta,ntheta))
 
-    # iterate through turbines
-    for I in range(nturbines):
-        for J in range(nturbines):
+    # self-influence is precomputed
+    Dxsub = Dxself
+    Wxsub = Wxself
+    Aysub = Ayself
 
-            # find normalized i locations relative to center of turbine J
-            x = (centerX[I]-radii[I]*sin(theta) - centerX[J])/radii[J]
-            y = (centerY[I]+radii[I]*cos(theta) - centerY[J])/radii[J]
-
-            # self-influence is precomputed
-            if I == J:
-                Dxsub = Dxself
-                Wxsub = Wxself
-                Aysub = Ayself
-
-            # pairs can be mapped for same radius
-            elif J < I and radii[I] == radii[J]:
-
-                # grab cross-diagonal I,J -> J,I matrix
-                for K in range((J)*ntheta,(J+1)*ntheta):
-                    for L in range((I)*ntheta,(I+1)*ntheta):
-                        Dxsub[K,L] = Dx[K,L]
-                        Aysub[K,L] = Ay[K,L]
-
-                # mapping index for coefficients that are the same
-                for M in range(ntheta/2,ntheta):
-                    for N in range(0,ntheta/2):
-
-                        # directly map over
-                        Dxsub = Dxsub[M,N]
-                        Aysub = Aysub[M,N]
-
-                # wake term must be recomptued
-                Wxsub = WxIJ(x, y, theta)
-
-            # # if VAWTs are very far apart we can approximate some of the influence coefficients
-            # elseif approxfar && sqrt((centerX[I]-centerX[J])^2 + (centerY[I]-centerY[J])^2) > 10*radii[I]
-            #     println("far apart")
-            #     xc = (centerX[I] - centerX[J])/radii[J]
-            #     yc = (centerY[I] - centerY[J])/radii[J]
-
-            #     Rxsub = RxIJFar(xc, yc, theta)
-            #     Wxsub = zeros(ntheta, ntheta)  # should have negligible wake impact
-            #     Aysub = AyIJFar(xc, yc, theta)
-
-            else:
-                Dxsub = DxIJ(x, y, theta)
-                Wxsub = WxIJ(x, y, theta)
-                Aysub = AyIJ(x, y, theta)
-
-            # assemble into global matrix
-            for O in range((I)*ntheta,(I+1)*ntheta):
-                for P in range((J)*ntheta,(J+1)*ntheta):
-                    Dx[O,P] = Dxsub[O,P]
-                    Wx[O,P] = Wxsub[O,P]
-                    Ay[O,P] = Aysub[O,P]
+    # assemble into global matrix
+    for O in range(0,ntheta):
+        for P in range(0,ntheta):
+            Dx[O,P] = Dxsub[O,P]
+            Wx[O,P] = Wxsub[O,P]
+            Ay[O,P] = Aysub[O,P]
 
     Ax = Dx + Wx
 
     return Ax, Ay, theta
-
 
 def residual(w,A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp):
 
@@ -241,17 +149,16 @@ def residual(w,A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,
 
     return np.dot(A,q)*kmult - w
 
-
-def actuatorcylinder(centerX,centerY,radii,ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,rho,mu,interp):
+def actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,rho,mu,interp,Vinfx,Vinfy):
 
     # assemble global matrices
-    Ax, Ay, theta = matrixAssemble(centerX, centerY, radii, ntheta)
+    Ax, Ay, theta = matrixAssemble(ntheta)
     A = np.vstack((Ax,Ay))
 
     # setup
     ntheta = np.size(theta)
-    Vinfx = np.zeros(ntheta)
-    Vinfy = np.zeros(ntheta)
+    # Vinfx = np.zeros(ntheta)
+    # Vinfy = np.zeros(ntheta)
     tol_root = 1e-6
 
     w0 = np.zeros(ntheta*2)
@@ -267,16 +174,3 @@ def actuatorcylinder(centerX,centerY,radii,ntheta,af_data,cl_data,cd_data,r,chor
     _,_,Ct,Cp,Rp,Tp,Zp = _vawtwake.radialforce(uvec,vvec,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp)
 
     return uvec,vvec,Ct,Cp,Rp,Tp,Zp
-
-
-def induced_vel(r,af_data,cl_data,cd_data,chord,twist,delta,B,rot,velf,rho,mu,ntheta,interp):
-
-    velx,vely,_,_,_,_,_ = actuatorcylinder(np.array([0.0]),np.array([0.0]),np.array([r]),ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp)
-
-    return velx,vely
-
-def CtCpcalc(r,af_data,cl_data,cd_data,chord,twist,delta,B,rot,velf,rho,mu,ntheta,interp):
-
-    _,_,Ct,Cp,Rp,Tp,Zp = actuatorcylinder(np.array([0.0]),np.array([0.0]),np.array([r]),ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp)
-
-    return Ct,Cp

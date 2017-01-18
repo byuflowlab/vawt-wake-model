@@ -27,7 +27,7 @@ plot_dist = True
 # plot_dist = False # comment this out if desired on
 
 # Enter the values desired
-velf = 1.0                  # free stream wind speed (m/s)
+velf = 15.0                  # free stream wind speed (m/s)
 dia = 6.                    # turbine diameter (m)
 tsr = 4.                    # tip speed ratio ((dia/2)*rot/velf)
 B = 3.                      # number of blades
@@ -67,6 +67,7 @@ pointval3 = 0.
 
 ## Plotting
 fs = 25 # font size for plots
+fs = 27
 
 # PLOTTING VELOCITY PROFILES
 if vel_slice == True:
@@ -112,15 +113,10 @@ if vel_slice == True:
 # PLOTTING FULL VELOCITY DOMAIN
 if plot_dist == True:
     print 'Plotting full velocity domain:'
-    # xi = -3.*dia # starting point in downstream direction
-    # xf = 17.0*dia # ending point in downstream direction
-    # yd = -2.5*dia # lateral extent on down side
-    # yu = 2.5*dia # lateral extent on up side
-
-    xi = -6.*dia # starting point in downstream direction
-    xf = 6.0*dia # ending point in downstream direction
-    yd = -20.*dia # lateral extent on down side
-    yu = 20.*dia # lateral extent on up side
+    xi = -3.*dia # starting point in downstream direction
+    xf = 17.0*dia # ending point in downstream direction
+    yd = -2.5*dia # lateral extent on down side
+    yu = 2.5*dia # lateral extent on up side
 
     N = 100 # N**2 = number of data points in domain
     pointval3 = N*N
@@ -149,17 +145,16 @@ if plot_dist == True:
         fig = plt.figure(2,figsize=(19,5))
         fig.subplots_adjust(bottom=.16,left=.05,right=1.0)
         if veltype == 'all' or veltype == 'x':
-            # lb = 0.15 # lower bound on velocity to display
-            # ub = 1.15 # upper bound on velocity to display
-            lb = 0.9 # lower bound on velocity to display
-            ub = 1.1 # upper bound on velocity to display
+            lb = 0.15 # lower bound on velocity to display
+            ub = 1.15 # upper bound on velocity to display
         elif veltype == 'y':
             lb = -0.35 # lower bound on velocity to display
             ub = 0.35 # upper bound on velocity to display
         ran = 32 # number of contours between the velocity bounds
         bounds = np.linspace(lb,ub,ran)
         v = np.linspace(lb,ub,6) # setting the number of tick marks on colorbar
-        CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.coolwarm) # plotting the contour plot
+        # CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.coolwarm) # plotting the contour plot
+        CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.parula_r) # plotting the contour plot
         CB = plt.colorbar(CS, ticks=v) # creating colorbar
         if veltype == 'y':
             CB.ax.set_ylabel(r'$v/U_\infty$',fontsize=fs)
@@ -197,6 +192,9 @@ if plot_dist == True:
     plt.ylim(yd/dia,yu/dia)
     circ = plt.Circle((xt/dia,yt/dia),0.5,edgecolor='k',fill=False)
     plt.gca().add_patch(circ)
+
+    # plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter4/model_vel_vort_gskr_pp.pdf')
+    plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter4/model_vel_vort_simp_pp.pdf')
 
 sec = time.time()-start
 pointval = pointval1+pointval2+pointval3

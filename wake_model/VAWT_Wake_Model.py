@@ -34,9 +34,10 @@ import numpy as np
 from numpy import pi, exp, fabs, sqrt, log, sin, cos, tan, arctan2
 # from scipy.integrate import dblquad # integration with complete module
 from Integrate import dblquad # integration with simplification file (Integrate.py)
-from scipy.interpolate import interp1d,UnivariateSpline
+from scipy.interpolate import UnivariateSpline
 
 import _vawtwake
+
 
 def _parameterval(tsr,sol,coef):
     # Creating polynomial surface based on given coefficients and calculating the point at a given TSR and solidity
@@ -90,98 +91,14 @@ def airfoil_data(file):
             cd_data = np.append(cd_data,float(columns[2]))
     f.close()
 
-    return af_data,cl_data,cd_data
+    clsmooth = UnivariateSpline(af_data,cl_data,s=0.1)
+    cdsmooth = UnivariateSpline(af_data,cd_data,s=0.001)
 
-def radialforce(uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp):
+    af_data_smooth = np.linspace(af_data[0],af_data[-1],4000)
+    cl_data_smooth = clsmooth(af_data_smooth)
+    cd_data_smooth = cdsmooth(af_data_smooth)
 
-    # set the rotation direction
-    if (Omega <= 0.0):
-        rotation = 1.0
-    else:
-        rotation = -1.0
-
-    sigma = B*chord/r
-    n = np.size(uvec)
-    q = np.zeros_like(uvec)
-    Rp = np.zeros_like(uvec)
-    Tp = np.zeros_like(uvec)
-    Zp = np.zeros_like(uvec)
-    integrand = np.zeros_like(uvec)
-    for i in range(n):
-        # velocity components and angles
-        Vn = (Vinf*(1.0 + uvec[i]) + Vinfx[i])*sin(thetavec[i]) - (Vinf*vvec[i] + Vinfy[i])*cos(thetavec[i])
-        Vt = rotation*((Vinf*(1.0 + uvec[i]) + Vinfx[i])*cos(thetavec[i]) + (Vinf*vvec[i] + Vinfy[i])*sin(thetavec[i])) + fabs(Omega)*r
-
-        # Original Code (without ability to add wake velocity deficits)
-        # Vn[i] = Vinf*(1.0 + uvec[i])*sin(thetavec[i]) - Vinf*vvec[i]*cos(thetavec[i])
-        # Vt[i] = rotation*(Vinf*(1.0 + uvec[i])*cos(thetavec[i]) + Vinf*vvec[i]*sin(thetavec[i])) + fabs(Omega)*r
-
-        W = sqrt(Vn**2 + Vt**2)
-        phi = arctan2(Vn, Vt)
-        alpha = phi - twist
-        # Re = rho*W*chord/mu  # currently no Re dependence
-
-        # airfoil
-        if (interp == 1):
-            cl = interp1d(af_data, cl_data, kind='cubic')
-            cd = interp1d(af_data, cd_data, kind='cubic')
-        elif (interp == 2):
-            cl = interp1d(af_data, cl_data, kind='cubic')
-            cd = interp1d(af_data, cd_data, kind='cubic')
-
-        # rotate force coefficients
-        cn = cl(alpha*180.0/pi)*cos(phi) + cd(alpha*180.0/pi)*sin(phi)
-        ct = cl(alpha*180.0/pi)*sin(phi) - cd(alpha*180.0/pi)*cos(phi)
-
-        # radial force
-        q[i] = sigma/(4.0*pi)*cn*(W/Vinf)**2
-
-        # instantaneous forces
-        qdyn = 0.5*rho*W**2
-        Rp[i] = -cn*qdyn*chord
-        Tp[i] = ct*qdyn*chord/cos(delta)
-        Zp[i] = -cn*qdyn*chord*tan(delta)
-
-        # nonlinear correction factor
-        integrand[i] = (W/Vinf)**2 * (cn*sin(thetavec[i]) - rotation*ct*cos(thetavec[i])/cos(delta))
-
-    print 'Vn', Vn
-    print 'Vt', Vt
-    print 'W', W
-    print 'phi', phi
-    print 'alpha', alpha
-    print 'cn', cn
-    print 'ct', ct
-    print 'q', q
-    print 'qdyn', qdyn
-    print 'Rp', Rp
-    print 'Tp', Tp
-    print 'Zp', Zp
-
-    CTend = _vawtwake.pInt(thetavec,integrand)
-    CTo = sigma/(4.0*pi)*CTend
-    if (CTo < 2.0):
-        a = 0.5*(1.0 + sqrt(1.0 + CTo))
-        ka = 1.0 / (a-1.0)
-    elif (CTo < 0.96):
-        a = 1.0/7.0*(1.0 + 3.0*sqrt(7.0/2.0*CTo - 3.0))
-        ka = 18.0*a / (7.0*a**2 - 2.0*a + 4.0)
-    else:
-        a = 0.5*(1.0 - sqrt(1.0 - CTo))
-        ka = 1.0 / (1.0-a)
-
-    # power coefficient
-    H = 1.0  # per unit height
-    Sref = 2.0*r*H
-    Qp = np.zeros_like(uvec)
-    for i in range(n):
-        Qp[i] = r*Tp[i]
-
-    Pend = _vawtwake.pInt(thetavec,Qp)
-    P = fabs(Omega)*B/(2.0*pi)*Pend
-    CPo = P/(0.5*rho*Vinf**3*Sref)
-
-    return q,ka,CTo,CPo,Rp,Tp,Zp
+    return af_data_smooth,cl_data_smooth,cd_data_smooth
 
 
 def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',integration='simp',m=220,n=200):

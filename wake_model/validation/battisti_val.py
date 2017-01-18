@@ -58,13 +58,14 @@ for i in range(np.size(rom15)):
     rom15[i] = velocity_field(0.,0.,1.5*dia,x15r[i]*dia,velf,dia,rot,chord,B,param=None,veltype=veltype)
     print 'plot point',i+1,'of',np.size(x15r)
 
-fs = 15
+fs = 20
 
-plt.figure(1)
+fig = plt.figure(1)
+fig.subplots_adjust(bottom=.12)
 # plt.plot(x15,y15c,'r.',label='Experimental (closed)')
-# plt.plot(x15,y15o,'b.',label='Experimental (open)')
-plt.plot(x15,y15o,'b.',label='Experimental')
-plt.plot(x15r,rom15,'g-',label='Model')
+# plt.plot(x15,y15o,'g.',label='Experimental (open)')
+plt.plot(x15,y15o,'.',color='k',label='Experimental')
+plt.plot(x15r,rom15,'r-',label='Model')
 plt.xlim(-1.75,1.75)
 plt.ylim(0.3,1.4)
 plt.xlabel('$y/D$',fontsize=fs)
