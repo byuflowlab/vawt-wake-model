@@ -1,5 +1,5 @@
 ## Currently Operational for Velocity Calculations Only
-Blade force and power calculations soon to come
+-----Blade force and power calculations soon to come-----
 
 # VAWT Wake Model
 
@@ -12,10 +12,14 @@ This code models the wake behind a vertical-axis wind turbine based on parameter
 Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between 0.15 and 1.0. Reynolds numbers should also be around the range of 600,000 to 6,000,000.
 
 
-## Installation instructions (without using the setup.py file)
+## Installation instructions
 
-- system requirements: gfortran (using MinGW for Windows in order to use the commands here), python 2.7, numpy, scipy
-- navigate to the directory and run the following command in the terminal to build the Fortran code:
+- system requirements: gfortran (using MinGW for Windows in order to use the commands here), python 2.7, numpy, scipy, matplotlib, joblib
+- run:
+```
+python setup.py install
+```
+- or navigate to the directory and run the following command in the terminal to build the Fortran code:
 
 Mac
 ```
@@ -41,7 +45,7 @@ $ python test.py
 This python code can be run from another file using:
 ```python
 from VAWT_Wake_Model import velocity_field
-velocity_field(x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',integration='simp',m=220,n=200)  # velocity calculation at any point (x0,y0) for a given free stream wind speed, turbine diameter, tip-speed ratio, and solidity
+velocity_field(x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',integration='simp',m=220,n=200)
 ```
 
 An example code is available to see how to call the wake model code and calculate a normalized velocity at a given location. Plotting of a velocity profile at a specific downstream distance as well as plotting the entire flow domain is also demonstrated in the example.

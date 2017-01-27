@@ -456,7 +456,7 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,velf,loc1d,loc2d,loc3d,s
 
     ! Bounds of integration
     a = 0.0_dp ! starting at turbine
-    b = (scl3+5.0_dp)*dia ! ending at the inflection point of the vorticity (when it decays)
+    b = (scl3 + 5.0_dp)*dia ! ending at the inflection point of the vorticity (when it decays)
     c = -1.0_dp*dia ! one diameter laterally
     d = 1.0_dp*dia ! one diameter laterally
 
@@ -878,8 +878,8 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
     else ! multiple turbine wake overlap
       do j = 1,t
         do k = 1,p
-          call vel_field(xt(j),yt(j),xd(k),yd(k),diat(j),rott(j),chord,blades,velf,&
-          loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
+          call vel_field(xt(j),yt(j),xd(k),yd(k),diat(j),rott(j),chord,blades,&
+          velf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
           velx_int(k),vely_int(k))
           velx_int(k) = -velx_int(k)
 
@@ -896,6 +896,8 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
             intey(k) = intey(k) - (vely_int(k))**2
           end if
         end do
+
+        ! end if
       end do
 
       ! square root of sum of squares
@@ -918,64 +920,73 @@ end subroutine overlap
 
 
 ! Calculating effective velocities around given turbine due to wake interaction at (x0,y0)
-subroutine overlappoint(t,xt,yt,diat,rot,chord,blades,x0,y0,velf,&
-  loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,velx,vely)
+subroutine overlap2(t,p,velf,wakex,wakey,velx,vely)
     implicit none
 
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    integer, intent(in) :: t,m,n,inte
-    real(dp), dimension(t), intent(in) :: xt,yt,diat,rot
-    real(dp), intent(in) :: x0,y0,velf,chord,blades
-    real(dp), dimension(10), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
+    integer, intent(in) :: t,p
+    real(dp), intent(in) :: velf
+    real(dp), dimension(t*p), intent(in) :: wakex,wakey
 
     ! out
-    real(dp), intent(out) :: velx,vely
+    real(dp), dimension(p), intent(out) :: velx,vely
 
     ! local
-    integer :: i
-    real(dp) :: velx_int,vely_int,intex,intey
+    integer :: i,j,k
+    real(dp), dimension(p) :: velx_int,vely_int,intex,intey
     intrinsic sqrt
     intrinsic abs
 
     intex = 0.0_dp
     intey = 0.0_dp
 
-    ! sum of squares of velocity deficits
-    do i = 1,t
-      call vel_field(xt(i),yt(i),x0,y0,diat(i),rot(i),chord,blades,velf,&
-      loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
-      velx_int,vely_int)
-      velx_int = -velx_int
+    if (t == 1) then ! coupled configuration (only two VAWTs)
+      ! do l = 1,p
+      !   velx(l) = wakex(l)*velf
+      !   vely(l) = wakey(l)*velf
+      ! end do
+      velx = wakex*velf
+      vely = wakey*velf
+    else ! multiple turbine wake overlap
+      do i = 1,t
+        do j = 1,p
+          velx_int(j) = -wakex(j+(i-1)*p)
+          vely_int(j) = wakey(j+(i-1)*p)
 
-      if (velx_int >= 0.0_dp) then
-        intex = intex + (velx_int)**2
-      else
-        intex = intex - (velx_int)**2
-      end if
+          ! sum of squares of velocity deficits
+          if (velx_int(j) >= 0.0_dp) then
+            intex(j) = intex(j) + (velx_int(j))**2
+          else
+            intex(j) = intex(j) - (velx_int(j))**2
+          end if
 
-      if (vely_int >= 0.0_dp) then
-        intey = intey + (vely_int)**2
-      else
-        intey = intey - (vely_int)**2
-      end if
-    end do
+          if (vely_int(j) >= 0.0_dp) then
+            intey(j) = intey(j) + (vely_int(j))**2
+          else
+            intey(j) = intey(j) - (vely_int(j))**2
+          end if
+        end do
+      end do
 
-    ! square root of sum of squares
-    if (intex >= 0.0_dp) then
-      velx = -velf*(sqrt(intex))
-    else
-      velx = velf*(sqrt(abs(intex)))
+      ! square root of sum of squares
+      do k = 1,p
+        if (intex(k) >= 0.0_dp) then
+          velx(k) = -velf*(sqrt(intex(k)))
+        else
+          velx(k) = velf*(sqrt(abs(intex(k))))
+        end if
+
+        if (intey(k) >= 0.0_dp) then
+          vely(k) = velf*(sqrt(intey(k)))
+        else
+          vely(k) = -velf*(sqrt(abs(intey(k))))
+        end if
+      end do
     end if
 
-    if (intey >= 0.0_dp) then
-      vely = velf*(sqrt(intey))
-    else
-      vely = -velf*(sqrt(abs(intey)))
-    end if
-
-end subroutine overlappoint
+end subroutine overlap2
 
 
 ! Calculating power and coefficient of power of single or multiple turbines

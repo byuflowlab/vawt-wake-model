@@ -245,7 +245,7 @@ elif method == 'overlap':
     P2 = np.zeros((nR,nT))
 
     rotplot = 'corot'
-    # rotplot = 'counter'
+    rotplot = 'counter'
 
     if plot == 'power':
         velx,vely,_,_,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,np.zeros(ntheta),np.zeros(ntheta))
@@ -258,6 +258,9 @@ elif method == 'overlap':
             rot2 = rot
         elif rotplot == 'counter':
             rot2 = -rot
+
+        x3 = 10.
+        y3 = 10.
 
         k = 0
         for i in range(nR):
@@ -275,11 +278,20 @@ elif method == 'overlap':
                 # xd = np.insert(xt,0,X[i,j])
                 # yd = np.insert(yt,0,Y[i,j])
                 # power2,_ = _vawtwake.powercalc(xd,yd,np.array([dia,dia]),np.array([-rot,rot]),velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx2,vely2,interp)
+                if np.fabs(centerY)/dia >= 3.:
+                    wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot2]),chord,B,0.,0.,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+                    wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot1]),chord,B,centerX,centerY,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
 
-                wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot2]),chord,B,0.,0.,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
-                # wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot]),chord,B,0.,0.,dia,rot,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
-                wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot1]),chord,B,centerX,centerY,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
-                # wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot]),chord,B,centerX,centerY,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+                # wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([centerX,x3]),np.array([centerY,y3]),np.array([dia,dia]),np.array([rot2,rot1]),chord,B,0.,0.,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+                # wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([0.,x3]),np.array([0.,y3]),np.array([dia,dia]),np.array([rot1,rot1]),chord,B,centerX,centerY,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+                else:
+                    wakex1,wakey1 = vwm.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot2]),chord,B,0.,0.,dia,velf)
+                    wakex2,wakey2 = vwm.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot1]),chord,B,centerX,centerY,dia,velf)
+
+                # thetaj = np.array([5.0,15.0,25.0,35.0,45.0,55.0,65.0,75.0,85.0,95.0,105.0,115.0,125.0,135.0,145.0,155.0,165.0,175.0,185.0,195.0,205.0,215.0,225.0,235.0,245.0,255.0,265.0,275.0,285.0,295.0,305.0,315.0,325.0,335.0,345.0,355.0])
+                #
+                # _,_,_,Cp1,_,_,_ = _vawtwake.radialforce(velx,vely,thetaj,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot1,velf,wakex1,wakey1,rho,mu,interp)
+                # _,_,_,Cp2,_,_,_ = _vawtwake.radialforce(velx2,vely2,thetaj,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot2,velf,wakex2,wakey2,rho,mu,interp)
 
                 # fac = 0.6
                 # wakex1 = wakex1*fac
@@ -335,6 +347,8 @@ elif method == 'overlap':
         plt.ylabel('$y/D$',fontsize=fs)
         plt.xticks(fontsize=fs)
         plt.yticks(fontsize=fs)
+        plt.xlim(-6.1,6.1)
+        plt.ylim(-6.1,6.1)
         for i in range(np.size(xt)):
             circ1 = plt.Circle((xt[i]/dia,yt[i]/dia),1.0,color='w',fill=True)
             plt.gca().add_patch(circ1)
@@ -352,9 +366,9 @@ elif method == 'overlap':
             plt.plot((xt[i]/dia,r*cos(210.*pi/180.)),(yt[i]/dia,r*sin(210.*pi/180.)),'k',linewidth=1.)
             plt.plot((xt[i]/dia,r*cos(330.*pi/180.)),(yt[i]/dia,r*sin(330.*pi/180.)),'k',linewidth=1.)
         if rotplot == 'counter':
-            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter5/windspire_power.pdf')
+            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chp_power/windspire_power.pdf')
         elif rotplot == 'corot':
-            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter5/windspire_corotpower.pdf')
+            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chp_power/windspire_corotpower.pdf')
 
         plt.figure()
         lb = 0.9 # lower bound on velocity to display
@@ -387,9 +401,9 @@ elif method == 'overlap':
             plt.plot((xt[i]/dia,r*cos(210.*pi/180.)),(yt[i]/dia,r*sin(210.*pi/180.)),'k',linewidth=1.)
             plt.plot((xt[i]/dia,r*cos(330.*pi/180.)),(yt[i]/dia,r*sin(330.*pi/180.)),'k',linewidth=1.)
         if rotplot == 'counter':
-            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter5/windspire_power_p.pdf')
+            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chp_power/windspire_power_p.pdf')
         elif rotplot == 'corot':
-            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter5/windspire_corotpower_p.pdf')
+            plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chp_power/windspire_corotpower_p.pdf')
 
         plt.figure()
         lb = -0.2 # lower bound on velocity to display
@@ -434,45 +448,69 @@ elif method == 'overlap':
 
     elif plot == 'powerpoint':
 
-        x1 = 0.0#0.002062750000000335
-        x2 = 0.
-        y1 = 1.#1.3355444000000003
+        x1 = 0.0
+        x2 = 3.
+        y1 = 0.
         y2 = 0.0
+        x3 = 15.
+        y3 = 15.
 
-        N = 15
-        x1 = np.linspace(-0.002162750000000335,0.002162750000000335,N)
-        y1 = np.linspace(1.3355344000000003,1.3355544000000003,N)
-        [X,Y] = np.meshgrid(x1,y1)
-        P = np.zeros((N,N))
-        P2 = np.zeros((N,N))
-        P3 = np.zeros((N,N))
+        # # wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2,x3]),np.array([y2,y3]),np.array([dia,dia]),np.array([-rot,rot]),chord,B,x1,y1,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        # # wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([x1,x3]),np.array([y1,y3]),np.array([dia,dia]),np.array([rot,rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        #
+        # wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2]),np.array([y2]),np.array([dia]),np.array([-rot]),chord,B,x1,y1,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        # wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([x1]),np.array([y1]),np.array([dia]),np.array([rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        # print wakex1,wakey1,wakex2,wakey2
+
+        # N = 50
+        # x1 = np.linspace(-10,10.,N)
+        # y1 = np.linspace(-10.0,10.,N)
+        # [X,Y] = np.meshgrid(x1,y1)
+        # P = np.zeros((N,N))
+        # P2 = np.zeros((N,N))
+        # P3 = np.zeros((N,N))
 
         cp_iso = 0.283118078
 
-        for i in range(N):
-            for j in range(N):
-                wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2]),np.array([y2]),np.array([dia]),np.array([-rot]),chord,B,X[i,j],Y[i,j],dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
-                wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([X[i,j]]),np.array([Y[i,j]]),np.array([dia]),np.array([rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        # wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2]),np.array([y2]),np.array([dia]),np.array([-rot]),chord,B,x1,y1,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        # wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([x1]),np.array([y1]),np.array([dia]),np.array([rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
 
-                uvec1,vvec1,_,cp1w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,wakex1,wakey1)
-                uvec2,vvec2,_,cp2w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,wakex2,wakey2)
-                P[i,j] = cp1w
-                P2[i,j] = cp2w
-                P3[i,j] = (cp1w+cp2w)/(2*cp_iso)
+        wakex1,wakey1 = vwm.overlap(ntheta,np.array([x2]),np.array([y2]),np.array([dia]),np.array([-rot]),chord,B,x1,y1,dia,velf)
+        wakex2,wakey2 = vwm.overlap(ntheta,np.array([x1]),np.array([y1]),np.array([dia]),np.array([rot]),chord,B,x2,y2,dia,velf)
 
-                print i,j
-        plt.figure()
-        CS = plt.contourf(X,Y,P,100,cmap=plt.cm.parula)
-        CB = plt.colorbar(CS)
+        _,_,_,Cp1,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,wakex1,wakey1)
+        _,_,_,Cp2,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,wakex2,wakey2)
 
-        plt.figure()
-        CS = plt.contourf(X,Y,P2,100,cmap=plt.cm.parula)
-        CB = plt.colorbar(CS)
+        print wakex1,wakey1
+        print wakex2,wakey2
 
-        plt.figure()
-        CS = plt.contourf(X,Y,P3,100,cmap=plt.cm.parula)
-        CB = plt.colorbar(CS)
-        plt.show()
+        print Cp1,Cp2,(Cp1+Cp2)/(2.*cp_iso)
+
+        # for i in range(N):
+        #     for j in range(N):
+        #         wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2,x3]),np.array([y2,y3]),np.array([dia,dia]),np.array([-rot,rot]),chord,B,X[i,j],Y[i,j],dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        #         wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([X[i,j],x3]),np.array([Y[i,j],y3]),np.array([dia,dia]),np.array([rot,rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        #         # print wakex1,wakey1,wakex2,wakey2
+        #
+        #         uvec1,vvec1,_,cp1w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,wakex1,wakey1)
+        #         uvec2,vvec2,_,cp2w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,wakex2,wakey2)
+        #         P[i,j] = cp1w
+        #         P2[i,j] = cp2w
+        #         P3[i,j] = (cp1w+cp2w)/(2*cp_iso)
+        #
+        #         print i,j
+        # plt.figure()
+        # CS = plt.contourf(X,Y,P,100,cmap=plt.cm.parula)
+        # CB = plt.colorbar(CS)
+        #
+        # plt.figure()
+        # CS = plt.contourf(X,Y,P2,100,cmap=plt.cm.parula)
+        # CB = plt.colorbar(CS)
+        #
+        # plt.figure()
+        # CS = plt.contourf(X,Y,P3,100,cmap=plt.cm.parula)
+        # CB = plt.colorbar(CS)
+        # plt.show()
 
         # wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2]),np.array([y2]),np.array([dia]),np.array([-rot]),chord,B,x1,y1,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
         # wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([x1]),np.array([y1]),np.array([dia]),np.array([rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
@@ -592,33 +630,33 @@ elif method == 'overlap':
         cpmod = np.zeros_like(thetamod)
         cp_iso = 0.283118078
 
-        for i in range(np.size(thetamod)):
-            x1 = 0.
-            y1 = 0.
-            x2 = 2.*cos(thetamod[i])
-            y2 = 2.*sin(thetamod[i])
+        # for i in range(np.size(thetamod)):
+        #     x1 = 0.
+        #     y1 = 0.
+        #     x2 = 2.*cos(thetamod[i])
+        #     y2 = 2.*sin(thetamod[i])
+        #
+        #     wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2]),np.array([y2]),np.array([dia]),np.array([-rot]),chord,B,x1,y1,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        #     wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([x1]),np.array([y1]),np.array([dia]),np.array([rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        #
+        #     fac = 0.8
+        #     wakex1 = wakex1*fac
+        #     wakey1 = wakey1*fac
+        #     wakex2 = wakex2*fac
+        #     wakey2 = wakey2*fac
+        #
+        #     uvec1,vvec1,_,cp1w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,wakex1,wakey1)
+        #     uvec2,vvec2,_,cp2w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,wakex2,wakey2)
+        #     cpmod[i] = (cp1w+cp2w)/(2*cp_iso)
+        #     print i
+        #
+        # print cpmod.tolist()
 
-            wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([x2]),np.array([y2]),np.array([dia]),np.array([-rot]),chord,B,x1,y1,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
-            wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([x1]),np.array([y1]),np.array([dia]),np.array([rot]),chord,B,x2,y2,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        cpmod = np.array([0.34403486229934377, 0.34862509462216756, 0.39894157768009036, 0.5863430562386762, 0.7129970832610787, 0.7855921597522427, 0.8470482539630853, 0.9013953506018821, 0.9601455893616664, 1.0194288948705703, 1.033693122129043, 1.0413605061884208, 1.0506381788442232, 1.060058261050193, 1.0689654414305627, 1.0774951768601828, 1.08516060298998, 1.0896502927606777, 1.090592059615426, 1.087828165379764, 1.0816003402926102, 1.073275197216215, 1.0645617181205838, 1.0554416781533134, 1.0457958116850024, 1.0374472069223197, 1.0289739659759387, 0.9793388535624352, 0.9328965276589404, 0.8687096863324896, 0.8054556953197295, 0.7613318567938111, 0.6397558675986322, 0.4771682732414631, 0.36328963392066166, 0.3434522228186334, 0.3462820609189695, 0.3878422593824303, 0.5172162997342789, 0.6005684340530796, 0.6994852713795089, 0.7595821027780201, 0.8536741564896726, 0.9534604104216948, 0.9971821817553583, 1.0184854079417303, 1.0262396891831798, 1.0331792074981805, 1.0403024456084002, 1.0471348168407635, 1.053121978219379, 1.0580477306582485, 1.0611763655548085, 1.0624636404913026, 1.0620357786382415, 1.0598530722064783, 1.0557547705350605, 1.0502530689227327, 1.0437918778931803, 1.0367521209320387, 1.0296423808559239, 1.0225430345387512, 1.0213049314743428, 0.9988919125859831, 0.9049627047469962, 0.8271948352315188, 0.7381963424220676, 0.6500036047389534, 0.5814230730140153, 0.4473189805021868, 0.35746852803756585, 0.3440348622992079])
 
-            fac = 0.8
-            wakex1 = wakex1*fac
-            wakey1 = wakey1*fac
-            wakex2 = wakex2*fac
-            wakey2 = wakey2*fac
-
-            uvec1,vvec1,_,cp1w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,wakex1,wakey1)
-            uvec2,vvec2,_,cp2w,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,wakex2,wakey2)
-            cpmod[i] = (cp1w+cp2w)/(2*cp_iso)
-            print i
-
-        print cpmod.tolist()
-
-        # cpmod = np.array([0.34403486229934377, 0.34862509462216756, 0.39894157768009036, 0.5863430562386762, 0.7129970832610787, 0.7855921597522427, 0.8470482539630853, 0.9013953506018821, 0.9601455893616664, 1.0194288948705703, 1.033693122129043, 1.0413605061884208, 1.0506381788442232, 1.060058261050193, 1.0689654414305627, 1.0774951768601828, 1.08516060298998, 1.0896502927606777, 1.090592059615426, 1.087828165379764, 1.0816003402926102, 1.073275197216215, 1.0645617181205838, 1.0554416781533134, 1.0457958116850024, 1.0374472069223197, 1.0289739659759387, 0.9793388535624352, 0.9328965276589404, 0.8687096863324896, 0.8054556953197295, 0.7613318567938111, 0.6397558675986322, 0.4771682732414631, 0.36328963392066166, 0.3434522228186334, 0.3462820609189695, 0.3878422593824303, 0.5172162997342789, 0.6005684340530796, 0.6994852713795089, 0.7595821027780201, 0.8536741564896726, 0.9534604104216948, 0.9971821817553583, 1.0184854079417303, 1.0262396891831798, 1.0331792074981805, 1.0403024456084002, 1.0471348168407635, 1.053121978219379, 1.0580477306582485, 1.0611763655548085, 1.0624636404913026, 1.0620357786382415, 1.0598530722064783, 1.0557547705350605, 1.0502530689227327, 1.0437918778931803, 1.0367521209320387, 1.0296423808559239, 1.0225430345387512, 1.0213049314743428, 0.9988919125859831, 0.9049627047469962, 0.8271948352315188, 0.7381963424220676, 0.6500036047389534, 0.5814230730140153, 0.4473189805021868, 0.35746852803756585, 0.3440348622992079])
-
-        fs = 20
-        fig = plt.figure()
-        fig.subplots_adjust(left=0.,right=.74)
+        fs = 23
+        fig = plt.figure(figsize=(8,5))
+        fig.subplots_adjust(left=0.08,right=.59)
         ax = plt.subplot(111, projection='polar')
         ax.set_theta_zero_location("W")
         plt.plot(thetadata*pi/180, cpdata, 'b--', linewidth=2, label='CFD')
@@ -626,12 +664,12 @@ elif method == 'overlap':
         plt.plot(thetamod-pi/2., cpmod, 'r-', linewidth=2, label='Wake Model')
         plt.xticks(fontsize=fs)
         plt.yticks([.5,1],fontsize=fs)
-        ax.set_rlabel_position(245)
+        ax.set_rlabel_position(240)
         # ax.set_rlabel_
         thetaticks = np.arange(0,360,45)
         ax.set_thetagrids(thetaticks, frac=1.13)
-        ax.plot([0],[0],marker=r'$\colon$',ms=80,color='k')
-        plt.ylim(0,1.2)
+        ax.plot([0],[0],marker=r'$\colon$',ms=65,color='k')
+        plt.ylim(0,1.3)
         # plt.hold(True)
         # ax = plt.subplot(111)
         # arc = mpatches.Arc([0,0],dia/2.,dia/2.,angle=90,theta1=0,theta2=350,capstyle='round',linestyle='-',lw=10,color='k')

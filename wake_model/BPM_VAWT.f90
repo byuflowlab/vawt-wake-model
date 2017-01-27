@@ -1015,7 +1015,7 @@ subroutine OASPL(n,p,ox,oy,oz,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,&
         Vn = (Vinf*(1.0_dp+velxx)+velwx)*sin(theta*pi/180.0_dp)-&
         (Vinf*velyy+velwy)*cos(theta*pi/180.0_dp)
         Vt = rotdir*((Vinf*(1.0_dp+velxx)+velwx)*cos(theta*pi/180.0_dp)+&
-        (Vinf*velyy+velwy)*sin(theta*pi/180.0_dp))+abs(rot)*rad
+        (Vinf*velyy+velwy)*sin(theta*pi/180.0_dp))+rot*rad
 
         V = sqrt(Vn**2+Vt**2)
 

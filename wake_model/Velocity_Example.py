@@ -46,13 +46,13 @@ veltype = 'vort'        # calculate only vorticity
 veltype = 'all'         # calculate velocity magnitude
 veltype = 'x'         # calculate x-velocity
 # veltype = 'y'         # calcuate y-velocity
-# veltype = 'ind'       # calculate induced velocity (in both x and y directions)
+veltype = 'ind'       # calculate induced velocity (in both x and y directions)
 
 # Option to choose the method of integration
 integration = 'simp'    # use Simpson's Rule integration (Fortran code)
 m = 220                 # number of divisions in the downstream direction (for Simpson's Rule)
 n = 200                 # number of divisions in the lateral direction (for Simpson's Rule)
-# integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
+integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
 
 ########################################################################################################################
 ########################################################################################################################
