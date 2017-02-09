@@ -1,6 +1,6 @@
-# VAWT Wake Model Data
+# Data Files for VAWT Wake Model
 
-This folder contains the python code used to generate error plots for the VAWT wake model.
+This folder contains the airfoil data used for the power calculations and the Figshare data for model error calculations and polynomial surface fitting.
 
-The CFD vorticity and velocity files must be referenced (found in the same folder). All of the CFD vorticity files can be accessed at:
+All of the CFD velocity and vorticity files must be referenced and can be accessed at:
 https://figshare.com/articles/Parameterized_Wake_Model/2059947

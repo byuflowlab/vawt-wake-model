@@ -14,9 +14,12 @@ database_call.py
 induced_y_plots.py
 sheet_plot.py
 STARCCM_plot.py
+velocity_optimize_SMG.py
 vel_vort_profile_example.py
 velocity_profile_read.py
 starccm_velocity_4.0_0.25.csv
+observer_pos.py
+windfarm_rotate.py
 
 /wake_model/.idea/*
 /wake_model/_vawtwake.so.SYM/*
@@ -27,5 +30,9 @@ starccm_velocity_4.0_0.25.csv
 /wake_model/validation/Figure_11_data/*
 *.xml
 
+/wake_model/data/Figshare/*
+
 /wake_model/_bpmvawt.so.dSYM/*
 /wake_model/_vawtwake.so.dSYM/*
+
+!/wake_model/data/Figshare/README.md

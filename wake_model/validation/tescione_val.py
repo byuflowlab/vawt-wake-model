@@ -27,7 +27,7 @@ load_mat = False # use already imported values
 
 # Import Star-CCM+ simulation data (from validation study)
 basepath = path.join(path.dirname(path.realpath('__file__')))
-fdata = basepath + path.sep + 'tes.csv'
+fdata = basepath + path.sep + 'tes_cfd.csv'
 
 f = open(fdata)
 

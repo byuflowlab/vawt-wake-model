@@ -6,9 +6,14 @@ rcParams['font.family'] = 'Times New Roman'
 import time,sys
 
 # Progress bar for plotting
-def progress_bar(percent):
+def progress_bar(percent,tasks,runtime):
     bar_long = 40
-    status = 'Working...'
+    timeleft = (runtime)*(tasks*(1.-percent))
+    if timeleft < 120.:
+        status = 'Working... '+str(int(timeleft))+' seconds left'
+    else:
+        timeleft = timeleft/60.
+        status = 'Working... '+str(int(timeleft))+' minutes left'
     if percent == 1:
         status = 'Complete\n'
     bar_seg = int(round(bar_long*percent))
@@ -46,7 +51,7 @@ veltype = 'vort'        # calculate only vorticity
 veltype = 'all'         # calculate velocity magnitude
 veltype = 'x'         # calculate x-velocity
 # veltype = 'y'         # calcuate y-velocity
-veltype = 'ind'       # calculate induced velocity (in both x and y directions)
+# veltype = 'ind'       # calculate induced velocity (in both x and y directions)
 
 # Option to choose the method of integration
 integration = 'simp'    # use Simpson's Rule integration (Fortran code)
@@ -65,9 +70,7 @@ pointval1 = 1.
 pointval2 = 0.
 pointval3 = 0.
 
-## Plotting
 fs = 25 # font size for plots
-fs = 27
 
 # PLOTTING VELOCITY PROFILES
 if vel_slice == True:
@@ -86,6 +89,7 @@ if vel_slice == True:
     color = np.array(['b','c','g','y','r','m']) # identifying six colors to use for differentiation
 
     iterp = 0
+    time0 = time.time()
     for i in range(int(np.size(x))):
         vel = np.array([])
         val = str(x[i]/dia)
@@ -94,7 +98,9 @@ if vel_slice == True:
             velp = velocity_field(xt,yt,x[i],y[j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             vel = np.append(vel,velp)
             iterp += 1
-            progress_bar(float(iterp)/(pointval2))
+            runtime = time.time()-time0
+            progress_bar(float(iterp)/(pointval2),pointval2,runtime)
+            time0 = time.time()
 
         plt.figure(1)
         plt.plot(vel,y,color[i],label=lab)
@@ -128,6 +134,7 @@ if plot_dist == True:
     VELy = np.zeros((N, N))
 
     iter = 0
+    time0 = time.time()
     for i in range(N):
         for j in range(N):
             if veltype == 'all' or veltype == 'x' or veltype == 'y' or veltype == 'velfort':
@@ -139,7 +146,9 @@ if plot_dist == True:
             elif veltype == 'vort':
                 VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             iter += 1
-            progress_bar(float(iter)/(N*N))
+            runtime = time.time()-time0
+            progress_bar(float(iter)/(N*N),N*N,runtime)
+            time0 = time.time()
 
     if veltype == 'all' or veltype == 'x' or veltype == 'y':
         fig = plt.figure(2,figsize=(19,5))
@@ -153,8 +162,7 @@ if plot_dist == True:
         ran = 32 # number of contours between the velocity bounds
         bounds = np.linspace(lb,ub,ran)
         v = np.linspace(lb,ub,6) # setting the number of tick marks on colorbar
-        # CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.coolwarm) # plotting the contour plot
-        CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.parula_r) # plotting the contour plot
+        CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.coolwarm) # plotting the contour plot
         CB = plt.colorbar(CS, ticks=v) # creating colorbar
         if veltype == 'y':
             CB.ax.set_ylabel(r'$v/U_\infty$',fontsize=fs)
@@ -165,9 +173,9 @@ if plot_dist == True:
     elif veltype == 'ind':
         fig = plt.figure(2,figsize=(19,5))
         fig.subplots_adjust(bottom=.16,left=.05,right=1.0)
-        speed = np.sqrt(VEL*VEL + VELy*VELy)
-        CS = plt.streamplot(X/dia, Y/dia, VEL, VELy, density=2, color=speed, cmap=plt.cm.coolwarm)
-        CB = fig.colorbar(CS.lines,ticks=np.linspace(0.0,0.75,6))
+        speed = np.sqrt(VEL*VEL + VELy*VELy) # magnitude of speed (m/s)
+        CS = plt.streamplot(X/dia, Y/dia, VEL, VELy, density=2, color=speed, cmap=plt.cm.coolwarm) # plotting the stream plot
+        CB = fig.colorbar(CS.lines,ticks=np.linspace(0.0,0.75,6)) # creating colorbar
         CB.ax.set_ylabel(r'$velocity mag/U_\infty$',fontsize=fs)
         CB.ax.tick_params(labelsize=fs)
         CB.ax.set_aspect(20)
@@ -192,9 +200,6 @@ if plot_dist == True:
     plt.ylim(yd/dia,yu/dia)
     circ = plt.Circle((xt/dia,yt/dia),0.5,edgecolor='k',fill=False)
     plt.gca().add_patch(circ)
-
-    # plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter4/model_vel_vort_gskr_pp.pdf')
-    plt.savefig('/Users/ning1/Documents/FLOW Lab/Thesis/BYU_ME_Thesis_Template/figures/chapter4/model_vel_vort_simp_pp.pdf')
 
 sec = time.time()-start
 pointval = pointval1+pointval2+pointval3

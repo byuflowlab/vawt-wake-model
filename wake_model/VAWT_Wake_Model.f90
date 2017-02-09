@@ -282,6 +282,7 @@ subroutine vorticitystrength(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl
     real(dp), intent(out) :: gam_lat
 
     ! local
+    real(dp) :: loc1d,loc2d,loc3d,spr1d,spr2d,skw1d,skw2d,scl1d,scl2d,scl3d
     real(dp) :: xd,yd,loc,spr,skw,scl,g1,g2
     intrinsic exp
 
@@ -290,32 +291,62 @@ subroutine vorticitystrength(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl
 
     ! Limiting the parameter components to create expected behavior
     if (loc1 > -0.001_dp) then ! ensure concave down
-      if (loc2 < 0.01_dp) then ! ensure slight increase moving downstream
-        loc = -0.001_dp*xd*xd + 0.01_dp*xd + loc3
-      else
-        loc = -0.001_dp*xd*xd + loc2*xd + loc3
-      end if
+      loc1d = -0.001_dp
     else
-      if (loc2 < 0.01_dp) then ! ensure slight increase moving downstream
-        loc = loc1*xd*xd + 0.01_dp*xd + loc3
-      else
-        loc = loc1*xd*xd + loc2*xd + loc3
-      end if
+      loc1d = loc1
     end if
+    if (loc2 < 0.01_dp) then ! ensure slight increase moving downstream
+      loc2d = 0.01_dp
+    else
+      loc2d = loc2
+    end if
+    if (loc3 < 0.48_dp) then ! ensure wake originating from edge of turbine
+      loc3d = 0.48_dp
+    else
+      loc3d = loc3
+    end if
+
+    loc = loc1d*xd*xd + loc2d*xd + loc3d ! EMG Location
 
     if (spr1 > -0.001_dp) then ! ensure decrease in value (more spread downstream)
-      spr = -0.001_dp*xd + spr2
+      spr1d = -0.001_dp
     else
-      spr = spr1*xd + spr2
+      spr1d = spr1
+    end if
+    if (spr2 > 0.0_dp) then ! ensure value does not begin positive
+      spr2d = 0.0_dp
+    else
+      spr2d = spr2
     end if
 
-    skw = skw1*xd + skw2 ! no limitations necessary
+    spr = spr1d*xd + spr2d ! EMG Spread
 
+    skw1d = skw1 ! no limitations necessary
+    if (skw2 > 0.0_dp) then ! ensure value does not begin positive
+      skw2d = 0.0_dp
+    else
+      skw2d = skw2
+    end if
+
+    skw = skw1d*xd + skw2d ! EMG Skew
+
+    if (scl1 < 0.0_dp) then ! ensure positive maximum vorticity strength
+      scl1d = 0.0_dp
+    else
+      scl1d = scl1
+    end if
     if (scl2 < 0.05_dp) then ! ensure decay moving downstream
-      scl = scl1/(1.0_dp + exp(0.05_dp*(xd - scl3)))
+      scl2d = 0.05_dp
     else
-      scl = scl1/(1.0_dp + exp(scl2*(xd - scl3)))
+      scl2d = scl2
     end if
+    if (scl3 < 0.0_dp) then ! ensure decay occurs downstrem
+      scl3d = 0.0_dp
+    else
+      scl3d = scl3
+    end if
+
+    scl = scl1d/(1.0_dp + exp(scl2d*(xd - scl3d))) ! EMG Scale
 
     ! Limiting the parameters to the maximum values the EMG distribution can handle
     if (loc < 0.2_dp) then
@@ -419,9 +450,9 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,velf,loc1d,loc2d,loc3d,s
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    real(dp), intent(in) :: xt,yt,x0t,y0t,dia,rot,chord,blades,velf
+    real(dp), intent(in) :: xt,yt,x0t,y0t,dia,rot,chord,velf
     real(dp), dimension(10), intent(in) :: loc1d,loc2d,loc3d,spr1d,spr2d,skw1d,skw2d,scl1d,scl2d,scl3d
-    integer, intent(in) :: m_in,n_in,inte
+    integer, intent(in) :: blades,m_in,n_in,inte
 
     ! out
     real(dp), intent(out) :: velx,vely
@@ -719,6 +750,143 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,velf,loc1d,loc2d,loc3d,s
 end subroutine vel_field
 
 
+! Calculating vorticity strength for polynomial surface fitting
+subroutine sheet_vort(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,&
+  coef5,coef6,coef7,coef8,coef9,dia,vort)
+  implicit none
+  integer, parameter :: dp = kind(0.d0)
+  ! in
+  integer, intent(in) :: ndata
+  real(dp), dimension(10), intent(in) :: coef0,coef1,coef2,coef3,coef4,coef5
+  real(dp), dimension(10), intent(in) :: coef6,coef7,coef8,coef9
+  real(dp), dimension(ndata), intent(in) :: xttr,ystr,posdn,poslt
+  real(dp), intent(in) :: dia
+  ! out
+  real(dp), dimension(ndata), intent(out) :: vort
+  ! local
+  integer :: i
+  real(dp) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
+
+  do i = 1,ndata
+    call parameterval(xttr(i),ystr(i),coef0,loc1)
+    call parameterval(xttr(i),ystr(i),coef1,loc2)
+    call parameterval(xttr(i),ystr(i),coef2,loc3)
+    call parameterval(xttr(i),ystr(i),coef3,spr1)
+    call parameterval(xttr(i),ystr(i),coef4,spr2)
+    call parameterval(xttr(i),ystr(i),coef5,skw1)
+    call parameterval(xttr(i),ystr(i),coef6,skw2)
+    call parameterval(xttr(i),ystr(i),coef7,scl1)
+    call parameterval(xttr(i),ystr(i),coef8,scl2)
+    call parameterval(xttr(i),ystr(i),coef9,scl3)
+
+    ! if (loc1 > -0.001_dp) then
+    !   loc1 = -0.001_dp
+    ! end if
+    ! if (loc2 < 0.01_dp) then
+    !   loc2 = 0.01_dp
+    ! end if
+    ! if (loc3 < 0.48_dp) then
+    !   loc3 = 0.48_dp
+    ! end if
+    ! if (spr1 > -0.001_dp) then
+    !   spr1 = -0.001_dp
+    ! end if
+    ! if (spr2 > 0.0_dp) then
+    !   spr2 = 0.0_dp
+    ! end if
+    ! if (skw2 > 0.0_dp) then
+    !   skw2 = 0.0_dp
+    ! end if
+    ! if (scl1 < 0.0_dp) then
+    !   scl1 = 0.0_dp
+    ! end if
+    ! if (scl2 < 0.05_dp) then
+    !   scl2 = 0.05_dp
+    ! end if
+    ! if (scl3 < 0.0_dp) then
+    !   scl3 = 0.0_dp
+    ! end if
+
+    call vorticitystrength(posdn(i),poslt(i),dia,loc1,loc2,loc3,spr1,spr2,&
+    skw1,skw2,scl1,scl2,scl3,vort(i))
+
+  end do
+
+end subroutine sheet_vort
+
+
+! Calculating vorticity strength for polynomial surface fitting
+subroutine sheet_vel(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,&
+  coef5,coef6,coef7,coef8,coef9,dia,velf,m_in,n_in,inte,vel)
+  implicit none
+  integer, parameter :: dp = kind(0.d0)
+  ! in
+  integer, intent(in) :: ndata,m_in,n_in,inte
+  real(dp), dimension(10), intent(in) :: coef0,coef1,coef2,coef3,coef4,coef5
+  real(dp), dimension(10), intent(in) :: coef6,coef7,coef8,coef9
+  real(dp), dimension(ndata), intent(in) :: xttr,ystr,posdn,poslt
+  real(dp), intent(in) :: dia,velf
+  ! out
+  real(dp), dimension(ndata), intent(out) :: vel
+  ! local
+  integer :: i
+  ! real(dp) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
+  real(dp) :: rot,chord,velx,vely
+
+  do i = 1,ndata
+    ! call parameterval(xttr(i),ystr(i),coef0,loc1)
+    ! call parameterval(xttr(i),ystr(i),coef1,loc2)
+    ! call parameterval(xttr(i),ystr(i),coef2,loc3)
+    ! call parameterval(xttr(i),ystr(i),coef3,spr1)
+    ! call parameterval(xttr(i),ystr(i),coef4,spr2)
+    ! call parameterval(xttr(i),ystr(i),coef5,skw1)
+    ! call parameterval(xttr(i),ystr(i),coef6,skw2)
+    ! call parameterval(xttr(i),ystr(i),coef7,scl1)
+    ! call parameterval(xttr(i),ystr(i),coef8,scl2)
+    ! call parameterval(xttr(i),ystr(i),coef9,scl3)
+    !
+    ! if (loc1 > -0.001_dp) then
+    !   loc1 = -0.001_dp
+    ! end if
+    ! if (loc2 < 0.01_dp) then
+    !   loc2 = 0.01_dp
+    ! end if
+    ! if (loc3 < 0.48_dp) then
+    !   loc3 = 0.48_dp
+    ! end if
+    ! if (spr1 > -0.001_dp) then
+    !   spr1 = -0.001_dp
+    ! end if
+    ! if (spr2 > 0.0_dp) then
+    !   spr2 = 0.0_dp
+    ! end if
+    ! if (skw2 > 0.0_dp) then
+    !   skw2 = 0.0_dp
+    ! end if
+    ! if (scl1 < 0.0_dp) then
+    !   scl1 = 0.0_dp
+    ! end if
+    ! if (scl2 < 0.05_dp) then
+    !   scl2 = 0.05_dp
+    ! end if
+    ! if (scl3 < 0.0_dp) then
+    !   scl3 = 0.0_dp
+    ! end if
+
+    rot = xttr(i)*velf/(dia/2.0_dp)
+    chord = ystr(i)*(dia/2.0_dp)/3
+
+    call vel_field(0.0_dp,0.0_dp,posdn(i),poslt(i),dia,rot,chord,3,velf,&
+    coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m_in,n_in,&
+    inte,velx,vely)
+
+    vel(i) = (velx*velf + velf)/velf
+
+  end do
+
+end subroutine sheet_vel
+
+
 ! Aerodynamics of multiple vertical axis wind turbines using a modified Actuator Cylinder approach
 ! Developed by Andrew Ning at Brigham Young University
 ! https://github.com/byuflowlab/vawt-ac
@@ -732,10 +900,10 @@ subroutine radialforce(n,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,&
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    integer, intent(in) :: n,f,interp
+    integer, intent(in) :: n,f,B,interp
     real(dp), dimension(n), intent(in) :: uvec,vvec,thetavec,Vinfx,Vinfy
     real(dp), dimension(f), intent(in) :: af_data,cl_data,cd_data
-    real(dp), intent(in) :: r,chord,twist,delta,B,Omega,Vinf,rho,mu
+    real(dp), intent(in) :: r,chord,twist,delta,Omega,Vinf,rho,mu
 
     ! out
     real(dp), intent(out) :: ka,CTo,CPo
@@ -839,9 +1007,9 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    integer, intent(in) :: t,p,m,n,inte
+    integer, intent(in) :: t,p,m,n,blades,inte
     real(dp), dimension(t), intent(in) :: xt,yt,diat,rott
-    real(dp), intent(in) :: x0,y0,dia,velf,chord,blades
+    real(dp), intent(in) :: x0,y0,dia,velf,chord
     real(dp), dimension(10), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
 
     ! out
@@ -998,12 +1166,12 @@ subroutine powercalc(t,f,p,x,y,dia,rot,velf,loc1,loc2,loc3,spr1,spr2,&
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    integer, intent(in) :: t,f,p,interp
+    integer, intent(in) :: t,f,p,blades,interp
     real(dp), dimension(t), intent(in) :: x,y,dia,rot
     real(dp), dimension(p), intent(in) :: uvec,vvec
     real(dp), dimension(f), intent(in) :: af_data,cl_data,cd_data
     real(dp), dimension(10), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
-    real(dp), intent(in) :: velf,chord,twist,delta,blades,H,rho,mu
+    real(dp), intent(in) :: velf,chord,twist,delta,H,rho,mu
 
     ! out
     real(dp), intent(out) :: power_tot,CPo

@@ -5,7 +5,7 @@ import matplotlib.patches as mpatches
 from matplotlib import rcParams
 from numpy import sqrt
 import VAWT_Wake_Model as vwm
-from ACsingle import actuatorcylinder
+from ACsingle import actuatorcylinder,actuatorcylinder2
 from os import path
 from scipy.interpolate import interp1d,UnivariateSpline,Akima1DInterpolator
 import sys
@@ -250,6 +250,11 @@ elif method == 'overlap':
     if plot == 'power':
         velx,vely,_,_,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,np.zeros(ntheta),np.zeros(ntheta))
         velx2,vely2,_,_,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,np.zeros(ntheta),np.zeros(ntheta))
+        # q,k,A,velx,vely = actuatorcylinder2(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,np.zeros(ntheta),np.zeros(ntheta))
+        # q2,k2,A2,velx2,vely2 = actuatorcylinder2(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,np.zeros(ntheta),np.zeros(ntheta))
+
+        print q,k
+        print q2,k2
 
         power_iso,cp_iso = _vawtwake.powercalc(np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot]),velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
 
@@ -278,15 +283,17 @@ elif method == 'overlap':
                 # xd = np.insert(xt,0,X[i,j])
                 # yd = np.insert(yt,0,Y[i,j])
                 # power2,_ = _vawtwake.powercalc(xd,yd,np.array([dia,dia]),np.array([-rot,rot]),velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx2,vely2,interp)
-                if np.fabs(centerY)/dia >= 3.:
-                    wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot2]),chord,B,0.,0.,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
-                    wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot1]),chord,B,centerX,centerY,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+
+
+                # if np.fabs(centerY)/dia >= 3.:
+                wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot2]),chord,B,0.,0.,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+                wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot1]),chord,B,centerX,centerY,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
 
                 # wakex1,wakey1 = _vawtwake.overlap(ntheta,np.array([centerX,x3]),np.array([centerY,y3]),np.array([dia,dia]),np.array([rot2,rot1]),chord,B,0.,0.,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
                 # wakex2,wakey2 = _vawtwake.overlap(ntheta,np.array([0.,x3]),np.array([0.,y3]),np.array([dia,dia]),np.array([rot1,rot1]),chord,B,centerX,centerY,dia,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
-                else:
-                    wakex1,wakey1 = vwm.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot2]),chord,B,0.,0.,dia,velf)
-                    wakex2,wakey2 = vwm.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot1]),chord,B,centerX,centerY,dia,velf)
+                # else:
+                #     wakex1,wakey1 = vwm.overlap(ntheta,np.array([centerX]),np.array([centerY]),np.array([dia]),np.array([rot2]),chord,B,0.,0.,dia,velf)
+                #     wakex2,wakey2 = vwm.overlap(ntheta,np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot1]),chord,B,centerX,centerY,dia,velf)
 
                 # thetaj = np.array([5.0,15.0,25.0,35.0,45.0,55.0,65.0,75.0,85.0,95.0,105.0,115.0,125.0,135.0,145.0,155.0,165.0,175.0,185.0,195.0,205.0,215.0,225.0,235.0,245.0,255.0,265.0,275.0,285.0,295.0,305.0,315.0,325.0,335.0,345.0,355.0])
                 #
@@ -301,7 +308,8 @@ elif method == 'overlap':
 
                 _,_,_,Cp1,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot1,velf,rho,mu,interp,wakex1,wakey1)
                 _,_,_,Cp2,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot2,velf,rho,mu,interp,wakex2,wakey2)
-                # _,_,_,Cp2,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,wakex2,wakey2)
+                # q,k11,A,uvec,vvec = actuatorcylinder2(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot1,velf,rho,mu,interp,wakex1,wakey1)
+                # q,k22,A,uvec,vvec = actuatorcylinder2(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot2,velf,rho,mu,interp,wakex2,wakey2)
 
                 # P[i,j] = (power1+power2)/(2*power_iso)
                 # P1[i,j] = power1/power_iso

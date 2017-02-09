@@ -157,8 +157,6 @@ def actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,
 
     # setup
     ntheta = np.size(theta)
-    # Vinfx = np.zeros(ntheta)
-    # Vinfy = np.zeros(ntheta)
     tol_root = 1e-6
 
     w0 = np.zeros(ntheta*2)

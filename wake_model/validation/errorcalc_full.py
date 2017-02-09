@@ -1,24 +1,16 @@
 import numpy as np
-from numpy import fabs
 from VAWT_Wake_Model import velocity_field
 import csv
+from os import path
 
-# Enter the values desired
+# Code to test all of the
 
 velf = 15.0 # free stream wind speed (m/s)
 dia = 6.0  # turbine diameter (m)
 rad = dia/2.
-# tsr = 4.0  # tip speed ratio
-B = 3. # number of blades
-chord = 0.25 # chord lenth (m)
-solidity = (chord*B)/(dia/2.)
-
-# Enter the positions of the turbine and velocity calculation
+B = 3 # number of blades
 xt = 0. # downstream position of turbine (m)
 yt = 0. # later position of turbine (m)
-x0 = 5. # downstream position of velocity calculation from turbine (m)
-y0 = 0. # lateral position of velocity calculation from turbine (m)
-
 
 s = np.array([])
 t = np.array([])
@@ -42,16 +34,17 @@ for i in range(np.size(solidityf)):
 error = np.zeros((7,np.size(s)))
 std = np.zeros((7,np.size(s)))
 
+basepath = path.join(path.dirname(path.realpath('__file__')))
+
 for k in range(np.size(s)):
 
     wfit = s[k]+'_'+t[k]+'.0'
 
     tsr = tsre[k]
     solidity = sole[k]
-    rot = tsr*velf/rad
 
-    ## Reading in STAR-CCM+ File
     fdata = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/Velocity Sections/Dia_test_'+wfit+'.csv'
+    fdata = basepath + path.sep + '/../data/Figshare/VelocitySections/ConstDia_'+wfit+'.csv'
 
     for i in range(30):
         name = str(i+1)
@@ -200,7 +193,7 @@ for k in range(np.size(s)):
         #Deleting wall boundary data
         exec('delvec = np.array([])\nfor j in range(np.size(pos'+name+')):\n\tif pos'+name+'[j] > 5.*dia or pos'+name+'[j] < -5.*dia:\n\t\tdelvec = np.append(delvec,j)\ndelvec = delvec[::-1]\nfor j in range(np.size(delvec)):\n\tvelo'+name+' = np.delete(velo'+name+',delvec[j])\n\tpos'+name+' = np.delete(pos'+name+',delvec[j])')
 
-    ## Error
+
     error2 = np.zeros_like(pos2)
     error4 = np.zeros_like(pos4)
     error6 = np.zeros_like(pos6)
@@ -218,120 +211,61 @@ for k in range(np.size(s)):
     tot20 = np.size(pos20)
 
     veltype_in = 'x'
+    rot = tsr*velf/(dia/2.)
+    chord = solidity*(dia/2.)/B
+
     for i in range(np.size(pos2)):
         velp = velocity_field(xt,yt,2*dia,pos2[i],velf,dia,rot,chord,B,veltype=veltype_in)
-        if velo2[i] > 0.1:
-            error2[i] = fabs((velp-velo2[i])/velo2[i])
-        else:
-            error2[i] = -1.
+        error2[i] = ((1.-velp)-(1.-velo2[i]))**2
         print '2D',i+1,'of',tot2,'TSR:',tsr,'Solidity:',solidity,'Error:',error2[i],'Velp:',velp,'Velo:',velo2[i],'Pos:',pos2[i]
     for i in range(np.size(pos4)):
         velp = velocity_field(xt,yt,4*dia,pos4[i],velf,dia,rot,chord,B,veltype=veltype_in)
-        if velo4[i] > 0.1:
-            error4[i] = fabs((velp-velo4[i])/velo4[i])
-        else:
-            error4[i] = -1.
+        error4[i] = ((1.-velp)-(1.-velo4[i]))**2
         print '4D',i+1,'of',tot4,'TSR:',tsr,'Solidity:',solidity,'Error:',error4[i],'Velp:',velp,'Velo:',velo4[i],'Pos:',pos4[i]
     for i in range(np.size(pos6)):
         velp = velocity_field(xt,yt,6*dia,pos6[i],velf,dia,rot,chord,B,veltype=veltype_in)
-        if velo6[i] > 0.1:
-            error6[i] = fabs((velp-velo6[i])/velo6[i])
-        else:
-            error6[i] = -1.
+        error6[i] = ((1.-velp)-(1.-velo6[i]))**2
         print '6D',i+1,'of',tot6,'TSR:',tsr,'Solidity:',solidity,'Error:',error6[i],'Velp:',velp,'Velo:',velo6[i],'Pos:',pos6[i]
     for i in range(np.size(pos8)):
         velp = velocity_field(xt,yt,8*dia,pos8[i],velf,dia,rot,chord,B,veltype=veltype_in)
-        if velo8[i] > 0.1:
-            error8[i] = fabs((velp-velo8[i])/velo8[i])
-        else:
-            error8[i] = -1.
+        error8[i] = ((1.-velp)-(1.-velo8[i]))**2
         print '8D',i+1,'of',tot8,'TSR:',tsr,'Solidity:',solidity,'Error:',error8[i],'Velp:',velp,'Velo:',velo8[i],'Pos:',pos8[i]
     for i in range(np.size(pos10)):
         velp = velocity_field(xt,yt,10*dia,pos10[i],velf,dia,rot,chord,B,veltype=veltype_in)
-        if velo10[i] > 0.1:
-            error10[i] = fabs((velp-velo10[i])/velo10[i])
-        else:
-            error10[i] = -1.
+        error10[i] = ((1.-velp)-(1.-velo10[i]))**2
         print '10D',i+1,'of',tot10,'TSR:',tsr,'Solidity:',solidity,'Error:',error10[i],'Velp:',velp,'Velo:',velo10[i],'Pos:',pos10[i]
     for i in range(np.size(pos15)):
         velp = velocity_field(xt,yt,15*dia,pos15[i],velf,dia,rot,chord,B,veltype=veltype_in)
-        if velo15[i] > 0.1:
-            error15[i] = fabs((velp-velo15[i])/velo15[i])
-        else:
-            error15[i] = -1.
+        error15[i] = ((1.-velp)-(1.-velo15[i]))**2
         print '15D',i+1,'of',tot15,'TSR:',tsr,'Solidity:',solidity,'Error:',error15[i],'Velp:',velp,'Velo:',velo15[i],'Pos:',pos15[i]
     for i in range(np.size(pos20)):
         velp = velocity_field(xt,yt,20*dia,pos20[i],velf,dia,rot,chord,B,veltype=veltype_in)
-        if velo20[i] > 0.1:
-            error20[i] = fabs((velp-velo20[i])/velo20[i])
-        else:
-            error20[i] = -1.
+        error20[i] = ((1.-velp)-(1.-velo20[i]))**2
         print '20D',i+1,'of',tot20,'TSR:',tsr,'Solidity:',solidity,'Error:',error20[i],'Velp:',velp,'Velo:',velo20[i],'Pos:',pos20[i]
 
-    delvec2 = np.array([])
-    delvec4 = np.array([])
-    delvec6 = np.array([])
-    delvec8 = np.array([])
-    delvec10 = np.array([])
-    delvec15 = np.array([])
-    delvec20 = np.array([])
-    for j in range(np.size(error2)):
-        if error2[j] < 0.:
-            delvec2 = np.append(delvec2,j)
-    delvec2 = delvec2[::-1]
-    for j in range(np.size(delvec2)):
-        error2 = np.delete(error2,delvec2[j])
-    for j in range(np.size(error4)):
-        if error4[j] < 0.:
-            delvec4 = np.append(delvec4,j)
-    delvec4 = delvec4[::-1]
-    for j in range(np.size(delvec4)):
-        error4 = np.delete(error4,delvec4[j])
-    for j in range(np.size(error6)):
-        if error6[j] < 0.:
-            delvec6 = np.append(delvec6,j)
-    delvec6 = delvec6[::-1]
-    for j in range(np.size(delvec6)):
-        error6 = np.delete(error6,delvec6[j])
-    for j in range(np.size(error8)):
-        if error8[j] < 0.:
-            delvec8 = np.append(delvec8,j)
-    delvec8 = delvec8[::-1]
-    for j in range(np.size(delvec8)):
-        error8 = np.delete(error8,delvec8[j])
-    for j in range(np.size(error10)):
-        if error10[j] < 0.:
-            delvec10 = np.append(delvec10,j)
-    delvec10 = delvec10[::-1]
-    for j in range(np.size(delvec10)):
-        error10 = np.delete(error10,delvec10[j])
-    for j in range(np.size(error15)):
-        if error15[j] < 0.:
-            delvec15 = np.append(delvec15,j)
-    delvec15 = delvec15[::-1]
-    for j in range(np.size(delvec15)):
-        error15 = np.delete(error15,delvec15[j])
-    for j in range(np.size(error20)):
-        if error20[j] < 0.:
-            delvec20 = np.append(delvec20,j)
-    delvec20 = delvec20[::-1]
-    for j in range(np.size(delvec20)):
-        error20 = np.delete(error20,delvec20[j])
 
-    error2m = np.average(error2)
-    error2std = np.std(error2)
-    error4m = np.average(error4)
-    error4std = np.std(error4)
-    error6m = np.average(error6)
-    error6std = np.std(error6)
-    error8m = np.average(error8)
-    error8std = np.std(error8)
-    error10m = np.average(error10)
-    error10std = np.std(error10)
-    error15m = np.average(error15)
-    error15std = np.std(error15)
-    error20m = np.average(error20)
-    error20std = np.std(error20)
+    error2m = np.sqrt(np.average(error2))
+    error2std = 1.
+    error4m = np.sqrt(np.average(error4))
+    error4std = 1.
+    error6m = np.sqrt(np.average(error6))
+    error6std = 1.
+    error8m = np.sqrt(np.average(error8))
+    error8std = 1.
+    error10m = np.sqrt(np.average(error10))
+    error10std = 1.
+    error15m = np.sqrt(np.average(error15))
+    error15std = 1.
+    error20m = np.sqrt(np.average(error20))
+    error20std = 1.
+
+    print '2',error2m,error2std
+    print '4',error4m,error4std
+    print '6',error6m,error6std
+    print '8',error8m,error8std
+    print '10',error10m,error10std
+    print '15',error15m,error15std
+    print '20',error20m,error20std
 
     error[0,k] = error2m
     error[1,k] = error4m
@@ -348,11 +282,10 @@ for k in range(np.size(s)):
     std[5,k] = error15std
     std[6,k] = error20std
 
-## Write
-fdata = '/Users/ning1/Documents/FLOW Lab/VAWTWakeModel/wake_model/validation/error_cfd_vort_EMG2.csv'
+fdata_output = basepath + path.sep + 'error_cfd_vort_EMG_deficit_rms.csv'
 
 q = 0
-with open(fdata,'w') as fp:
+with open(fdata_output,'w') as fp:
     a = csv.writer(fp)
 
     data = np.array(['TSR'])

@@ -11,8 +11,7 @@ from ACsingle import actuatorcylinder
 from joblib import Parallel, delayed
 
 import _vawtwake
-import _bpmvawt
-from spl75data import spldata
+import _bpmvawtacoustic
 
 
 def obj_func(xdict):
@@ -115,7 +114,7 @@ def obj_func(xdict):
         #     # print i
 
         wakex,wakey = vawt_wake(xw,yw,dia,rotw[d],ntheta,chord,B,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
-        res = res = Parallel(n_jobs=-1)(delayed(vawt_power2)(i,dia,rotw[d],ntheta,chord,B,velf,af_data,cl_data,cd_data,twist,delta,rho,mu,interp,wakex,wakey) for i in range(nturb) )
+        res = Parallel(n_jobs=-1)(delayed(vawt_power2)(i,dia,rotw[d],ntheta,chord,B,velf,af_data,cl_data,cd_data,twist,delta,rho,mu,interp,wakex,wakey) for i in range(nturb) )
         for i in range(nturb):
             power_turb[i] = res[i][0]
             if i == 0:
@@ -301,10 +300,10 @@ def sep_func(loc):
     k = 0
     for i in range(0, n):
         for j in range(i+1, n):
-            sep[k] = sqrt((x[j]-x[i])**2+(y[j]-y[i])**2)
+            sep[k] = (x[j]-x[i])**2+(y[j]-y[i])**2
             k += 1
 
-    return sep - space*turb_dia
+    return sep - (space*turb_dia)**2
 
 
 ## Main
@@ -673,51 +672,51 @@ if __name__ == "__main__":
                     # plt.gca().add_patch(circ)
         plt.plot(obs[:,0],obs[:,1],'^',color='lime',markersize=ms,label='Observers')
 
-        if splcon == True:
-            # SPL 75
-            velx,vely,wakex,wakey = spldata()
-
-            n = 100
-            xp = np.linspace(-20.0, 60.0, n)
-            yp = np.linspace(-20.0, 60.0, n)
-            [X, Y] = np.meshgrid(xp, yp)
-            F = np.zeros((n, n))
-
-            ntheta = 36
-            # nobs = np.size(obs[:,0])
-
-            noise_corr = 1.#0.8442597725840473
-            nu = 1.78e-5
-            c0 = 343.2
-            psi = 14.0
-            AR = 5.
-            rad = turb_dia/2.
-
-            div = 5
-
-            c = np.ones(div)*chord
-            c1 = c*0.5
-            alpha = np.ones(div)*0.0
-            high = np.linspace(0,H,div+1)
-
-            point = 0
-            for i in range(n):
-                for j in range(n):
-                    F[i,j] = _bpmvawt.turbinepos(ntheta,xf,yf,np.array([X[i,j],Y[i,j],2.]),windroseDirections[0],B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,velf,velx,vely,wakex,wakey)
-                    # print F[i,j]
-                    point += 1
-                    print point, 'of', n**2
-
-            lb = 68.0 #lower bound on velocity to display
-            ub = 88.0 #upper bound on velocity to display
-            ran = 100 #number of contours between the velocity bounds
-            cbtix = np.linspace(lb,ub,5)
-            bounds = np.linspace(lb,ub,ran)
-            CS = plt.contourf(xp, yp, F, ran, cmap=plt.cm.parula, vmax=ub, vmin=lb, levels=bounds)
-            # CSn = plt.contour(xp, yp, F, cmap=plt.cm.parula)
-            CB = plt.colorbar(CS,ticks=cbtix,orientation='horizontal',pad=0.13)
-            CB.ax.tick_params(labelsize=fs)
-            CB.ax.set_xlabel('Sound Pressure Level (dB)',fontsize=fs)
+        # if splcon == True:
+        #     # SPL 75
+        #     velx,vely,wakex,wakey = spldata()
+        #
+        #     n = 100
+        #     xp = np.linspace(-20.0, 60.0, n)
+        #     yp = np.linspace(-20.0, 60.0, n)
+        #     [X, Y] = np.meshgrid(xp, yp)
+        #     F = np.zeros((n, n))
+        #
+        #     ntheta = 36
+        #     # nobs = np.size(obs[:,0])
+        #
+        #     noise_corr = 1.#0.8442597725840473
+        #     nu = 1.78e-5
+        #     c0 = 343.2
+        #     psi = 14.0
+        #     AR = 5.
+        #     rad = turb_dia/2.
+        #
+        #     div = 5
+        #
+        #     c = np.ones(div)*chord
+        #     c1 = c*0.5
+        #     alpha = np.ones(div)*0.0
+        #     high = np.linspace(0,H,div+1)
+        #
+        #     point = 0
+        #     for i in range(n):
+        #         for j in range(n):
+        #             F[i,j] = _bpmvawt.turbinepos(ntheta,xf,yf,np.array([X[i,j],Y[i,j],2.]),windroseDirections[0],B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,velf,velx,vely,wakex,wakey)
+        #             # print F[i,j]
+        #             point += 1
+        #             print point, 'of', n**2
+        #
+        #     lb = 68.0 #lower bound on velocity to display
+        #     ub = 88.0 #upper bound on velocity to display
+        #     ran = 100 #number of contours between the velocity bounds
+        #     cbtix = np.linspace(lb,ub,5)
+        #     bounds = np.linspace(lb,ub,ran)
+        #     CS = plt.contourf(xp, yp, F, ran, cmap=plt.cm.parula, vmax=ub, vmin=lb, levels=bounds)
+        #     # CSn = plt.contour(xp, yp, F, cmap=plt.cm.parula)
+        #     CB = plt.colorbar(CS,ticks=cbtix,orientation='horizontal',pad=0.13)
+        #     CB.ax.tick_params(labelsize=fs)
+        #     CB.ax.set_xlabel('Sound Pressure Level (dB)',fontsize=fs)
 
         rect = plt.Rectangle((xlow,ylow), xupp-xlow,yupp-ylow, linestyle='dashed',linewidth=2,facecolor="#ffffff",fill=False,label='Boundaries')
         plt.gca().add_patch(rect)

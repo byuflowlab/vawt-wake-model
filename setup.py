@@ -21,7 +21,7 @@ setup(
 from numpy.distutils.core import setup, Extension
 setup(
     name='vawtwake',
-    version='2.1.0',
+    version='2.2.0',
     package_dir={'': 'wake_model'},
     ext_modules=[Extension('_vawtwake', ['wake_model/VAWT_Wake_Model.f90'], extra_compile_args=['-O2'])],
 )
