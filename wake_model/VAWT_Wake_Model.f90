@@ -1,4 +1,27 @@
-! To build for Python interface (Mac): f2py -c  --opt=-O2 -m _vawtwake VAWT_Wake_Model.f90
+! Parameterized VAWT Wake Model Fortran Routines
+! Developed by Eric Tingey at Brigham Young University
+! This code models the wake behind a vertical-axis wind turbine based on
+! tip-speed ratio, solidity and wind speed by converting the vorticity of
+! the wake into velocity information. The model uses CFD data obtained
+! from STAR-CCM+ turbine simulations serve as the basis of the initial
+! wake model.
+! Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between
+! 0.15 and 1.0. Reynolds numbers should also be around the range of 600,000 to
+! 6,000,000.
+! In this code, the x and y coordinates (looking down on the turbine) are
+! made according to:
+! --------------->--------------------------------------------------------
+! --------------->--------------------------------------------------------
+! --------------->---------=====--------#################-----------Y-----
+! --------------->------//       \\#############################----|-----
+! -FREE-STREAM--->-----|| TURBINE ||########## WAKE ###############-|___X-
+! ----WIND------->-----||         ||###############################-------
+! --------------->------\\       //#############################----------
+! --------------->---------=====--------#################-----------------
+! --------------->--------------------------------------------------------
+! --------------->--------------------------------------------------------
+! The imported vorticity data also assumes symmetry in the wake and therefore
+! rotation direction for wake velocity calculation is irrelevant.
 
 
 ! trapezoidal integration
@@ -152,6 +175,7 @@ subroutine splineint(n,x,y,xval,yval)
 end subroutine splineint
 
 
+! cubic spline interpolation (specifically for extracting airfoil data)
 subroutine cubspline(x1,x2,x3,y1,y2,y3,xval,yval)
     implicit none
 
@@ -243,7 +267,7 @@ subroutine parameterval(tsr,sol,coef,val)
 end subroutine parameterval
 
 
-! Creating the fit of the vorticity distribution
+! Creating the EMG fit of the vorticity distribution
 subroutine EMGdist(y,loc,spr,skw,scl,gam_skew)
     implicit none
 
@@ -255,8 +279,7 @@ subroutine EMGdist(y,loc,spr,skw,scl,gam_skew)
     ! out
     real(dp), intent(out) :: gam_skew
 
-    !local
-    ! real(dp) :: gp
+    ! local
     intrinsic exp
     intrinsic erf
     intrinsic sqrt
@@ -340,7 +363,7 @@ subroutine vorticitystrength(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl
     else
       scl2d = scl2
     end if
-    if (scl3 < 0.0_dp) then ! ensure decay occurs downstrem
+    if (scl3 < 0.0_dp) then ! ensure decay occurs downstream
       scl3d = 0.0_dp
     else
       scl3d = scl3
@@ -416,31 +439,6 @@ subroutine integrandy(y,x,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2
 
 end subroutine integrandy
 
-
-! Parameterized VAWT Wake Model using CFD vorticity data
-! Developed by Eric Tingey at Brigham Young University
-! This code models the wake behind a vertical-axis wind turbine based on
-! parameters like tip-speed ratio, solidity and wind speed by converting the
-! vorticity of the wake into velocity information. The model uses CFD data
-! obtained from STAR-CCM+ of simulated turbines to make the wake model as
-! accurate as possible.
-! Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between
-! 0.15 and 1.0. Reynolds numbers should also be around the range of 600,000 to
-! 6,000,000.
-! In this code, the x and y coordinates (looking down on the turbine) are
-! made according to:
-! --------------->--------------------------------------------------------
-! --------------->--------------------------------------------------------
-! --------------->---------=====--------#################-----------Y-----
-! --------------->------//       \\#############################----|-----
-! -FREE-STREAM--->-----|| TURBINE ||########## WAKE ###############-|___X-
-! ----WIND------->-----||         ||###############################-------
-! --------------->------\\       //#############################----------
-! --------------->---------=====--------#################-----------------
-! --------------->--------------------------------------------------------
-! --------------->--------------------------------------------------------
-! The imported vorticity data also assumes symmetry in the wake and therefore
-! rotation direction for wake velocity calculation is irrelevant.
 
 ! Performing integration to convert vorticity into velocity
 subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,velf,loc1d,loc2d,loc3d,spr1d,spr2d,&
@@ -779,34 +777,6 @@ subroutine sheet_vort(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,
     call parameterval(xttr(i),ystr(i),coef8,scl2)
     call parameterval(xttr(i),ystr(i),coef9,scl3)
 
-    ! if (loc1 > -0.001_dp) then
-    !   loc1 = -0.001_dp
-    ! end if
-    ! if (loc2 < 0.01_dp) then
-    !   loc2 = 0.01_dp
-    ! end if
-    ! if (loc3 < 0.48_dp) then
-    !   loc3 = 0.48_dp
-    ! end if
-    ! if (spr1 > -0.001_dp) then
-    !   spr1 = -0.001_dp
-    ! end if
-    ! if (spr2 > 0.0_dp) then
-    !   spr2 = 0.0_dp
-    ! end if
-    ! if (skw2 > 0.0_dp) then
-    !   skw2 = 0.0_dp
-    ! end if
-    ! if (scl1 < 0.0_dp) then
-    !   scl1 = 0.0_dp
-    ! end if
-    ! if (scl2 < 0.05_dp) then
-    !   scl2 = 0.05_dp
-    ! end if
-    ! if (scl3 < 0.0_dp) then
-    !   scl3 = 0.0_dp
-    ! end if
-
     call vorticitystrength(posdn(i),poslt(i),dia,loc1,loc2,loc3,spr1,spr2,&
     skw1,skw2,scl1,scl2,scl3,vort(i))
 
@@ -830,49 +800,9 @@ subroutine sheet_vel(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,&
   real(dp), dimension(ndata), intent(out) :: vel
   ! local
   integer :: i
-  ! real(dp) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
   real(dp) :: rot,chord,velx,vely
 
   do i = 1,ndata
-    ! call parameterval(xttr(i),ystr(i),coef0,loc1)
-    ! call parameterval(xttr(i),ystr(i),coef1,loc2)
-    ! call parameterval(xttr(i),ystr(i),coef2,loc3)
-    ! call parameterval(xttr(i),ystr(i),coef3,spr1)
-    ! call parameterval(xttr(i),ystr(i),coef4,spr2)
-    ! call parameterval(xttr(i),ystr(i),coef5,skw1)
-    ! call parameterval(xttr(i),ystr(i),coef6,skw2)
-    ! call parameterval(xttr(i),ystr(i),coef7,scl1)
-    ! call parameterval(xttr(i),ystr(i),coef8,scl2)
-    ! call parameterval(xttr(i),ystr(i),coef9,scl3)
-    !
-    ! if (loc1 > -0.001_dp) then
-    !   loc1 = -0.001_dp
-    ! end if
-    ! if (loc2 < 0.01_dp) then
-    !   loc2 = 0.01_dp
-    ! end if
-    ! if (loc3 < 0.48_dp) then
-    !   loc3 = 0.48_dp
-    ! end if
-    ! if (spr1 > -0.001_dp) then
-    !   spr1 = -0.001_dp
-    ! end if
-    ! if (spr2 > 0.0_dp) then
-    !   spr2 = 0.0_dp
-    ! end if
-    ! if (skw2 > 0.0_dp) then
-    !   skw2 = 0.0_dp
-    ! end if
-    ! if (scl1 < 0.0_dp) then
-    !   scl1 = 0.0_dp
-    ! end if
-    ! if (scl2 < 0.05_dp) then
-    !   scl2 = 0.05_dp
-    ! end if
-    ! if (scl3 < 0.0_dp) then
-    !   scl3 = 0.0_dp
-    ! end if
-
     rot = xttr(i)*velf/(dia/2.0_dp)
     chord = ystr(i)*(dia/2.0_dp)/3
 
@@ -887,7 +817,8 @@ subroutine sheet_vel(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,&
 end subroutine sheet_vel
 
 
-! Aerodynamics of multiple vertical axis wind turbines using a modified Actuator Cylinder approach
+! Aerodynamics of multiple vertical axis wind turbines using a
+! modified Actuator Cylinder approach
 ! Developed by Andrew Ning at Brigham Young University
 ! https://github.com/byuflowlab/vawt-ac
 ! https://doi.org/10.5281/zenodo.165183
@@ -975,13 +906,14 @@ subroutine radialforce(n,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,&
 
     call pInt(n,thetavec,integrand,CTend)
     CTo = sigma/(4.0_dp*pi)*CTend
-    if (CTo > 2.0_dp) then
+
+    if (CTo > 2.0_dp) then ! propeller brake
       a = 0.5_dp*(1.0_dp + sqrt(1.0_dp + CTo))
       ka = 1.0_dp/(a-1.0_dp)
-    else if (CTo > 0.96) then
+    else if (CTo > 0.96) then ! empirical
       a = 1.0_dp/7.0_dp*(1.0_dp + 3.0_dp*sqrt(7.0_dp/2.0_dp*CTo - 3.0_dp))
       ka = 18.0_dp*a/(7.0_dp*a**2 - 2.0_dp*a + 4.0_dp)
-    else
+    else ! momentum
       a = 0.5_dp*(1.0_dp - sqrt(1.0_dp - CTo))
       ka = 1.0_dp/(1.0_dp-a)
     end if
@@ -1064,8 +996,6 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
             intey(k) = intey(k) - (vely_int(k))**2
           end if
         end do
-
-        ! end if
       end do
 
       ! square root of sum of squares

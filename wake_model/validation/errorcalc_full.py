@@ -10,14 +10,14 @@ dia = 6.0  # turbine diameter (m)
 rad = dia/2.
 B = 3 # number of blades
 xt = 0. # downstream position of turbine (m)
-yt = 0. # later position of turbine (m)
+yt = 0. # lateral position of turbine (m)
 
 s = np.array([])
 t = np.array([])
 sole = np.array([])
 tsre = np.array([])
 
-solidityf = np.array(['s1','s2','s3','s4','s5'])
+solidityf = np.array(['s0.15','s0.25','s0.50','s0.75','s1.0'])
 solf = np.array([0.15,0.25,0.5,0.75,1.0])
 tsrf = np.linspace(150,700,23)
 
@@ -38,13 +38,12 @@ basepath = path.join(path.dirname(path.realpath('__file__')))
 
 for k in range(np.size(s)):
 
-    wfit = s[k]+'_'+t[k]+'.0'
+    wfit = s[k]+'_t'+t[k]
 
     tsr = tsre[k]
     solidity = sole[k]
 
-    fdata = '/Users/ning1/Documents/FLOW Lab/STAR-CCM+/NACA0021/MoveForward/Velocity Sections/Dia_test_'+wfit+'.csv'
-    fdata = basepath + path.sep + '/../data/Figshare/VelocitySections/ConstDia_'+wfit+'.csv'
+    fdata = basepath + path.sep + '../data/Figshare/VelocityData/ConstDia_'+wfit+'.csv'
 
     for i in range(30):
         name = str(i+1)

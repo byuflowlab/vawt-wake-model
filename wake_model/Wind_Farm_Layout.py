@@ -5,7 +5,7 @@ import matplotlib.patches as mpatches
 from matplotlib import rcParams
 from numpy import sqrt
 import VAWT_Wake_Model as vwm
-from ACsingle import actuatorcylinder,actuatorcylinder2
+from ACsingle import actuatorcylinder
 from os import path
 from scipy.interpolate import interp1d,UnivariateSpline,Akima1DInterpolator
 import sys
@@ -253,10 +253,11 @@ elif method == 'overlap':
         # q,k,A,velx,vely = actuatorcylinder2(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot,velf,rho,mu,interp,np.zeros(ntheta),np.zeros(ntheta))
         # q2,k2,A2,velx2,vely2 = actuatorcylinder2(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,-rot,velf,rho,mu,interp,np.zeros(ntheta),np.zeros(ntheta))
 
-        print q,k
-        print q2,k2
+        # print q,k
+        # print q2,k2
 
         power_iso,cp_iso = _vawtwake.powercalc(np.array([0.]),np.array([0.]),np.array([dia]),np.array([rot]),velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,af_data,cl_data,cd_data,chord,twist,delta,B,H,rho,mu,velx,vely,interp)
+        print power_iso
 
         rot1 = rot
         if rotplot == 'corot':

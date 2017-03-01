@@ -25,11 +25,11 @@ start = time.time()
 
 # Option to plot velocity profiles at 2D, 4D, 6D, 8D, 10D, and 15D downstream
 vel_slice = True
-vel_slice = False # comment this out if desired on
+# vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-# plot_dist = False # comment this out if desired on
+plot_dist = False # comment this out if desired on
 
 # Enter the values desired
 velf = 15.0                  # free stream wind speed (m/s)
@@ -41,7 +41,7 @@ rot = tsr*velf/(dia/2.)     # rotation rate (rad/s)
 
 # Enter the positions of the turbine and velocity calculation
 xt = 0.         # downstream position of turbine in flow domain (m)
-yt = 0.         # later position of turbine in flow domain (m)
+yt = 0.         # lateral position of turbine in flow domain (m)
 x0 = 12.        # downstream distance for velocity calculation (m)
 y0 = 0.         # lateral distance for velocity calculation (m)
 
@@ -71,6 +71,7 @@ pointval2 = 0.
 pointval3 = 0.
 
 fs = 25 # font size for plots
+fs = 27
 
 # PLOTTING VELOCITY PROFILES
 if vel_slice == True:
@@ -101,7 +102,6 @@ if vel_slice == True:
             runtime = time.time()-time0
             progress_bar(float(iterp)/(pointval2),pointval2,runtime)
             time0 = time.time()
-
         plt.figure(1)
         plt.plot(vel,y,color[i],label=lab)
 
@@ -118,6 +118,7 @@ if vel_slice == True:
 
 # PLOTTING FULL VELOCITY DOMAIN
 if plot_dist == True:
+    # veltype = 'error'
     print 'Plotting full velocity domain:'
     xi = -3.*dia # starting point in downstream direction
     xf = 17.0*dia # ending point in downstream direction
@@ -145,6 +146,10 @@ if plot_dist == True:
                 VELy[i,j] = velfd[1]
             elif veltype == 'vort':
                 VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
+            elif veltype == 'error':
+                vel1 = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype='x',integration='gskr')
+                vel2 = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype='x',integration='simp',m=m,n=n)
+                VEL[i,j] = np.fabs((vel2-vel1)/vel1)
             iter += 1
             runtime = time.time()-time0
             progress_bar(float(iter)/(N*N),N*N,runtime)
@@ -190,6 +195,19 @@ if plot_dist == True:
         CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.coolwarm) # plotting the contour plot
         CB = plt.colorbar(CS, ticks=v) # creating colorbar
         CB.ax.set_ylabel(r'$\gamma/\Omega$',fontsize=fs)
+        CB.ax.tick_params(labelsize=fs)
+        CB.ax.set_aspect(20)
+    elif veltype == 'error':
+        fig = plt.figure(2,figsize=(19,5))
+        fig.subplots_adjust(bottom=.16,left=.05,right=1.0)
+        lb = 0. # lower bound on velocity to display
+        ub = 0.2 # upper bound on velocity to display
+        ran = 50 # number of contours between the velocity bounds
+        bounds = np.linspace(lb,ub,ran)
+        v = np.linspace(lb,ub,6) # setting the number of tick marks on colorbar
+        CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.parula) # plotting the contour plot
+        CB = plt.colorbar(CS, ticks=v) # creating colorbar
+        CB.ax.set_ylabel('% Difference Error',fontsize=fs)
         CB.ax.tick_params(labelsize=fs)
         CB.ax.set_aspect(20)
     plt.xlabel('$x/D$',fontsize=fs)

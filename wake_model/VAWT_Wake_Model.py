@@ -1,12 +1,11 @@
 """
-Parameterized VAWT Wake Model using CFD vorticity data
+Parameterized VAWT Wake Model Python Code
 Developed by Eric Tingey at Brigham Young University
 
 This code models the wake behind a vertical-axis wind turbine based on
 tip-speed ratio, solidity and wind speed by converting the vorticity of
-the wake into velocity information. The model uses CFD data obtained
-from STAR-CCM+ of simulated turbines to make the wake model as accurate
-as possible.
+the wake into velocity information. The use CFD data obtained from
+STAR-CCM+ turbine simulations serve as the basis of the initial wake model.
 
 Only valid for tip-speed ratios between 1.5 and 7.0 and solidities between
 0.15 and 1.0. Reynolds numbers should also be around the range of 600,000 to
@@ -28,7 +27,6 @@ made according to:
 
 The imported vorticity data also assumes symmetry in the wake and therefore
 rotation direction is irrelevant.
-
 """
 import numpy as np
 from numpy import pi,fabs,sqrt,sin,cos
@@ -118,17 +116,6 @@ def coef_val():
     scl1 = np.array( [-0.19815381951708524, 0.08438758133540872, 1.2650146439483734, -0.007606115512168328, -0.2747023984740461, -0.8844640101378567, 0.0, 0.01870057580949183, 0.0699898278743648, 0.2794360008051127] ) # TSR: 2; Solidity: 3
     scl2 = np.array( [2.3932787625531815, -2.020874419612962, -8.938221963838357, 0.576323845480877, 2.8782448498416944, 16.598492450314534, -0.04746016700352029, -0.197101203594028, -1.3860007472886064, -8.289767128060362] ) # TSR: 3; Solidity: 3
     scl3 = np.array( [104.40501489600803, -29.942999569370276, -174.42008279158216, 3.708514822202037, 25.14336546356742, 132.35546551746415, -0.16479555172343271, -1.351556690339512, -6.721810844025761, -40.39565289044579] ) # TSR: 3; Solidity: 3
-
-    # loc1 = np.array( [0.0024881782234644594, -0.0007162124520772835, 0.004840905629292527, 0.00035940014241851975, -0.0004835618309358686, 0.0057312930423697225, -3.749132238596887e-05, -0.0014448678350805107, -0.013838697667670624, 0.0] )
-    # loc2 = np.array( [-0.5148970510737115, 0.23664951901881176, 0.8508796336915305, -0.0422155314186519, -0.06965958435002093, -0.6590584244238057, 0.002780441298933052, 0.005527629993589326, 0.0064771325789259974, 0.2262447334696142] )
-    # loc3 = np.array( [0.31053085704135697, 0.11264440683388684, 0.7085100386881281, -0.007855277883163883, -0.18261141342231252, -0.5252607546488571, -0.0002593237635706134, 0.011353734667742903, 0.04461611956627692, 0.17847967604672085] )
-    # spr1 = np.array( [0.08160365473705117, -0.035209146348268265, -0.3657089321462334, 0.0032095158671521656, 0.12215088328116319, 0.29924788767922195, 0.0, -0.009337895738912123, -0.05728786434141602, -0.0734184612863306] )
-    # spr2 = np.array( [-0.07046108538731136, 0.016662058569062665, 0.20178424265599015, 0.0016797319754888462, -0.09315936851491065, -0.07057840461085574, -0.00048637093956067695, 0.009366304029411365, 0.024572217032978416, 0.0] )
-    # skw1 = np.array( [-1.6617923988070358, 1.5456256500296082, -6.15462425653742, -0.20731723544238276, -4.636823166329576, 29.322817794328987, 0.0, 0.7439115823342768, -0.16196462404243628, -20.075376228055998] )
-    # skw2 = np.array( [-3.42356282753647, -9.209290631300641, 87.90211972541844, 2.773568799442361, -11.695774984376406, -151.05284030686784, -0.24689398793699247, 0.5033111918389676, 4.197594495917425, 82.25216982468561] )
-    # scl1 = np.array( [-0.26931621108474796, 0.10907476831328872, 1.4442635090507794, -0.00968517038054994, -0.3248122217820121, -0.9934068714474691, 0.0, 0.021876975741408893, 0.08792346901752275, 0.2905428329957239] )
-    # scl2 = np.array( [-1.065367001488832, 0.11114929355575819, -3.3141966280358215, 0.08516024237491295, 2.6804608016839513, 6.030096841771481, -0.011684187520652582, -0.16727191293057872, -1.5716817442222772, -1.7538392539592593] )
-    # scl3 = np.array( [103.58755782882461, -30.004921914818564, -171.8165540416405, 3.757680076380713, 24.89320887829779, 130.45773327654743, -0.167933443248442, -1.3695260144709467, -6.503525472627104, -40.20025748470305] )
 
     return loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
 
@@ -281,7 +268,7 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
                 vel = np.array([vel_xs,vel_ys])
     ###################################
         elif integration == 'gskr':
-            # 21 POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION
+            # 21-POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION
             xbound = (scl3+5.)*dia
             argval = (x0t,y0t,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3)
             if veltype == 'all' or veltype == 'x' or veltype == 'ind':
@@ -306,7 +293,7 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
 def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,param=None,veltype='ind',integration='gskr'):
     """
     Calculating wake velocities around a turbine based on wake overlap from surrounding turbines
-    (using the 21 point Gauss-Kronrod rule quadrature integration; Simpson's rule integration can be used via VAWT_Wake_Model.f90)
+    (using the 21-point Gauss-Kronrod rule quadrature integration; Simpson's rule integration can be used via VAWT_Wake_Model.f90)
 
     Parameters
     ----------
@@ -360,6 +347,10 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,param=None,veltype='ind',in
     velx_int = np.zeros(p)
     vely_int = np.zeros(p)
 
+    # Use parallelization (with joblib)
+    parallel = True
+    # parallel = False
+
     # finding points around the flight path of the blades
     for i in range(p):
       theta = (2.0*pi/p)*i-(2.0*pi/p)/2.0
@@ -370,21 +361,29 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,param=None,veltype='ind',in
     intey = np.zeros(p)
 
     if (t == 1): # coupled configuration (only two VAWTs)
-        wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration) for j in range(p) )
-        for i in range(p):
-            velx[i] = wake[i][0]*velf
-            vely[i] = wake[i][1]*velf
-        # for j in range(p):
-        #     wake = velocity_field(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration)
-        #     velx[j] = wake[0]*velf
-        #     vely[j] = wake[1]*velf
+        if parallel == True:
+            wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration) for j in range(p) )
+            for i in range(p):
+                velx[i] = wake[i][0]*velf
+                vely[i] = wake[i][1]*velf
+        elif parallel == False:
+            for j in range(p):
+                wake = velocity_field(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration)
+                velx[j] = wake[0]*velf
+                vely[j] = wake[1]*velf
 
     else: # multiple turbine wake overlap
+        if parallel == True:
+            wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[w],yt[w],xd[q],yd[q],velf,diat[w],rott[w],chord,B,param,veltype,integration) for w in range(t) for q in range(p) )
         for j in range(t):
             for k in range(p):
-                wake = velocity_field(xt[j],yt[j],xd[k],yd[k],velf,diat[j],rott[j],chord,B,param,veltype,integration)
-                velx_int[k] = -wake[0]
-                vely_int[k] = wake[1]
+                if parallel == True:
+                    velx_int[k] = -wake[k+j*p][0]
+                    vely_int[k] = wake[k+j*p][1]
+                elif parallel == False:
+                    wake = velocity_field(xt[j],yt[j],xd[k],yd[k],velf,diat[j],rott[j],chord,B,param,veltype,integration)
+                    velx_int[k] = -wake[0]
+                    vely_int[k] = wake[1]
 
                 # sum of squares of velocity deficits
                 if (velx_int[k] >= 0.0):

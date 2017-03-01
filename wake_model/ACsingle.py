@@ -4,7 +4,6 @@ from numpy import pi,sin,cos,arccos,fabs
 from scipy.integrate import quad
 from scipy.optimize import root
 import h5py
-import VAWT_Wake_Model as vwm
 
 import _vawtwake
 
@@ -159,16 +158,19 @@ def actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,
     ntheta = np.size(theta)
     tol_root = 1e-6
 
+    # solve for the root
     w0 = np.zeros(ntheta*2)
     res = root(residual,w0,args=(A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp),method='hybr',tol=tol_root)
     w = res.x
 
+    # assigning velocities to respective directions
     uvec = np.zeros(ntheta)
     vvec = np.zeros(ntheta)
     for i in range(ntheta):
         uvec[i] = w[i]
         vvec[i] = w[ntheta + i]
 
+    # solve for aerodynamic forces and coefficients
     _,_,Ct,Cp,Rp,Tp,Zp = _vawtwake.radialforce(uvec,vvec,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp)
 
     return uvec,vvec,Ct,Cp,Rp,Tp,Zp
