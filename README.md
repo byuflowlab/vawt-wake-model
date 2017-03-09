@@ -33,6 +33,8 @@ cd wake_model
 python <\your\path\to\f2py.py> -c --opt=-O2 --compiler=mingw32 --fcompiler=gfortran -m _vawtwake VAWT_Wake_Model.f90
 ```
 (<\your\path\to\f2py.py>: most likely C:\Python27\Scripts\f2py.py)
+MinGW can be installed using the download installer from http://mingw.org/.
+Using the installer, use the basic setup and install msys-base, mingw32-base, mingw32-gcc-g++, mingw32-gcc-objc, and mingw-developer-tools. Ensure that gcc.exe is installed in C:\MinGW\bin\. Set the path variable of 'C:\MinGW\bin\' so it can be recognized by the computer. An example of this process can be viewed at https://www.youtube.com/watch?v=DHekr3EtDOA.
 
 - a unit test can then be run using the command:
 ```
