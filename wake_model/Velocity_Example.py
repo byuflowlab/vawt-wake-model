@@ -25,11 +25,11 @@ start = time.time()
 
 # Option to plot velocity profiles at 2D, 4D, 6D, 8D, 10D, and 15D downstream
 vel_slice = True
-# vel_slice = False # comment this out if desired on
+vel_slice = False # comment this out if desired on
 
 # Option to plot a full velocity domain
 plot_dist = True
-plot_dist = False # comment this out if desired on
+# plot_dist = False # comment this out if desired on
 
 # Enter the values desired
 velf = 15.0                  # free stream wind speed (m/s)
@@ -57,7 +57,7 @@ veltype = 'x'         # calculate x-velocity
 integration = 'simp'    # use Simpson's Rule integration (Fortran code)
 m = 220                 # number of divisions in the downstream direction (for Simpson's Rule)
 n = 200                 # number of divisions in the lateral direction (for Simpson's Rule)
-integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
+# integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
 
 ########################################################################################################################
 ########################################################################################################################

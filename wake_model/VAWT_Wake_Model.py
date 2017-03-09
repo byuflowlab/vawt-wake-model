@@ -33,6 +33,8 @@ from numpy import pi,fabs,sqrt,sin,cos
 # from scipy.integrate import dblquad # integration with complete module
 from Integrate import dblquad # integration with simplification file (Integrate.py)
 from scipy.interpolate import UnivariateSpline
+import csv
+from os import path
 
 from joblib import Parallel,delayed
 
@@ -77,7 +79,7 @@ def _parameterval(tsr,sol,coef):
 def coef_val():
     """
     The polynomial surface coefficients used for the EMG parameters
-    Published values from paper (4 Reynolds numbers; 1 2 2 1 1 1 2 1 2 2) with TSR and solidity orders shown
+    Published coefficients from paper (4 Reynolds numbers; 1 2 2 1 1 1 2 1 2 2) may be used
 
     Parameters
     ----------
@@ -106,16 +108,41 @@ def coef_val():
     scl3 : array
         the third scale parameter coefficients
     """
-    loc1 = np.array( [0.0025703809856661534, -0.0007386258659065129, 0.004595508188667984, 0.000380123563204793, -0.0005090098755683027, 0.005744581813281894, -4.103393770815313e-05, -0.0014146918534486358, -0.013975958482495927, 0.0] ) # TSR: 3; Solidity: 2
-    loc2 = np.array( [-0.5047504670963536, 0.23477391362058556, 0.8414256436198028, -0.04252528528617351, -0.06962875967504166, -0.6566907653208429, 0.002839318332370807, 0.00571803958194812, 0.0070744372783060295, 0.22805286438890995] ) # TSR: 3; Solidity: 3
-    loc3 = np.array( [0.2878345841026334, 0.11512552658662782, 0.7303949879914625, -0.007035517839387948, -0.18284850673545897, -0.5241921153256568, -0.0003704899921255296, 0.010972527139685873, 0.04380801537377295, 0.1724129349605399] ) # TSR: 3; Solidity: 3
-    spr1 = np.array( [0.08234816067475287, -0.03530687906626052, -0.3662863944976986, 0.003240141344532779, 0.12172015102204112, 0.2993048183466721, 0.0, -0.009253185586804007, -0.057469126406649716, -0.07257633583877886] ) # TSR: 2; Solidity: 3
-    spr2 = np.array( [-0.07083579909945328, 0.016182024377569406, 0.1985436342461859, 0.0017738254727425816, -0.09111094817943823, -0.06561408122153217, -0.0005115133402638633, 0.009434288536679505, 0.022392136905926813, 0.0] ) # TSR: 3; Solidity: 2
-    skw1 = np.array( [-1.6712830849073221, 1.5625053380692426, -6.180392756736983, -0.20407668040293722, -4.6476103643607685, 29.380064536220306, 0.0, 0.7502978877582536, -0.16358232641365608, -19.937609244085568] ) # TSR: 2; Solidity: 3
-    skw2 = np.array( [-3.423561091777921, -9.228795430171687, 86.95722105482042, 2.772872601988039, -11.968168333741515, -150.61261090270446, -0.24715316589674527, 0.5283723108899993, 4.537286811245538, 82.50581844010263] ) # TSR: 3; Solidity: 3
-    scl1 = np.array( [-0.19815381951708524, 0.08438758133540872, 1.2650146439483734, -0.007606115512168328, -0.2747023984740461, -0.8844640101378567, 0.0, 0.01870057580949183, 0.0699898278743648, 0.2794360008051127] ) # TSR: 2; Solidity: 3
-    scl2 = np.array( [2.3932787625531815, -2.020874419612962, -8.938221963838357, 0.576323845480877, 2.8782448498416944, 16.598492450314534, -0.04746016700352029, -0.197101203594028, -1.3860007472886064, -8.289767128060362] ) # TSR: 3; Solidity: 3
-    scl3 = np.array( [104.40501489600803, -29.942999569370276, -174.42008279158216, 3.708514822202037, 25.14336546356742, 132.35546551746415, -0.16479555172343271, -1.351556690339512, -6.721810844025761, -40.39565289044579] ) # TSR: 3; Solidity: 3
+
+    basepath = path.join(path.dirname(path.realpath('__file__')), 'data')
+    fdata = basepath + path.sep + 'VAWTPolySurfaceCoef_pub.csv' # published coefficients from paper
+    # fdata = basepath + path.sep + 'VAWTPolySurfaceCoef.csv' # polynomial surface fitting coefficients
+
+    loc1 = np.zeros(10)
+    loc2 = np.zeros(10)
+    loc3 = np.zeros(10)
+    spr1 = np.zeros(10)
+    spr2 = np.zeros(10)
+    skw1 = np.zeros(10)
+    skw2 = np.zeros(10)
+    scl1 = np.zeros(10)
+    scl2 = np.zeros(10)
+    scl3 = np.zeros(10)
+
+    f = open(fdata)
+    csv_f = csv.reader(f)
+
+    i = 0
+    for row in csv_f:
+        if i != 0:
+            loc1[i-1] = float(row[0])
+            loc2[i-1] = float(row[1])
+            loc3[i-1] = float(row[2])
+            spr1[i-1] = float(row[3])
+            spr2[i-1] = float(row[4])
+            skw1[i-1] = float(row[5])
+            skw2[i-1] = float(row[6])
+            scl1[i-1] = float(row[7])
+            scl2[i-1] = float(row[8])
+            scl3[i-1] = float(row[9])
+        i += 1
+
+    f.close()
 
     return loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
 

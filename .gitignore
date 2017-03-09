@@ -9,6 +9,7 @@
 *.DS_Store
 ~*
 
+VAWTPolySurfaceCoef.csv
 CFD_plotting.py
 database_call.py
 induced_y_plots.py

@@ -467,27 +467,32 @@ if __name__ == "__main__":
     global fit_type
 
     # Settings for purpose
-    # cv_on = 0 # cross-validation
-    cv_on = 1 # retraining with all data
+    # cv_on = True # cross-validation
+    cv_on = False # retraining with all data
 
-    # STAR-CCM+ data sets to read in
-    read_data = 4
+    # STAR-CCM+ data sets (Reynolds numbers) to read in (15, 14, 12, 16 m/s)
+    read_data = 1
 
-    fit_type = 'vel'
-    fit_type = 'vort'
+    fit_type = 'vel' # fit the polynomial surfaces to velocity data
+    # fit_type = 'vort' # fit the polynomial surfaces to vorticity data
 
-    add_data = True
-    add_data = False
+    add_data = True # use additional data sets
+    add_data = False # do not use additional data sets
 
-    if cv_on == 0:
+    if cv_on == True:
         print '********Cross Validating Wake Model********'
-    elif cv_on == 1:
+    elif cv_on == False:
         print '********Retraining Wake Model********'
     if fit_type == 'vel':
-        print '\nReading in '+str(read_data)+' STAR-CCM+ velocity data sets'
+        if read_data != 1:
+            print '\nReading in '+str(read_data)+' STAR-CCM+ velocity data sets'
+        else:
+            print '\nReading in '+str(read_data)+' STAR-CCM+ velocity data set'
     elif fit_type == 'vort':
-        print '\nReading in '+str(read_data)+' STAR-CCM+ vorticity data sets'
-
+        if read_data != 1:
+            print '\nReading in '+str(read_data)+' STAR-CCM+ vorticity data sets'
+        else:
+            print '\nReading in '+str(read_data)+' STAR-CCM+ vorticity data set'
 
     # STAR-CCM+ wake data lengths
     s1length = np.array([210.,210.,205.,196.,185.,178.,170.,165.,160.,145.,140.,123.,115.,112.,108.,101.,101.,90.,85.,80.,78.,75.,70.])
@@ -496,21 +501,22 @@ if __name__ == "__main__":
     s4length = np.array([145.,100.,73.,60.,53.,44.,42.,37.,38.,30.,33.,26.,22.,24.,23.,21.,21.,19.,24.,23.,22.,21.,20.])
     s5length = np.array([78.,70.,52.,43.,37.,32.,29.,27.,26.,23.,20.,20.,23.,21.,20.,19.,19.,18.,18.,16.,16.,15.,14.])
 
+    # STAR-CCM+ TSR and solidity setup
     tsr = np.linspace(150,700,23)
     solidity = np.array(['0.15','0.25','0.50','0.75','1.0'])
-
     tsr_cv = np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23])
     solidity_cv = np.array([1,2,3,4,5])
-
     tsrr_cv = tsr/100.
     sol_cv = np.array([0.15,0.25,0.5,0.75,1.0])
-
     s = np.array([])
     t = np.array([])
     scv = np.array([])
     tcv = np.array([])
     xtcv = np.array([])
     yscv = np.array([])
+    slength = np.array([])
+
+    # Combining TSRs, solidities, and wake lengths into a single array
     for i in range(np.size(solidity)):
         for j in range(np.size(tsr)):
             s = np.append(s,solidity[i])
@@ -519,8 +525,6 @@ if __name__ == "__main__":
             tcv = np.append(tcv,tsr_cv[j])
             xtcv = np.append(xtcv,tsrr_cv[j])
             yscv = np.append(yscv,sol_cv[i])
-
-    slength = np.array([])
     slength = np.append(slength,s1length)
     slength = np.append(slength,s2length)
     slength = np.append(slength,s3length)
@@ -554,7 +558,6 @@ if __name__ == "__main__":
             wfit4 = 'w'+str(int(wind4))+'_s'+s[q]+'_t'+str(int(t[q]))
 
             basepath = path.join(path.dirname(path.realpath('__file__')), 'data')
-
 
             if fit_type == 'vel':
                 fdata1 = basepath + path.sep + 'Figshare/VelocityData/'+wfit1+'.csv'
@@ -612,7 +615,7 @@ if __name__ == "__main__":
         print '\nNo additional data to read in'
 
     # Cross-validation setup
-    if cv_on == 0:
+    if cv_on == True:
         cvtest = 0.3 # 70-30 split
         scvtr,scvts,tcvtr,tcvts,xttr,xtts,ystr,ysts = train_test_split(scv,tcv,xtcv,yscv,test_size=cvtest)
 
@@ -665,7 +668,7 @@ if __name__ == "__main__":
         posdnts = np.vstack([posdnts,posltts])
 
     # Retraining setup (with all data)
-    elif cv_on == 1:
+    elif cv_on == False:
         cvtest = 0.0 # no validation set
         scvtr,scvts,tcvtr,tcvts,xttr,xtts,ystr,ysts = train_test_split(scv,tcv,xtcv,yscv,test_size=cvtest)
 
@@ -771,7 +774,7 @@ if __name__ == "__main__":
             k += 1
 
     # Output the results of cross-validation
-    if cv_on == 0:
+    if cv_on == True:
         if fit_type == 'vel':
             datac = _vawtwake.sheet_vel(xttr,ystr,posdntr[0,:],posdntr[1,:],coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,1.,1.,220,200,1)
             dataf = _vawtwake.sheet_vel(xtts,ysts,posdnts[0,:],posdnts[1,:],coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,1.,1.,220,200,1)
@@ -796,7 +799,6 @@ if __name__ == "__main__":
         print 'coef8 = np.array(',coef8.tolist(),')'
         print 'coef9 = np.array(',coef9.tolist(),')'
 
-
         print '\nparam = np.array([',res[0],',',res[1],',',res[2],',',res[3],',',res[4],',',res[5],',',res[6],',',res[7],',',res[8],',',res[9],',\t#loc1'
         print res[10],',',res[11],',',res[12],',',res[13],',',res[14],',',res[15],',',res[16],',',res[17],',',res[18],',',res[19],',\t#loc2'
         print res[20],',',res[21],',',res[22],',',res[23],',',res[24],',',res[25],',',res[26],',',res[27],',',res[28],',',res[29],',\t#loc3'
@@ -809,7 +811,7 @@ if __name__ == "__main__":
         print res[90],',',res[91],',',res[92],',',res[93],',',res[94],',',res[95],',',res[96],',',res[97],',',res[98],',',res[99],'])\t#scl3'
 
     # Output the results of the retraining with all the data
-    if cv_on == 1:
+    if cv_on == False:
         if fit_type == 'vel':
             datac = _vawtwake.sheet_vel(xttr,ystr,posdntr[0,:],posdntr[1,:],coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,1.,1.,220,200,1)
         elif fit_type == 'vort':
@@ -851,3 +853,33 @@ if __name__ == "__main__":
         print res[70],',',res[71],',',res[72],',',res[73],',',res[74],',',res[75],',',res[76],',',res[77],',',res[78],',',res[79],',\t#scl1'
         print res[80],',',res[81],',',res[82],',',res[83],',',res[84],',',res[85],',',res[86],',',res[87],',',res[88],',',res[89],',\t#scl2'
         print res[90],',',res[91],',',res[92],',',res[93],',',res[94],',',res[95],',',res[96],',',res[97],',',res[98],',',res[99],'])\t#scl3'
+
+        writedata = basepath + path.sep + 'VAWTPolySurfaceCoef.csv'
+        with open(writedata,'w') as fp:
+            a = csv.writer(fp)
+
+            coef = np.zeros((11,10)).astype(np.str)
+            coef[0,0] = 'loc1'
+            coef[0,1] = 'loc2'
+            coef[0,2] = 'loc3'
+            coef[0,3] = 'spr1'
+            coef[0,4] = 'spr2'
+            coef[0,5] = 'skw1'
+            coef[0,6] = 'skw2'
+            coef[0,7] = 'scl1'
+            coef[0,8] = 'scl2'
+            coef[0,9] = 'scl3'
+
+            for j in range(10):
+                coef[j+1,0] = res[j]
+                coef[j+1,1] = res[j+10]
+                coef[j+1,2] = res[j+20]
+                coef[j+1,3] = res[j+30]
+                coef[j+1,4] = res[j+40]
+                coef[j+1,5] = res[j+50]
+                coef[j+1,6] = res[j+60]
+                coef[j+1,7] = res[j+70]
+                coef[j+1,8] = res[j+80]
+                coef[j+1,9] = res[j+90]
+
+            a.writerows(coef)
