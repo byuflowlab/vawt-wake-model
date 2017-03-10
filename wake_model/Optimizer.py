@@ -126,9 +126,9 @@ def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,velf,coef0,coef1,coef2,coef3,coef4,c
         diat = np.delete(dia,i)
         rott = np.delete(rotw,i)
 
-        # wakexd,wakeyd = _vawtwake.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+        # wakexd,wakeyd = _vawtwake.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1,1)
         # wakexd,wakeyd = gskrint(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
-        wakexd,wakeyd = vwm.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf)
+        wakexd,wakeyd = vwm.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,False)
 
         if i == 0:
             wakex = wakexd
@@ -147,9 +147,9 @@ def vawt_power(i,xw,yw,dia,rotw,ntheta,chord,B,velf,coef0,coef1,coef2,coef3,coef
     diat = np.delete(dia,i)
     rott = np.delete(rotw,i)
 
-    # wakex,wakey = _vawtwake.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1)
+    # wakex,wakey = _vawtwake.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1,1)
     # wakex,wakey = gskrint(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
-    wakex,wakey = vwm.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf)
+    wakex,wakey = vwm.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],velf,False)
 
     uvec,vvec,_,Cp,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,dia[i]/2.,chord,twist,delta,B,rotw[i],velf,rho,mu,interp,wakex,wakey)
 
@@ -596,7 +596,7 @@ if __name__ == "__main__":
         #     k = 0
         #     for i in range(N):
         #         for j in range(N):
-        #             Velx,Vely = _vawtwake.overlappoint(x0,y0,dia,rot,chord,B,X[i,j],Y[i,j],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,220,200,1)
+        #             Velx,Vely = _vawtwake.overlappoint(x0,y0,dia,rot,chord,B,X[i,j],Y[i,j],velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,220,200,1,1)
         #             Vel[i,j] = sqrt((Velx+velf)**2 + (Vely)**2)
         #             k += 1
         #             print k

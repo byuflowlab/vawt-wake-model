@@ -932,14 +932,14 @@ end subroutine radialforce
 
 ! Calculating effective velocities around given turbine due to wake interaction
 subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc3,spr1,spr2,&
-  skw1,skw2,scl1,scl2,scl3,m,n,inte,velx,vely)
+  skw1,skw2,scl1,scl2,scl3,m,n,inte,pointcalc,velx,vely)
 
     implicit none
 
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    integer, intent(in) :: t,p,m,n,blades,inte
+    integer, intent(in) :: t,p,m,n,blades,inte,pointcalc
     real(dp), dimension(t), intent(in) :: xt,yt,diat,rott
     real(dp), intent(in) :: x0,y0,dia,velf,chord
     real(dp), dimension(10), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
@@ -962,40 +962,91 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
 
     ! finding points around the flight path of the blades
     do i = 1,p
-      theta = (2.0_dp*pi/p)*i-(2.0_dp*pi/p)/2.0_dp
-      xd(i) = x0 - sin(theta)*(dia/2.0_dp)
-      yd(i) = y0 + cos(theta)*(dia/2.0_dp)
+      if (pointcalc == 1) then
+        theta = (2.0_dp*pi/p)*i-(2.0_dp*pi/p)/2.0_dp
+        xd(i) = x0 - sin(theta)*(dia/2.0_dp)
+        yd(i) = y0 + cos(theta)*(dia/2.0_dp)
+      else if (pointcalc == 0) then
+        if (i == 1) then
+          xd(i) = x0
+          yd(i) = y0
+        else
+          xd(i) = 0.0_dp
+          yd(i) = 0.0_dp
+        end if
+      end if
     end do
 
     if (t == 1) then ! coupled configuration (only two VAWTs)
-      do j = 1,p
-        call vel_field(xt(1),yt(1),xd(j),yd(j),diat(1),rott(1),chord,blades,velf,&
-        loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
-        velxi(j),velyi(j))
-        velx(j) = velxi(j)*velf
-        vely(j) = velyi(j)*velf
-      end do
-    else ! multiple turbine wake overlap
-      do j = 1,t
-        do k = 1,p
-          call vel_field(xt(j),yt(j),xd(k),yd(k),diat(j),rott(j),chord,blades,&
-          velf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
-          velx_int(k),vely_int(k))
-          velx_int(k) = -velx_int(k)
-
-          ! sum of squares of velocity deficits
-          if (velx_int(k) >= 0.0_dp) then
-            intex(k) = intex(k) + (velx_int(k))**2
+      if (pointcalc == 1) then
+        do j = 1,p
+          call vel_field(xt(1),yt(1),xd(j),yd(j),diat(1),rott(1),chord,blades,velf,&
+          loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
+          velxi(j),velyi(j))
+          velx(j) = velxi(j)*velf
+          vely(j) = velyi(j)*velf
+        end do
+      else if (pointcalc == 0) then
+        do j = 1,p
+          if (j == 1) then
+            call vel_field(xt(1),yt(1),xd(j),yd(j),diat(1),rott(1),chord,blades,velf,&
+            loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
+            velxi(j),velyi(j))
+            velx(j) = velxi(j)*velf
+            vely(j) = velyi(j)*velf
           else
-            intex(k) = intex(k) - (velx_int(k))**2
-          end if
-
-          if (vely_int(k) >= 0.0_dp) then
-            intey(k) = intey(k) + (vely_int(k))**2
-          else
-            intey(k) = intey(k) - (vely_int(k))**2
+            velx(j) = 0.0_dp
+            vely(j) = 0.0_dp
           end if
         end do
+      end if
+    else ! multiple turbine wake overlap
+      do j = 1,t
+        if (pointcalc == 1) then
+          do k = 1,p
+            call vel_field(xt(j),yt(j),xd(k),yd(k),diat(j),rott(j),chord,blades,&
+            velf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
+            velx_int(k),vely_int(k))
+            velx_int(k) = -velx_int(k)
+
+            ! sum of squares of velocity deficits
+            if (velx_int(k) >= 0.0_dp) then
+              intex(k) = intex(k) + (velx_int(k))**2
+            else
+              intex(k) = intex(k) - (velx_int(k))**2
+            end if
+
+            if (vely_int(k) >= 0.0_dp) then
+              intey(k) = intey(k) + (vely_int(k))**2
+            else
+              intey(k) = intey(k) - (vely_int(k))**2
+            end if
+          end do
+        else if (pointcalc == 0) then
+          do k = 1,p
+            if (k == 1) then
+              call vel_field(xt(j),yt(j),xd(k),yd(k),diat(j),rott(j),chord,blades,&
+              velf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
+              velx_int(k),vely_int(k))
+              velx_int(k) = -velx_int(k)
+            else
+              velx_int(k) = 0.0_dp
+            end if
+
+            ! sum of squares of velocity deficits
+            if (velx_int(k) >= 0.0_dp) then
+              intex(k) = intex(k) + (velx_int(k))**2
+            else
+              intex(k) = intex(k) - (velx_int(k))**2
+            end if
+
+            if (vely_int(k) >= 0.0_dp) then
+              intey(k) = intey(k) + (vely_int(k))**2
+            else
+              intey(k) = intey(k) - (vely_int(k))**2
+            end if
+          end do
+        end if
       end do
 
       ! square root of sum of squares

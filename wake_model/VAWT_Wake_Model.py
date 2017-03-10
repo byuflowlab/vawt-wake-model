@@ -321,7 +321,7 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
 
     return vel
 
-def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,param=None,veltype='ind',integration='gskr'):
+def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,pointcalc,param=None,veltype='ind',integration='gskr'):
     """
     Calculating wake velocities around a turbine based on wake overlap from surrounding turbines
     (using the 21-point Gauss-Kronrod rule quadrature integration; Simpson's rule integration can be used via VAWT_Wake_Model.f90)
@@ -350,6 +350,8 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,param=None,veltype='ind',in
         diameter of turbine to be calculated (m)
     velf : float
         free stream velocity (m/s)
+    pointcalc : bool
+        calculate the overlap at a point (True) or at p points around the blade flight path (False)
     param : array
         the coefficients used for the EMG distributions ('None' will provide the published coefficients automatically)
     veltype : string
@@ -384,48 +386,73 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,param=None,veltype='ind',in
 
     # finding points around the flight path of the blades
     for i in range(p):
-      theta = (2.0*pi/p)*i-(2.0*pi/p)/2.0
-      xd[i] = x0 - sin(theta)*(dia/2.0)
-      yd[i] = y0 + cos(theta)*(dia/2.0)
-
+        if pointcalc == False:
+            theta = (2.0*pi/p)*i-(2.0*pi/p)/2.0
+            xd[i] = x0 - sin(theta)*(dia/2.0)
+            yd[i] = y0 + cos(theta)*(dia/2.0)
+        elif pointcalc == True:
+            xd[0] = x0
+            yd[0] = y0
     intex = np.zeros(p)
     intey = np.zeros(p)
 
     if (t == 1): # coupled configuration (only two VAWTs)
-        if parallel == True:
-            wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration) for j in range(p) )
-            for i in range(p):
-                velx[i] = wake[i][0]*velf
-                vely[i] = wake[i][1]*velf
-        elif parallel == False:
-            for j in range(p):
-                wake = velocity_field(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration)
-                velx[j] = wake[0]*velf
-                vely[j] = wake[1]*velf
+        if pointcalc == False:
+            if parallel == True:
+                wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration) for j in range(p) )
+                for i in range(p):
+                    velx[i] = wake[i][0]*velf
+                    vely[i] = wake[i][1]*velf
+            elif parallel == False:
+                for j in range(p):
+                    wake = velocity_field(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration)
+                    velx[j] = wake[0]*velf
+                    vely[j] = wake[1]*velf
+        elif pointcalc == True:
+            wake = velocity_field(xt[0],yt[0],xd[0],yd[0],velf,diat[0],rott[0],chord,B,param,veltype,integration)
+            velx[0] = wake[0]*velf
+            vely[0] = wake[1]*velf
 
     else: # multiple turbine wake overlap
-        if parallel == True:
-            wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[w],yt[w],xd[q],yd[q],velf,diat[w],rott[w],chord,B,param,veltype,integration) for w in range(t) for q in range(p) )
-        for j in range(t):
-            for k in range(p):
-                if parallel == True:
-                    velx_int[k] = -wake[k+j*p][0]
-                    vely_int[k] = wake[k+j*p][1]
-                elif parallel == False:
-                    wake = velocity_field(xt[j],yt[j],xd[k],yd[k],velf,diat[j],rott[j],chord,B,param,veltype,integration)
-                    velx_int[k] = -wake[0]
-                    vely_int[k] = wake[1]
+        if pointcalc == False:
+            if parallel == True:
+                wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[w],yt[w],xd[q],yd[q],velf,diat[w],rott[w],chord,B,param,veltype,integration) for w in range(t) for q in range(p) )
+            for j in range(t):
+                for k in range(p):
+                    if parallel == True:
+                        velx_int[k] = -wake[k+j*p][0]
+                        vely_int[k] = wake[k+j*p][1]
+                    elif parallel == False:
+                        wake = velocity_field(xt[j],yt[j],xd[k],yd[k],velf,diat[j],rott[j],chord,B,param,veltype,integration)
+                        velx_int[k] = -wake[0]
+                        vely_int[k] = wake[1]
+
+                    # sum of squares of velocity deficits
+                    if (velx_int[k] >= 0.0):
+                        intex[k] = intex[k] + (velx_int[k])**2
+                    else:
+                        intex[k] = intex[k] - (velx_int[k])**2
+
+                    if (vely_int[k] >= 0.0):
+                        intey[k] = intey[k] + (vely_int[k])**2
+                    else:
+                        intey[k] = intey[k] - (vely_int[k])**2
+        elif pointcalc == True:
+            for j in range(t):
+                wake = velocity_field(xt[j],yt[j],xd[0],yd[0],velf,diat[j],rott[j],chord,B,param,veltype,integration)
+                velx_int[0] = -wake[0]
+                vely_int[0] = wake[1]
 
                 # sum of squares of velocity deficits
-                if (velx_int[k] >= 0.0):
-                    intex[k] = intex[k] + (velx_int[k])**2
+                if (velx_int[0] >= 0.0):
+                    intex[0] = intex[0] + (velx_int[0])**2
                 else:
-                    intex[k] = intex[k] - (velx_int[k])**2
+                    intex[0] = intex[0] - (velx_int[0])**2
 
-                if (vely_int[k] >= 0.0):
-                    intey[k] = intey[k] + (vely_int[k])**2
+                if (vely_int[0] >= 0.0):
+                    intey[0] = intey[0] + (vely_int[0])**2
                 else:
-                    intey[k] = intey[k] - (vely_int[k])**2
+                    intey[0] = intey[0] - (vely_int[0])**2
 
         # square root of sum of squares
         for l in range(p):
