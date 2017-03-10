@@ -216,7 +216,8 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
     rot : float
         turbine rotation rate (rad/s)
     param : array
-        the coefficients used for the EMG distributions ('None' will provide the published coefficients automatically)
+        the coefficients used for the EMG distributions ('None' will provide the coefficients using VAWTPolySurfaceCoef.csv)
+        param should be an array of length 10 with each of the EMG parameters corresponding to loc, spr, skw, and scl
     veltype : string
         the type of velocity to calculate ('all': velocity magnitude, 'x': x-induced velocity, 'y': y-induced velocity,
         'ind': vector of both x- and y-induced velocities without free stream, 'vort': vorticity profile neglecting integration)
@@ -242,7 +243,7 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
 
     coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9 = coef_val()
 
-    # Calculating EMG distribution parameters (looking up or reading in)
+    # Calculating EMG distribution parameters (based on polynomial surface fitting)
     if param is None:
         loc1 = _parameterval(tsr,solidity,coef0)
         loc2 = _parameterval(tsr,solidity,coef1)
@@ -256,7 +257,7 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
         scl3 = _parameterval(tsr,solidity,coef9)
 
     else:
-        # Calculating EMG distribution parameters
+        # Reading in EMG distribution parameters
         loc1 = param[0]
         loc2 = param[1]
         loc3 = param[2]
@@ -279,9 +280,12 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
     else:
         # Integration of the vorticity profile to calculate velocity
         if integration == 'simp':
-            # SIMPSON'S RULE INTEGRATION
+            # SIMPSON'S RULE INTEGRATION (must use polynomial surface coefficients from VAWTPolySurfaceCoef.csv)
             inte = 1 # Simpson's Rule
             # inte = 2 # Trapezoidal Rule (optional ability of the code-- faster but less accurate)
+
+            if param is not None:
+                print "**** Using polynomial surface coefficients from VAWTPolySurfaceCoef.csv for Simpson's rule integration ****"
 
             vel_xs,vel_ys = _vawtwake.vel_field(xt,yt,x0,y0,dia,rot,chord,B,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,inte)
 
