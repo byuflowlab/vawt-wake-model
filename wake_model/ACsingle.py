@@ -1,6 +1,13 @@
+"""
+Aerodynamics of a single vertical-axis wind turbines using a modified Actuator Cylinder approach
+Developed originally by Andrew Ning at Brigham Young University for multiple turbines
+https://github.com/byuflowlab/vawt-ac
+https://doi.org/10.5281/zenodo.165183
+"""
+
 from os import path
 import numpy as np
-from numpy import pi,sin,cos,arccos,fabs
+from numpy import pi,sin,cos,fabs
 from scipy.integrate import quad
 from scipy.optimize import root
 import h5py
@@ -63,7 +70,6 @@ def WxII(thetavec):
     return Wx
 
 def precomputeMatrices(ntheta):
-
     # precompute self influence matrices
 
     # setup discretization (all the same, and uniformly spaced in theta)
@@ -129,7 +135,7 @@ def matrixAssemble(ntheta):
 
     return Ax, Ay, theta
 
-def residual(w,A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp):
+def residual(w,A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,interp):
 
     # setup
     ntheta = np.size(theta)
@@ -141,14 +147,16 @@ def residual(w,A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,
         uvec[i] = w[i]
         vvec[i] = w[ntheta + i]
 
-    q,k,_,_,_,_,_ = _vawtwake.radialforce(uvec,vvec,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp)
+    q,k,_,_,_,_ = _vawtwake.radialforce(uvec,vvec,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,interp)
 
     # reformat to multiply in correct locations
     kmult = np.ones(2*ntheta)*k
 
     return np.dot(A,q)*kmult - w
 
-def actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,rho,mu,interp,Vinfx,Vinfy):
+def actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,rho,interp,Vinfx,Vinfy):
+    uvec = np.zeros(ntheta)
+    vvec = np.zeros(ntheta)
 
     # assemble global matrices
     Ax, Ay, theta = matrixAssemble(ntheta)
@@ -160,17 +168,15 @@ def actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,
 
     # solve for the root
     w0 = np.zeros(ntheta*2)
-    res = root(residual,w0,args=(A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp),method='hybr',tol=tol_root)
+    res = root(residual,w0,args=(A,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,interp),method='hybr',tol=tol_root)
     w = res.x
 
     # assigning velocities to respective directions
-    uvec = np.zeros(ntheta)
-    vvec = np.zeros(ntheta)
     for i in range(ntheta):
         uvec[i] = w[i]
         vvec[i] = w[ntheta + i]
 
     # solve for aerodynamic forces and coefficients
-    _,_,Ct,Cp,Rp,Tp,Zp = _vawtwake.radialforce(uvec,vvec,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp)
+    _,_,Cp,Tp,Vn,Vt = _vawtwake.radialforce(uvec,vvec,theta,af_data,cl_data,cd_data,r,chord,twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,interp)
 
-    return uvec,vvec,Ct,Cp,Rp,Tp,Zp
+    return Cp,Tp,Vn,Vt

@@ -29,9 +29,8 @@ The imported vorticity data also assumes symmetry in the wake and therefore
 rotation direction is irrelevant.
 """
 import numpy as np
-from numpy import pi,fabs,sqrt,sin,cos
-# from scipy.integrate import dblquad # integration with complete module
-from Integrate import dblquad # integration with simplification file (Integrate.py)
+from numpy import pi,fabs,sqrt,sin,cos,argmin
+from scipy.integrate import _quadpack
 from scipy.interpolate import UnivariateSpline
 import csv
 from os import path
@@ -39,6 +38,31 @@ from os import path
 from joblib import Parallel,delayed
 
 import _vawtwake
+
+##########################################################################################
+# Double Integration Method using necessary Quadpack (SciPy) code (_qagse)
+# Originally created by Travis Oliphant (2001) and Nathan Woods (2013) (nquad &c)
+def _quad(func, a, b, args=(), full_output=0, epsabs=1.49e-8, epsrel=1.49e-8, limit=50):
+    # Calling the _qagse code from Quadpack to perform a single integration
+
+    retval = _quadpack._qagse(func,a,b,args,full_output,epsabs,epsrel,limit)
+
+    return retval[:-1]
+
+def _infunc(x,func,gfun,hfun,more_args):
+    # Arranging a double integral into two single integrations
+
+    a = gfun(x)
+    b = hfun(x)
+    myargs = (x,) + more_args
+
+    return _quad(func,a,b,args=myargs)[0]
+
+def _dblquad(func, a, b, gfun, hfun, args=(), epsabs=1.49e-8, epsrel=1.49e-8):
+    # Performing a double integration using _infunc and _quad
+
+    return _quad(_infunc, a, b, (func, gfun, hfun, args), epsabs=epsabs, epsrel=epsrel)
+##########################################################################################
 
 
 def _parameterval(tsr,sol,coef):
@@ -303,10 +327,10 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
             xbound = (scl3+5.)*dia
             argval = (x0t,y0t,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3)
             if veltype == 'all' or veltype == 'x' or veltype == 'ind':
-                vel_x = dblquad(_vawtwake.integrandx,0.,xbound,lambda x: -1.*dia,lambda x: 1.*dia,args=argval)
+                vel_x = _dblquad(_vawtwake.integrandx,0.,xbound,lambda x: -1.*dia,lambda x: 1.*dia,args=argval)
                 vel_xs = (vel_x[0]*fabs(rot))/(2.*pi)
             if veltype == 'all' or veltype == 'y' or veltype == 'ind':
-                vel_y = dblquad(_vawtwake.integrandy,0.,xbound,lambda x: -1.*dia,lambda x: 1.*dia,args=argval)
+                vel_y = _dblquad(_vawtwake.integrandy,0.,xbound,lambda x: -1.*dia,lambda x: 1.*dia,args=argval)
                 vel_ys = (vel_y[0]*fabs(rot))/(2.*pi)
 
             if veltype == 'all':
@@ -467,3 +491,78 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,pointcalc,param=None,veltyp
                 vely[l] = -velf*(sqrt(fabs(intey[l])))
 
     return velx,vely
+
+
+def wake_order(x,y,dia,xt,yt,diat,rott):
+    """
+    Determining the turbine wakes to include in wake overlap calculation
+
+    Parameters
+    ----------
+    x : float
+        downstream position of given turbine (m)
+    y : float
+        lateral position of given turbine (m)
+    dia : float
+        diameter of given turbine (m)
+    xt : array
+        downstream positions of surrounding turbines (m)
+    yt : array
+        lateral positions of surrounding turbines (m)
+    diat : array
+        diameters of surrounding turbines (m)
+    rott : array
+        rotation rates of surrounding turbines (rad/s)
+    pen1 : float
+        penalty for downstream direction outside of acceptable boundaries
+    pen2 : float
+        penalty for lateral direction outside of acceptable boundaries
+
+    Returns
+    ----------
+    xt/xo : array
+        downstream positions of selected surrounding turbines (m)
+    yt/yo : array
+        lateral positions of selected surrounding turbines (m)
+    diat/diao : array
+        diameters of selected surrounding turbines (m)
+    rott/roto : array
+        rotation rates of selected surrounding turbines (rad/s)
+    """
+    n = np.size(xt) # number of surrounding turbines
+    keep = 1 # minimum number of turbines to consider in final selection
+
+    if n <= keep: # use all of the surrounding turbines
+        return xt,yt,diat,rott
+
+    else:
+        pen1 = 10000.
+        pen2 = 10000.
+        order = sqrt((x-xt)**2 + (y-yt)**2) # distance between given and surrounding turbines
+        down = xt - x # downstream distance between given and surrounding turbines
+        lat = fabs(yt - y) # lateral distance between given and surrounding turbines
+
+        for i in range(n):
+            if order[i] <= 6.*dia:
+                keep += 1
+            else:
+                if down[i] >= 0.:
+                    order[i] = order[i] + pen1
+                if lat[i] > 1.5*dia:
+                    order[i] = order[i] + pen2
+
+        # setting up arrays
+        xo = np.zeros(keep)
+        yo = np.zeros(keep)
+        diao = np.zeros(keep)
+        roto = np.zeros(keep)
+        for j in range(keep):
+            val = argmin(order)
+            xo[j] = xt[val]
+            yo[j] = yt[val]
+            diao[j] = diat[val]
+            roto[j] = rott[val]
+
+            order[val] = order[val] + 1e10
+
+        return xo,yo,diao,roto

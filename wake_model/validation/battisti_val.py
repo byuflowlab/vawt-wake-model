@@ -111,6 +111,3 @@ print 'Maximum Deficit Error:',mdferror
 
 
 plt.show()
-
-
-

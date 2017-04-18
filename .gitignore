@@ -15,11 +15,14 @@ database_call.py
 induced_y_plots.py
 sheet_plot.py
 STARCCM_plot.py
+VAWT_loading.py
 velocity_optimize_SMG.py
 vel_vort_profile_example.py
 velocity_profile_read.py
 starccm_velocity_4.0_0.25.csv
 observer_pos.py
+wake_check.py
+wake_order_test.py
 windfarm_rotate.py
 
 /wake_model/.idea/*

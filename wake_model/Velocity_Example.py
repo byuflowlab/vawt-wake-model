@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from VAWT_Wake_Model import velocity_field
+import time,sys
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
-import time,sys
 
 # Progress bar for plotting
 def progress_bar(percent,tasks,runtime):
@@ -31,8 +31,8 @@ vel_slice = False # comment this out if desired on
 plot_dist = True
 # plot_dist = False # comment this out if desired on
 
-# Enter the values desired
-velf = 15.0                  # free stream wind speed (m/s)
+# Enter the values desired (for the code to calculate TSR and solidity)
+velf = 15.0                 # free stream wind speed (m/s)
 dia = 6.                    # turbine diameter (m)
 tsr = 4.                    # tip speed ratio ((dia/2)*rot/velf)
 B = 3.                      # number of blades
@@ -49,7 +49,7 @@ y0 = 0.         # lateral distance for velocity calculation (m)
 veltype = 'vort'        # calculate only vorticity
 
 veltype = 'all'         # calculate velocity magnitude
-veltype = 'x'         # calculate x-velocity
+# veltype = 'x'         # calculate x-velocity
 # veltype = 'y'         # calcuate y-velocity
 # veltype = 'ind'       # calculate induced velocity (in both x and y directions)
 
@@ -64,6 +64,7 @@ n = 200                 # number of divisions in the lateral direction (for Simp
 ########################################################################################################################
 ########################################################################################################################
 
+# CALCULATING VELOCITY AT GIVEN POINT (x0,y0)
 vel = velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
 print '\nNormalized velocity at (',x0,',',y0,') =',vel,'\n' # output velocity (normalized by free stream wind speed)
 pointval1 = 1.
@@ -71,7 +72,6 @@ pointval2 = 0.
 pointval3 = 0.
 
 fs = 25 # font size for plots
-fs = 27
 
 # PLOTTING VELOCITY PROFILES
 if vel_slice == True:
@@ -205,7 +205,7 @@ if plot_dist == True:
         ran = 50 # number of contours between the velocity bounds
         bounds = np.linspace(lb,ub,ran)
         v = np.linspace(lb,ub,6) # setting the number of tick marks on colorbar
-        CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.parula) # plotting the contour plot
+        CS = plt.contourf(X/dia,Y/dia,VEL,ran,vmax=ub,vmin=lb,levels=bounds,cmap=plt.cm.viridis) # plotting the contour plot
         CB = plt.colorbar(CS, ticks=v) # creating colorbar
         CB.ax.set_ylabel('% Difference Error',fontsize=fs)
         CB.ax.tick_params(labelsize=fs)

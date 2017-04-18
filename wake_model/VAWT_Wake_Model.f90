@@ -25,7 +25,7 @@
 
 
 ! trapezoidal integration
-subroutine trapz(n,x,y,integral) ! integrate y w.r.t. x
+subroutine trapz(n,x,y,integral) ! integrate y with respect to x
     implicit none
 
     integer, parameter :: dp = kind(0.d0)
@@ -128,8 +128,8 @@ subroutine splineint(n,x,y,xval,yval)
 
     ! assuming the values of x are in accending order
     do i = 1,n
-      if (xval < x(i)) then
-        if (i == 2) then
+      if (xval < x(i)) then ! check that given x value is below current x point
+        if (i == 2) then ! x value is at the beginning of the data set
           x1 = x(1)
           x2 = x(2)
           x3 = x(3)
@@ -137,7 +137,7 @@ subroutine splineint(n,x,y,xval,yval)
           y2 = y(2)
           y3 = y(3)
           call cubspline(x1,x2,x3,y1,y2,y3,xval,yval)
-        else if (i == n) then
+        else if (i == n) then ! x value is at the end of the data set
           x1 = x(n-2)
           x2 = x(n-1)
           x3 = x(n)
@@ -146,7 +146,7 @@ subroutine splineint(n,x,y,xval,yval)
           y3 = y(n)
           call cubspline(x1,x2,x3,y1,y2,y3,xval,yval)
         else
-          if (xval <= (x(i)+x(i-1))/2.0_dp) then
+          if (xval <= (x(i)+x(i-1))/2.0_dp) then ! interpolate on beginning half
             x1 = x(i-2)
             x2 = x(i-1)
             x3 = x(i)
@@ -154,7 +154,7 @@ subroutine splineint(n,x,y,xval,yval)
             y2 = y(i-1)
             y3 = y(i)
             call cubspline(x1,x2,x3,y1,y2,y3,xval,yval)
-          else
+          else ! interpolate on ending half
             x1 = x(i-1)
             x2 = x(i)
             x3 = x(i+1)
@@ -165,7 +165,7 @@ subroutine splineint(n,x,y,xval,yval)
           end if
         end if
         exit
-      else if (xval == x(i)) then
+      else if (xval == x(i)) then ! no interpolation needed for value in data set
         yval = y(i)
         exit
       end if
@@ -191,6 +191,7 @@ subroutine cubspline(x1,x2,x3,y1,y2,y3,xval,yval)
     real(dp) :: a11,a12,a13,a21,a22,a23,a31,a32,a33,b1,b2,b3
     real(dp) :: bot,xtop,ytop,ztop,k1,k2,k3,a,b,t
 
+    ! solving tridiagonal linear equation system
     a11 = 2.0_dp/(x2-x1)
     a12 = 1.0_dp/(x2-x1)
     a13 = 0.0_dp
@@ -204,6 +205,7 @@ subroutine cubspline(x1,x2,x3,y1,y2,y3,xval,yval)
     b2 = 3.0_dp*(((y2-y1)/(x2-x1)**2)+((y3-y2)/(x3-x2)**2))
     b3 = 3.0_dp*(y3-y2)/(x3-x2)**2
 
+    ! solving using inverse matrix method
     bot = a11*a22*a33 + a12*a23*a31 + a13*a21*a32 - a13*a22*a31 - a12*a21*a33 - a11*a23*a32
     if (xval < x2) then
       xtop = b1*a22*a33 + a12*a23*b3 + a13*b2*a32 - a13*a22*b3 - a12*b2*a33 - b1*a23*a32
@@ -234,7 +236,7 @@ subroutine cubspline(x1,x2,x3,y1,y2,y3,xval,yval)
 end subroutine cubspline
 
 
-! Calculating EMG parameter values based on given CFD database
+! Calculating EMG parameter values based on given polynomial surface
 subroutine parameterval(tsr,sol,coef,val)
     implicit none
 
@@ -392,6 +394,217 @@ subroutine vorticitystrength(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl
 end subroutine vorticitystrength
 
 
+! Calculating vorticity strength in the x and y directions
+subroutine vorticitystrengthx(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,gam_lat)
+    implicit none
+
+    integer, parameter :: dp = kind(0.d0)
+
+    ! in
+    real(dp), intent(in) :: x,y,dia
+    real(dp), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
+
+    ! out
+    real(dp), intent(out) :: gam_lat
+
+    ! local
+    real(dp) :: pi,loc1d,loc2d,loc3d,spr1d,spr2d,skw1d,skw2d,scl1d,scl2d,scl3d
+    real(dp) :: xd,yd,loc,spr,skw,scl
+    intrinsic exp
+    intrinsic erf
+    intrinsic sqrt
+    pi = 3.1415926535897932_dp
+
+    xd = x/dia ! normalizing x by the diameter
+    yd = y/dia ! normalizing y by the diameter
+
+    ! Limiting the parameter components to create expected behavior
+    if (loc1 > -0.001_dp) then ! ensure concave down
+      loc1d = -0.001_dp
+    else
+      loc1d = loc1
+    end if
+    if (loc2 < 0.01_dp) then ! ensure slight increase moving downstream
+      loc2d = 0.01_dp
+    else
+      loc2d = loc2
+    end if
+    if (loc3 < 0.48_dp) then ! ensure wake originating from edge of turbine
+      loc3d = 0.48_dp
+    else
+      loc3d = loc3
+    end if
+
+    loc = loc1d*xd*xd + loc2d*xd + loc3d ! EMG Location
+
+    if (spr1 > -0.001_dp) then ! ensure decrease in value (more spread downstream)
+      spr1d = -0.001_dp
+    else
+      spr1d = spr1
+    end if
+    if (spr2 > 0.0_dp) then ! ensure value does not begin positive
+      spr2d = 0.0_dp
+    else
+      spr2d = spr2
+    end if
+
+    spr = spr1d*xd + spr2d ! EMG Spread
+
+    skw1d = skw1 ! no limitations necessary
+    if (skw2 > 0.0_dp) then ! ensure value does not begin positive
+      skw2d = 0.0_dp
+    else
+      skw2d = skw2
+    end if
+
+    skw = skw1d*xd + skw2d ! EMG Skew
+
+    if (scl1 < 0.0_dp) then ! ensure positive maximum vorticity strength
+      scl1d = 0.0_dp
+    else
+      scl1d = scl1
+    end if
+    if (scl2 < 0.05_dp) then ! ensure decay moving downstream
+      scl2d = 0.05_dp
+    else
+      scl2d = scl2
+    end if
+    if (scl3 < 0.0_dp) then ! ensure decay occurs downstream
+      scl3d = 0.0_dp
+    else
+      scl3d = scl3
+    end if
+
+    scl = scl1d/(1.0_dp + exp(scl2d*(xd - scl3d))) ! EMG Scale
+
+    ! Limiting the parameters to the maximum values the EMG distribution can handle
+    if (loc < 0.2_dp) then
+      loc = 0.2_dp
+    end if
+    if (spr < -0.5_dp) then
+      spr = -0.5_dp
+    else if (spr > -0.001_dp) then
+      spr = -0.001_dp
+    end if
+    if (skw > 0.0_dp) then
+      skw = 0.0_dp
+    end if
+
+    ! Exponentially Modified Gaussian Distribution
+    gam_lat = (1.0_dp/(2.0_dp*spr))*scl*skw*(exp(-(loc-yd)**2/(2.0_dp*spr**2))*&
+    sqrt(2.0_dp/pi) + exp(-(loc+yd)**2/(2.0_dp*spr**2))*sqrt(2.0_dp/pi) + &
+    exp(0.5_dp*skw*(2.0_dp*loc + skw*spr**2 - 2.0_dp*y)*skw*spr*(-1.0_dp + &
+    erf((loc + skw*spr**2 - yd)/(sqrt(2.0_dp)*spr)))) + exp(0.5_dp*skw*(2.0_dp*&
+    loc + skw*spr**2 + 2.0_dp*y)*skw*spr*(-1.0_dp + erf((loc + skw*spr**2 + &
+    yd)/(sqrt(2.0_dp)*spr)))))
+
+
+end subroutine vorticitystrengthx
+
+
+! Calculating vorticity strength in the x and y directions
+subroutine vorticitystrengthy(x,y,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,gam_lat)
+    implicit none
+
+    integer, parameter :: dp = kind(0.d0)
+
+    ! in
+    real(dp), intent(in) :: x,y,dia
+    real(dp), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
+
+    ! out
+    real(dp), intent(out) :: gam_lat
+
+    ! local
+    real(dp) :: loc1d,loc2d,loc3d,spr1d,spr2d,skw1d,skw2d,scl1d,scl2d,scl3d
+    real(dp) :: xd,yd,loc,spr,skw,scl,g1,g2
+    intrinsic exp
+    intrinsic erf
+    intrinsic sqrt
+
+    xd = x/dia ! normalizing x by the diameter
+    yd = y/dia ! normalizing y by the diameter
+
+    ! Limiting the parameter components to create expected behavior
+    if (loc1 > -0.001_dp) then ! ensure concave down
+      loc1d = -0.001_dp
+    else
+      loc1d = loc1
+    end if
+    if (loc2 < 0.01_dp) then ! ensure slight increase moving downstream
+      loc2d = 0.01_dp
+    else
+      loc2d = loc2
+    end if
+    if (loc3 < 0.48_dp) then ! ensure wake originating from edge of turbine
+      loc3d = 0.48_dp
+    else
+      loc3d = loc3
+    end if
+
+    loc = loc1d*xd*xd + loc2d*xd + loc3d ! EMG Location
+
+    if (spr1 > -0.001_dp) then ! ensure decrease in value (more spread downstream)
+      spr1d = -0.001_dp
+    else
+      spr1d = spr1
+    end if
+    if (spr2 > 0.0_dp) then ! ensure value does not begin positive
+      spr2d = 0.0_dp
+    else
+      spr2d = spr2
+    end if
+
+    spr = spr1d*xd + spr2d ! EMG Spread
+
+    skw1d = skw1 ! no limitations necessary
+    if (skw2 > 0.0_dp) then ! ensure value does not begin positive
+      skw2d = 0.0_dp
+    else
+      skw2d = skw2
+    end if
+
+    skw = skw1d*xd + skw2d ! EMG Skew
+
+    if (scl1 < 0.0_dp) then ! ensure positive maximum vorticity strength
+      scl1d = 0.0_dp
+    else
+      scl1d = scl1
+    end if
+    if (scl2 < 0.05_dp) then ! ensure decay moving downstream
+      scl2d = 0.05_dp
+    else
+      scl2d = scl2
+    end if
+    if (scl3 < 0.0_dp) then ! ensure decay occurs downstream
+      scl3d = 0.0_dp
+    else
+      scl3d = scl3
+    end if
+
+    scl = scl1d/(1.0_dp + exp(scl2d*(xd - scl3d))) ! EMG Scale
+
+    ! Limiting the parameters to the maximum values the EMG distribution can handle
+    if (loc < 0.2_dp) then
+      loc = 0.2_dp
+    end if
+    if (spr < -0.5_dp) then
+      spr = -0.5_dp
+    else if (spr > -0.001_dp) then
+      spr = -0.001_dp
+    end if
+    if (skw > 0.0_dp) then
+      skw = 0.0_dp
+    end if
+
+    call EMGdist(yd,loc,spr,skw,scl,g1)
+    call EMGdist(yd,-loc,-spr,-skw,-scl,g2)
+
+    gam_lat = (g1 - g2)
+
+end subroutine vorticitystrengthy
+
+
 ! Creating the integral for induced x-velocity
 subroutine integrandx(y,x,x0,y0,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,inte)
     implicit none
@@ -441,14 +654,14 @@ end subroutine integrandy
 
 
 ! Performing integration to convert vorticity into velocity
-subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,velf,loc1d,loc2d,loc3d,spr1d,spr2d,&
+subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,Vinf,loc1d,loc2d,loc3d,spr1d,spr2d,&
   skw1d,skw2d,scl1d,scl2d,scl3d,m_in,n_in,inte,velx,vely)
     implicit none
 
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    real(dp), intent(in) :: xt,yt,x0t,y0t,dia,rot,chord,velf
+    real(dp), intent(in) :: xt,yt,x0t,y0t,dia,rot,chord,Vinf
     real(dp), dimension(10), intent(in) :: loc1d,loc2d,loc3d,spr1d,spr2d,skw1d,skw2d,scl1d,scl2d,scl3d
     integer, intent(in) :: blades,m_in,n_in,inte
 
@@ -469,7 +682,7 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,velf,loc1d,loc2d,loc3d,s
     intrinsic exp
     pi2 = 6.28318530718_dp
 
-    tsr = (dia/2.0_dp)*abs(rot)/velf
+    tsr = (dia/2.0_dp)*abs(rot)/Vinf
     sol = blades*chord/(dia/2.0_dp)
 
     call parameterval(tsr,sol,loc1d,loc1)
@@ -742,8 +955,8 @@ subroutine vel_field(xt,yt,x0t,y0t,dia,rot,chord,blades,velf,loc1d,loc2d,loc3d,s
 
     ! ****************************************************************************
 
-    velx = velxi/velf
-    vely = velyi/velf
+    velx = velxi/Vinf
+    vely = velyi/Vinf
 
 end subroutine vel_field
 
@@ -787,7 +1000,7 @@ end subroutine sheet_vort
 
 ! Calculating vorticity strength for polynomial surface fitting
 subroutine sheet_vel(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,&
-  coef5,coef6,coef7,coef8,coef9,dia,velf,m_in,n_in,inte,vel)
+  coef5,coef6,coef7,coef8,coef9,dia,Vinf,m_in,n_in,inte,vel)
   implicit none
   integer, parameter :: dp = kind(0.d0)
   ! in
@@ -795,7 +1008,7 @@ subroutine sheet_vel(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,&
   real(dp), dimension(10), intent(in) :: coef0,coef1,coef2,coef3,coef4,coef5
   real(dp), dimension(10), intent(in) :: coef6,coef7,coef8,coef9
   real(dp), dimension(ndata), intent(in) :: xttr,ystr,posdn,poslt
-  real(dp), intent(in) :: dia,velf
+  real(dp), intent(in) :: dia,Vinf
   ! out
   real(dp), dimension(ndata), intent(out) :: vel
   ! local
@@ -803,29 +1016,28 @@ subroutine sheet_vel(ndata,xttr,ystr,posdn,poslt,coef0,coef1,coef2,coef3,coef4,&
   real(dp) :: rot,chord,velx,vely
 
   do i = 1,ndata
-    rot = xttr(i)*velf/(dia/2.0_dp)
+    rot = xttr(i)*Vinf/(dia/2.0_dp)
     chord = ystr(i)*(dia/2.0_dp)/3
 
-    call vel_field(0.0_dp,0.0_dp,posdn(i),poslt(i),dia,rot,chord,3,velf,&
+    call vel_field(0.0_dp,0.0_dp,posdn(i),poslt(i),dia,rot,chord,3,Vinf,&
     coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m_in,n_in,&
     inte,velx,vely)
 
-    vel(i) = (velx*velf + velf)/velf
+    vel(i) = (velx*Vinf + Vinf)/Vinf
 
   end do
 
 end subroutine sheet_vel
 
 
-! Aerodynamics of multiple vertical axis wind turbines using a
+! Calculating loading forces on VAWT blades and power of the turbine
+! Aerodynamics of multiple vertical-axis wind turbines using a
 ! modified Actuator Cylinder approach
 ! Developed by Andrew Ning at Brigham Young University
 ! https://github.com/byuflowlab/vawt-ac
 ! https://doi.org/10.5281/zenodo.165183
-
-! Calculating loading forces on VAWT blades and power of the turbine
 subroutine radialforce(n,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,&
-  twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,mu,interp,q,ka,CTo,CPo,Rp,Tp,Zp)
+  twist,delta,B,Omega,Vinf,Vinfx,Vinfy,rho,interp,q,k,Cp,Tp,Vn,Vt)
     implicit none
 
     integer, parameter :: dp = kind(0.d0)
@@ -834,16 +1046,16 @@ subroutine radialforce(n,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,&
     integer, intent(in) :: n,f,B,interp
     real(dp), dimension(n), intent(in) :: uvec,vvec,thetavec,Vinfx,Vinfy
     real(dp), dimension(f), intent(in) :: af_data,cl_data,cd_data
-    real(dp), intent(in) :: r,chord,twist,delta,Omega,Vinf,rho,mu
+    real(dp), intent(in) :: r,chord,twist,delta,Omega,Vinf,rho
 
     ! out
-    real(dp), intent(out) :: ka,CTo,CPo
-    real(dp), dimension(n), intent(out) :: q,Rp,Tp,Zp
+    real(dp), intent(out) :: k,Cp
+    real(dp), dimension(n), intent(out) :: q,Tp,Vn,Vt
 
     ! local
     integer :: i
-    real(dp) :: pi,rotation,sigma,CTend,a,H,Sref,P,Pend
-    real(dp), dimension(n) :: Vn,Vt,W,phi,alpha,cl,cd,cn,ct,qdyn,integrand,Qp
+    real(dp) :: pi,rotation,sigma,Ctend,Cto,a,H,As,P,Pend
+    real(dp), dimension(n) :: W2,phi,alpha,qdyn,cn,ct,cl,cd,integrand,Rp,Zp,Qp
     intrinsic sin
     intrinsic cos
     intrinsic tan
@@ -872,10 +1084,9 @@ subroutine radialforce(n,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,&
       ! Vt = rotation*(Vinf*(1.0_dp + uvec(i))*cos(thetavec(i)) + &
       ! Vinf*vvec(i)*sin(thetavec(i))) + abs(Omega)*r
 
-      W(i) = sqrt(Vn(i)**2 + Vt(i)**2)
+      W2(i) = Vn(i)**2 + Vt(i)**2
       phi(i) = atan2(Vn(i), Vt(i))
       alpha(i) = phi(i) - twist
-      ! Re = rho*W*chord/mu  ! currently no Re dependence
 
       ! airfoil
       if (interp == 1) then
@@ -891,47 +1102,48 @@ subroutine radialforce(n,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,r,chord,&
       ct(i) = cl(i)*sin(phi(i)) - cd(i)*cos(phi(i))
 
       ! radial force
-      q(i) = sigma/(4.0_dp*pi)*cn(i)*(W(i)/Vinf)**2
+      q(i) = sigma/(4.0_dp*pi)*cn(i)*(W2(i)/Vinf**2)
 
       ! instantaneous forces
-      qdyn(i) = 0.5_dp*rho*W(i)**2
+      qdyn(i) = 0.5_dp*rho*W2(i)
       Rp(i) = -cn(i)*qdyn(i)*chord
       Tp(i) = ct(i)*qdyn(i)*chord/cos(delta)
       Zp(i) = -cn(i)*qdyn(i)*chord*tan(delta)
 
       ! nonlinear correction factor
-      integrand(i) = (W(i)/Vinf)**2*(cn(i)*sin(thetavec(i)) - &
+      integrand(i) = (W2(i)/Vinf**2)*(cn(i)*sin(thetavec(i)) - &
       rotation*ct(i)*cos(thetavec(i))/cos(delta))
     end do
 
-    call pInt(n,thetavec,integrand,CTend)
-    CTo = sigma/(4.0_dp*pi)*CTend
+    call pInt(n,thetavec,integrand,Ctend)
+    Cto = sigma/(4.0_dp*pi)*Ctend
 
-    if (CTo > 2.0_dp) then ! propeller brake
-      a = 0.5_dp*(1.0_dp + sqrt(1.0_dp + CTo))
-      ka = 1.0_dp/(a-1.0_dp)
-    else if (CTo > 0.96) then ! empirical
-      a = 1.0_dp/7.0_dp*(1.0_dp + 3.0_dp*sqrt(7.0_dp/2.0_dp*CTo - 3.0_dp))
-      ka = 18.0_dp*a/(7.0_dp*a**2 - 2.0_dp*a + 4.0_dp)
+    if (Cto > 2.0_dp) then ! propeller brake
+      a = 0.5_dp*(1.0_dp + sqrt(1.0_dp + Cto))
+      k = 1.0_dp/(a-1.0_dp)
+    else if (Cto > 0.96) then ! empirical
+      a = 1.0_dp/7.0_dp*(1.0_dp + 3.0_dp*sqrt(7.0_dp/2.0_dp*Cto - 3.0_dp))
+      k = 18.0_dp*a/(7.0_dp*a**2 - 2.0_dp*a + 4.0_dp)
     else ! momentum
-      a = 0.5_dp*(1.0_dp - sqrt(1.0_dp - CTo))
-      ka = 1.0_dp/(1.0_dp-a)
+      a = 0.5_dp*(1.0_dp - sqrt(1.0_dp - Cto))
+      k = 1.0_dp/(1.0_dp-a)
     end if
 
     ! power coefficient
     H = 1.0_dp ! per unit height
-    Sref = 2.0_dp*r*H
+    As = 2.0_dp*r*H
     Qp = r*Tp
 
     call pInt(n,thetavec,Qp,Pend)
     P = abs(Omega)*B/(2.0_dp*pi)*Pend
-    CPo = P/(0.5_dp*rho*Vinf**3*Sref)
+    Cp = P/(0.5_dp*rho*Vinf**3*As)
 
 end subroutine radialforce
 
 
 ! Calculating effective velocities around given turbine due to wake interaction
-subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc3,spr1,spr2,&
+! For use only with Simpson's method
+subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,Vinf,loc1,loc2,loc3,spr1,spr2,&
   skw1,skw2,scl1,scl2,scl3,m,n,inte,pointcalc,velx,vely)
 
     implicit none
@@ -941,7 +1153,7 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
     ! in
     integer, intent(in) :: t,p,m,n,blades,inte,pointcalc
     real(dp), dimension(t), intent(in) :: xt,yt,diat,rott
-    real(dp), intent(in) :: x0,y0,dia,velf,chord
+    real(dp), intent(in) :: x0,y0,dia,Vinf,chord
     real(dp), dimension(10), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
 
     ! out
@@ -980,20 +1192,20 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
     if (t == 1) then ! coupled configuration (only two VAWTs)
       if (pointcalc == 1) then
         do j = 1,p
-          call vel_field(xt(1),yt(1),xd(j),yd(j),diat(1),rott(1),chord,blades,velf,&
+          call vel_field(xt(1),yt(1),xd(j),yd(j),diat(1),rott(1),chord,blades,Vinf,&
           loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
           velxi(j),velyi(j))
-          velx(j) = velxi(j)*velf
-          vely(j) = velyi(j)*velf
+          velx(j) = velxi(j)*Vinf
+          vely(j) = velyi(j)*Vinf
         end do
       else if (pointcalc == 0) then
         do j = 1,p
           if (j == 1) then
-            call vel_field(xt(1),yt(1),xd(j),yd(j),diat(1),rott(1),chord,blades,velf,&
+            call vel_field(xt(1),yt(1),xd(j),yd(j),diat(1),rott(1),chord,blades,Vinf,&
             loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
             velxi(j),velyi(j))
-            velx(j) = velxi(j)*velf
-            vely(j) = velyi(j)*velf
+            velx(j) = velxi(j)*Vinf
+            vely(j) = velyi(j)*Vinf
           else
             velx(j) = 0.0_dp
             vely(j) = 0.0_dp
@@ -1005,7 +1217,7 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
         if (pointcalc == 1) then
           do k = 1,p
             call vel_field(xt(j),yt(j),xd(k),yd(k),diat(j),rott(j),chord,blades,&
-            velf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
+            Vinf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
             velx_int(k),vely_int(k))
             velx_int(k) = -velx_int(k)
 
@@ -1026,7 +1238,7 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
           do k = 1,p
             if (k == 1) then
               call vel_field(xt(j),yt(j),xd(k),yd(k),diat(j),rott(j),chord,blades,&
-              velf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
+              Vinf,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,&
               velx_int(k),vely_int(k))
               velx_int(k) = -velx_int(k)
             else
@@ -1052,15 +1264,15 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
       ! square root of sum of squares
       do l = 1,p
         if (intex(l) >= 0.0_dp) then
-          velx(l) = -velf*(sqrt(intex(l)))
+          velx(l) = -Vinf*(sqrt(intex(l)))
         else
-          velx(l) = velf*(sqrt(abs(intex(l))))
+          velx(l) = Vinf*(sqrt(abs(intex(l))))
         end if
 
         if (intey(l) >= 0.0_dp) then
-          vely(l) = velf*(sqrt(intey(l)))
+          vely(l) = Vinf*(sqrt(intey(l)))
         else
-          vely(l) = -velf*(sqrt(abs(intey(l))))
+          vely(l) = -Vinf*(sqrt(abs(intey(l))))
         end if
       end do
     end if
@@ -1068,138 +1280,121 @@ subroutine overlap(t,p,xt,yt,diat,rott,chord,blades,x0,y0,dia,velf,loc1,loc2,loc
 end subroutine overlap
 
 
-! Calculating effective velocities around given turbine due to wake interaction at (x0,y0)
-subroutine overlap2(t,p,velf,wakex,wakey,velx,vely)
+! Calculating power and coefficient of power using velocity vector summation
+subroutine powercalc(n,f,thetavec,Vinf,wake_x,wake_y,Vnp,Vnn,Vtp,Vtn,Cpp,Cpn,&
+  Omega,r,H,af_data,cl_data,cd_data,twist,rho,interp,P,Cp)
     implicit none
 
     integer, parameter :: dp = kind(0.d0)
 
     ! in
-    integer, intent(in) :: t,p
-    real(dp), intent(in) :: velf
-    real(dp), dimension(t*p), intent(in) :: wakex,wakey
-
-    ! out
-    real(dp), dimension(p), intent(out) :: velx,vely
-
-    ! local
-    integer :: i,j,k
-    real(dp), dimension(p) :: velx_int,vely_int,intex,intey
-    intrinsic sqrt
-    intrinsic abs
-
-    intex = 0.0_dp
-    intey = 0.0_dp
-
-    if (t == 1) then ! coupled configuration (only two VAWTs)
-      ! do l = 1,p
-      !   velx(l) = wakex(l)*velf
-      !   vely(l) = wakey(l)*velf
-      ! end do
-      velx = wakex*velf
-      vely = wakey*velf
-    else ! multiple turbine wake overlap
-      do i = 1,t
-        do j = 1,p
-          velx_int(j) = -wakex(j+(i-1)*p)
-          vely_int(j) = wakey(j+(i-1)*p)
-
-          ! sum of squares of velocity deficits
-          if (velx_int(j) >= 0.0_dp) then
-            intex(j) = intex(j) + (velx_int(j))**2
-          else
-            intex(j) = intex(j) - (velx_int(j))**2
-          end if
-
-          if (vely_int(j) >= 0.0_dp) then
-            intey(j) = intey(j) + (vely_int(j))**2
-          else
-            intey(j) = intey(j) - (vely_int(j))**2
-          end if
-        end do
-      end do
-
-      ! square root of sum of squares
-      do k = 1,p
-        if (intex(k) >= 0.0_dp) then
-          velx(k) = -velf*(sqrt(intex(k)))
-        else
-          velx(k) = velf*(sqrt(abs(intex(k))))
-        end if
-
-        if (intey(k) >= 0.0_dp) then
-          vely(k) = velf*(sqrt(intey(k)))
-        else
-          vely(k) = -velf*(sqrt(abs(intey(k))))
-        end if
-      end do
-    end if
-
-end subroutine overlap2
-
-
-! Calculating power and coefficient of power of single or multiple turbines
-subroutine powercalc(t,f,p,x,y,dia,rot,velf,loc1,loc2,loc3,spr1,spr2,&
-  skw1,skw2,scl1,scl2,scl3,af_data,cl_data,cd_data,chord,twist,delta,blades,&
-  H,rho,mu,uvec,vvec,interp,power_tot,CPo)
-    implicit none
-
-    integer, parameter :: dp = kind(0.d0)
-
-    ! in
-    integer, intent(in) :: t,f,p,blades,interp
-    real(dp), dimension(t), intent(in) :: x,y,dia,rot
-    real(dp), dimension(p), intent(in) :: uvec,vvec
+    integer, intent(in) :: n,f,interp
+    real(dp), dimension(n), intent(in) :: thetavec,wake_x,wake_y
+    real(dp), dimension(n), intent(in) :: Vnp,Vnn,Vtp,Vtn,Cpp,Cpn
     real(dp), dimension(f), intent(in) :: af_data,cl_data,cd_data
-    real(dp), dimension(10), intent(in) :: loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3
-    real(dp), intent(in) :: velf,chord,twist,delta,H,rho,mu
+    real(dp), intent(in) :: Vinf,Omega,r,H,twist,rho
 
     ! out
-    real(dp), intent(out) :: power_tot,CPo
+    real(dp), intent(out) :: P,Cp
 
     ! local
-    integer :: m,n,i,j,inte
-    real(dp) :: x0,y0,dia0,rot0,pi,ka,CTo!,CPo1,CPo2
-    real(dp), dimension(t) :: xt,yt,diat,rott
-    real(dp), dimension(p) :: velx,vely,thetavec,q,Rp,Tp,Zp!,velx1,velx2,vely1,vely2
+    integer :: i
+    real(dp) :: pi,As
+    real(dp), dimension(n) :: W20,phi0,alpha0,cl0,cd0,ct0
+    real(dp), dimension(n) :: Vn,Vt,W2,phi,alpha,cl,cd,ct,Cpl
+    intrinsic sin
+    intrinsic cos
+    intrinsic atan2
+    intrinsic abs
     pi = 3.1415926535897932_dp
 
-    m = 220
-    n = 200
-    inte = 1 ! 2D Simpson's Rule
-    ! inte = 2 ! 2D Trapezoidal Rule
+    if (Omega >= 0.0_dp) then
+      do i = 1,n
+        ! calculate baseline values
+        W20(i) = Vnp(i)**2 + Vtp(i)**2
+        phi0(i) = atan2(Vnp(i),Vtp(i))
+        alpha0(i) = phi0(i) - twist
+        if (interp == 1) then
+          call interpolate(f,af_data,cl_data,alpha0(i)*180.0_dp/pi,cl0(i))
+          call interpolate(f,af_data,cd_data,alpha0(i)*180.0_dp/pi,cd0(i))
+        else if (interp == 2) then
+          call splineint(f,af_data,cl_data,alpha0(i)*180.0_dp/pi,cl0(i))
+          call splineint(f,af_data,cd_data,alpha0(i)*180.0_dp/pi,cd0(i))
+        end if
+        ct0(i) = cl0(i)*sin(alpha0(i)) - cd0(i)*cos(alpha0(i))
 
-    do i = 1,p
-      thetavec(i) = (2.0_dp*pi/p)*i-(2.0_dp*pi/p)/2.0_dp
-    end do
+        ! correct normal/tangential velocities with wake velocities
+        Vn(i) = Vnp(i) + wake_x(i)*sin(thetavec(i)) - wake_y(i)*cos(thetavec(i))
+        Vt(i) = Vtp(i) + wake_x(i)*cos(thetavec(i)) + wake_y(i)*sin(thetavec(i))
+        W2(i) = Vn(i)**2 + Vt(i)**2
 
-    ! Velocity and power measurements made at first turbine
-    if (t >= 2) then ! needing to calculate wake interaction using sum of squares
-      x0 = x(1)
-      y0 = y(1)
-      dia0 = dia(1)
-      rot0 = rot(1)
-      do j = 1,t-1
-        xt(j) = x(j+1)
-        yt(j) = y(j+1)
-        diat(j) = dia(j+1)
-        rott(j) = rot(j+1)
+        ! compute new inflow angle
+        phi(i) = atan2(Vn(i),Vt(i))
+        alpha(i) = phi(i) - twist
+
+        ! airfoil
+        if (interp == 1) then
+          call interpolate(f,af_data,cl_data,alpha(i)*180.0_dp/pi,cl(i))
+          call interpolate(f,af_data,cd_data,alpha(i)*180.0_dp/pi,cd(i))
+        else if (interp == 2) then
+          call splineint(f,af_data,cl_data,alpha(i)*180.0_dp/pi,cl(i))
+          call splineint(f,af_data,cd_data,alpha(i)*180.0_dp/pi,cd(i))
+        end if
+
+        ! compute new tangential force coefficient
+        ct(i) = cl(i)*sin(alpha(i)) - cd(i)*cos(alpha(i))
+
+        ! provide relative correction to power coefficient
+        Cpl(i) = Cpp(i)*W2(i)/W20(i)*ct(i)/ct0(i)
       end do
-      call overlap(t-1,p,xt,yt,diat,rott,chord,blades,x0,y0,dia0,velf,loc1,loc2,loc3,&
-      spr1,spr2,skw1,skw2,scl1,scl2,scl3,m,n,inte,velx,vely)
-    else ! no need to calculate wake interaction
-      x0 = x(1)
-      y0 = y(1)
-      dia0 = dia(1)
-      rot0 = rot(1)
-      velx = 0.0_dp
-      vely = 0.0_dp
+    else
+      do i = 1,n
+        ! calculate baseline values
+        W20(i) = Vnn(i)**2 + Vtn(i)**2
+        phi0(i) = atan2(Vnn(i),Vtn(i))
+        alpha0(i) = phi0(i) - twist
+        if (interp == 1) then
+          call interpolate(f,af_data,cl_data,alpha0(i)*180.0_dp/pi,cl0(i))
+          call interpolate(f,af_data,cd_data,alpha0(i)*180.0_dp/pi,cd0(i))
+        else if (interp == 2) then
+          call splineint(f,af_data,cl_data,alpha0(i)*180.0_dp/pi,cl0(i))
+          call splineint(f,af_data,cd_data,alpha0(i)*180.0_dp/pi,cd0(i))
+        end if
+        ct0(i) = cl0(i)*sin(alpha0(i)) - cd0(i)*cos(alpha0(i))
+
+        ! correct normal/tangential velocities with wake velocities
+        Vn(i) = Vnn(i) + wake_x(i)*sin(thetavec(i)) - wake_y(i)*cos(thetavec(i))
+        Vt(i) = Vtn(i) - wake_x(i)*cos(thetavec(i)) - wake_y(i)*sin(thetavec(i))
+        W2(i) = Vn(i)**2 + Vt(i)**2
+
+        ! compute new inflow angle
+        phi(i) = atan2(Vn(i),Vt(i))
+        alpha(i) = phi(i) - twist
+
+        ! airfoil
+        if (interp == 1) then
+          call interpolate(f,af_data,cl_data,alpha(i)*180.0_dp/pi,cl(i))
+          call interpolate(f,af_data,cd_data,alpha(i)*180.0_dp/pi,cd(i))
+        else if (interp == 2) then
+          call splineint(f,af_data,cl_data,alpha(i)*180.0_dp/pi,cl(i))
+          call splineint(f,af_data,cd_data,alpha(i)*180.0_dp/pi,cd(i))
+        end if
+
+        ! compute new tangential force coefficient
+        ct(i) = cl(i)*sin(alpha(i)) - cd(i)*cos(alpha(i))
+
+        ! provide relative correction to power coefficient
+        Cpl(i) = Cpn(i)*W2(i)/W20(i)*ct(i)/ct0(i)
+
+      end do
     end if
 
-    call radialforce(p,f,uvec,vvec,thetavec,af_data,cl_data,cd_data,(dia0/2.0_dp),chord,&
-      twist,delta,blades,rot0,velf,velx,vely,rho,mu,interp,q,ka,CTo,CPo,Rp,Tp,Zp)
+    ! integrating local power coefficients
+    call pInt(n,thetavec,Cpl,Cp)
 
-    power_tot = (0.5_dp*rho*velf**3)*(dia0*H)*CPo
+    ! power calculation
+    As = 2.0_dp*r*H ! swept area
+    P = Cp*0.5_dp*rho*Vinf**3*As
 
 end subroutine powercalc
 

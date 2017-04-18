@@ -1,6 +1,3 @@
-## Currently Operational for Velocity Calculations Only
------Blade force and power calculations soon to come-----
-
 # VAWT Wake Model
 
 Parameterized VAWT Wake Model using CFD vorticity data

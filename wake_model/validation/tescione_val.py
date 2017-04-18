@@ -793,6 +793,4 @@ if rom == True:
     print 'Maximum Deficit Error (CFD):',mdfcfd15,mdfcfd20,mdfcfd25,mdfcfd30,mdfcfd35,mdfcfd40,'\n\t',max(mdfcfd15,mdfcfd20,mdfcfd25,mdfcfd30,mdfcfd35,mdfcfd40)
     print 'Maximum Deficit Error (ROM):',mdfrom15,mdfrom20,mdfrom25,mdfrom30,mdfrom35,mdfrom40,'\n\t',max(mdfrom15,mdfrom20,mdfrom25,mdfrom30,mdfrom35,mdfrom40)
 
-    
 plt.show()
-
