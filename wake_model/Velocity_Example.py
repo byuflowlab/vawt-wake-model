@@ -32,12 +32,12 @@ plot_dist = True
 # plot_dist = False # comment this out if desired on
 
 # Enter the values desired (for the code to calculate TSR and solidity)
-velf = 15.0                 # free stream wind speed (m/s)
+Vinf = 15.0                 # free stream wind speed (m/s)
 dia = 6.                    # turbine diameter (m)
-tsr = 4.                    # tip speed ratio ((dia/2)*rot/velf)
+tsr = 4.                    # tip speed ratio ((dia/2)*rot/Vinf)
 B = 3.                      # number of blades
 chord = 0.25                # chord lenth (m)
-rot = tsr*velf/(dia/2.)     # rotation rate (rad/s)
+rot = tsr*Vinf/(dia/2.)     # rotation rate (rad/s)
 
 # Enter the positions of the turbine and velocity calculation
 xt = 0.         # downstream position of turbine in flow domain (m)
@@ -65,7 +65,7 @@ n = 200                 # number of divisions in the lateral direction (for Simp
 ########################################################################################################################
 
 # CALCULATING VELOCITY AT GIVEN POINT (x0,y0)
-vel = velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
+vel = velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
 print '\nNormalized velocity at (',x0,',',y0,') =',vel,'\n' # output velocity (normalized by free stream wind speed)
 pointval1 = 1.
 pointval2 = 0.
@@ -96,7 +96,7 @@ if vel_slice == True:
         val = str(x[i]/dia)
         lab = '$x/D$ = '+val
         for j in range(int(np.size(y))):
-            velp = velocity_field(xt,yt,x[i],y[j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
+            velp = velocity_field(xt,yt,x[i],y[j],Vinf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             vel = np.append(vel,velp)
             iterp += 1
             runtime = time.time()-time0
@@ -138,17 +138,17 @@ if plot_dist == True:
     time0 = time.time()
     for i in range(N):
         for j in range(N):
-            if veltype == 'all' or veltype == 'x' or veltype == 'y' or veltype == 'velfort':
-                VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
+            if veltype == 'all' or veltype == 'x' or veltype == 'y' or veltype == 'Vinfort':
+                VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],Vinf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             elif veltype == 'ind':
-                velfd = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
-                VEL[i,j] = velfd[0]
-                VELy[i,j] = velfd[1]
+                Vinfd = velocity_field(xt,yt,X[i,j],Y[i,j],Vinf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
+                VEL[i,j] = Vinfd[0]
+                VELy[i,j] = Vinfd[1]
             elif veltype == 'vort':
-                VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
+                VEL[i,j] = velocity_field(xt,yt,X[i,j],Y[i,j],Vinf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
             elif veltype == 'error':
-                vel1 = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype='x',integration='gskr')
-                vel2 = velocity_field(xt,yt,X[i,j],Y[i,j],velf,dia,rot,chord,B,param=None,veltype='x',integration='simp',m=m,n=n)
+                vel1 = velocity_field(xt,yt,X[i,j],Y[i,j],Vinf,dia,rot,chord,B,param=None,veltype='x',integration='gskr')
+                vel2 = velocity_field(xt,yt,X[i,j],Y[i,j],Vinf,dia,rot,chord,B,param=None,veltype='x',integration='simp',m=m,n=n)
                 VEL[i,j] = np.fabs((vel2-vel1)/vel1)
             iter += 1
             runtime = time.time()-time0

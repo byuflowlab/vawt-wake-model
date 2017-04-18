@@ -219,7 +219,7 @@ def airfoil_data(file):
     return af_data_smooth,cl_data_smooth,cd_data_smooth
 
 
-def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',integration='simp',m=220,n=200):
+def velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,param=None,veltype='all',integration='simp',m=220,n=200):
     """
     Calculating normalized velocity from the vorticity data at (x0,y0) in global flow domain
 
@@ -233,7 +233,7 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
         downstream position in flow domain to be calculated (m)
     y0 : float
         lateral position in flow domain to be calculated (m)
-    velf : float
+    Vinf : float
         free stream velocity (m/s)
     dia : float
         turbine diameter (m)
@@ -258,7 +258,7 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
         final normalized velocity at (x0,y0) with respect to the free stream velocity (m/s)
     """
     rad = dia/2.
-    tsr = rad*fabs(rot)/velf
+    tsr = rad*fabs(rot)/Vinf
     solidity = (chord*B)/rad
 
     # Translating the turbine position
@@ -311,12 +311,12 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
             if param is not None:
                 print "**** Using polynomial surface coefficients from VAWTPolySurfaceCoef.csv for Simpson's rule integration ****"
 
-            vel_xs,vel_ys = _vawtwake.vel_field(xt,yt,x0,y0,dia,rot,chord,B,velf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,inte)
+            vel_xs,vel_ys = _vawtwake.vel_field(xt,yt,x0,y0,dia,rot,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,inte)
 
             if veltype == 'all':
-                vel = sqrt((vel_xs*velf + velf)**2 + (vel_ys*velf)**2)/velf
+                vel = sqrt((vel_xs*Vinf + Vinf)**2 + (vel_ys*Vinf)**2)/Vinf
             elif veltype == 'x':
-                vel = (vel_xs*velf + velf)/velf
+                vel = (vel_xs*Vinf + Vinf)/Vinf
             elif veltype == 'y':
                 vel = vel_ys
             elif veltype == 'ind':
@@ -334,18 +334,18 @@ def velocity_field(xt,yt,x0,y0,velf,dia,rot,chord,B,param=None,veltype='all',int
                 vel_ys = (vel_y[0]*fabs(rot))/(2.*pi)
 
             if veltype == 'all':
-                vel = sqrt((vel_xs + velf)**2 + (vel_ys)**2)/velf
+                vel = sqrt((vel_xs + Vinf)**2 + (vel_ys)**2)/Vinf
             elif veltype == 'x':
-                vel = (vel_xs + velf)/velf
+                vel = (vel_xs + Vinf)/Vinf
             elif veltype == 'y':
-                vel = vel_ys/velf
+                vel = vel_ys/Vinf
             elif veltype == 'ind':
-                vel = np.array([vel_xs,vel_ys])/velf
+                vel = np.array([vel_xs,vel_ys])/Vinf
     ###################################
 
     return vel
 
-def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,pointcalc,param=None,veltype='ind',integration='gskr'):
+def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,Vinf,pointcalc,param=None,veltype='ind',integration='gskr'):
     """
     Calculating wake velocities around a turbine based on wake overlap from surrounding turbines
     (using the 21-point Gauss-Kronrod rule quadrature integration; Simpson's rule integration can be used via VAWT_Wake_Model.f90)
@@ -372,7 +372,7 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,pointcalc,param=None,veltyp
         lateral position in flow domain of turbine to be calculated (m)
     dia : float
         diameter of turbine to be calculated (m)
-    velf : float
+    Vinf : float
         free stream velocity (m/s)
     pointcalc : bool
         calculate the overlap at a point (True) or at p points around the blade flight path (False)
@@ -423,31 +423,31 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,pointcalc,param=None,veltyp
     if (t == 1): # coupled configuration (only two VAWTs)
         if pointcalc == False:
             if parallel == True:
-                wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration) for j in range(p) )
+                wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[0],yt[0],xd[j],yd[j],Vinf,diat[0],rott[0],chord,B,param,veltype,integration) for j in range(p) )
                 for i in range(p):
-                    velx[i] = wake[i][0]*velf
-                    vely[i] = wake[i][1]*velf
+                    velx[i] = wake[i][0]*Vinf
+                    vely[i] = wake[i][1]*Vinf
             elif parallel == False:
                 for j in range(p):
-                    wake = velocity_field(xt[0],yt[0],xd[j],yd[j],velf,diat[0],rott[0],chord,B,param,veltype,integration)
-                    velx[j] = wake[0]*velf
-                    vely[j] = wake[1]*velf
+                    wake = velocity_field(xt[0],yt[0],xd[j],yd[j],Vinf,diat[0],rott[0],chord,B,param,veltype,integration)
+                    velx[j] = wake[0]*Vinf
+                    vely[j] = wake[1]*Vinf
         elif pointcalc == True:
-            wake = velocity_field(xt[0],yt[0],xd[0],yd[0],velf,diat[0],rott[0],chord,B,param,veltype,integration)
-            velx[0] = wake[0]*velf
-            vely[0] = wake[1]*velf
+            wake = velocity_field(xt[0],yt[0],xd[0],yd[0],Vinf,diat[0],rott[0],chord,B,param,veltype,integration)
+            velx[0] = wake[0]*Vinf
+            vely[0] = wake[1]*Vinf
 
     else: # multiple turbine wake overlap
         if pointcalc == False:
             if parallel == True:
-                wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[w],yt[w],xd[q],yd[q],velf,diat[w],rott[w],chord,B,param,veltype,integration) for w in range(t) for q in range(p) )
+                wake = Parallel(n_jobs=-1)(delayed(velocity_field)(xt[w],yt[w],xd[q],yd[q],Vinf,diat[w],rott[w],chord,B,param,veltype,integration) for w in range(t) for q in range(p) )
             for j in range(t):
                 for k in range(p):
                     if parallel == True:
                         velx_int[k] = -wake[k+j*p][0]
                         vely_int[k] = wake[k+j*p][1]
                     elif parallel == False:
-                        wake = velocity_field(xt[j],yt[j],xd[k],yd[k],velf,diat[j],rott[j],chord,B,param,veltype,integration)
+                        wake = velocity_field(xt[j],yt[j],xd[k],yd[k],Vinf,diat[j],rott[j],chord,B,param,veltype,integration)
                         velx_int[k] = -wake[0]
                         vely_int[k] = wake[1]
 
@@ -463,7 +463,7 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,pointcalc,param=None,veltyp
                         intey[k] = intey[k] - (vely_int[k])**2
         elif pointcalc == True:
             for j in range(t):
-                wake = velocity_field(xt[j],yt[j],xd[0],yd[0],velf,diat[j],rott[j],chord,B,param,veltype,integration)
+                wake = velocity_field(xt[j],yt[j],xd[0],yd[0],Vinf,diat[j],rott[j],chord,B,param,veltype,integration)
                 velx_int[0] = -wake[0]
                 vely_int[0] = wake[1]
 
@@ -481,14 +481,14 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,velf,pointcalc,param=None,veltyp
         # square root of sum of squares
         for l in range(p):
             if (intex[l] >= 0.0):
-                velx[l] = -velf*(sqrt(intex[l]))
+                velx[l] = -Vinf*(sqrt(intex[l]))
             else:
-                velx[l] = velf*(sqrt(fabs(intex[l])))
+                velx[l] = Vinf*(sqrt(fabs(intex[l])))
 
             if (intey[l] >= 0.0):
-                vely[l] = velf*(sqrt(intey[l]))
+                vely[l] = Vinf*(sqrt(intey[l]))
             else:
-                vely[l] = -velf*(sqrt(fabs(intey[l])))
+                vely[l] = -Vinf*(sqrt(fabs(intey[l])))
 
     return velx,vely
 
