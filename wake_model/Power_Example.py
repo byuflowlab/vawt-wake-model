@@ -228,7 +228,6 @@ elif method == 'coupled_vawt_power':
             progress_bar(float(iter)/(nR*nT),nR*nT,runtime)
             time0 = time.time()
 
-    # fs = 20
     fs = 15
 
     # Combined Power
@@ -266,7 +265,6 @@ elif method == 'coupled_vawt_power':
         plt.plot((xt[i]/dia,xt[i]/dia),(yt[i]/dia,r),'k',linewidth=1.)
         plt.plot((xt[i]/dia,r*cos(210.*pi/180.)),(yt[i]/dia,r*sin(210.*pi/180.)),'k',linewidth=1.)
         plt.plot((xt[i]/dia,r*cos(330.*pi/180.)),(yt[i]/dia,r*sin(330.*pi/180.)),'k',linewidth=1.)
-    plt.savefig('/Users/ning1/Documents/FLOW Lab/tingey-2016-coupled-vawts/journal_version/images/windspire_power_vectoradd.pdf')
 
     # Center Turbine Power
     plt.figure()
@@ -303,7 +301,6 @@ elif method == 'coupled_vawt_power':
         plt.plot((xt[i]/dia,xt[i]/dia),(yt[i]/dia,r),'k',linewidth=1.)
         plt.plot((xt[i]/dia,r*cos(210.*pi/180.)),(yt[i]/dia,r*sin(210.*pi/180.)),'k',linewidth=1.)
         plt.plot((xt[i]/dia,r*cos(330.*pi/180.)),(yt[i]/dia,r*sin(330.*pi/180.)),'k',linewidth=1.)
-    plt.savefig('/Users/ning1/Documents/FLOW Lab/tingey-2016-coupled-vawts/journal_version/images/windspire_power_vectoradd1.pdf')
 
     # Swept Turbine Power
     plt.figure()
@@ -340,7 +337,6 @@ elif method == 'coupled_vawt_power':
         plt.plot((xt[i]/dia,xt[i]/dia),(yt[i]/dia,r),'k',linewidth=1.)
         plt.plot((xt[i]/dia,r*cos(210.*pi/180.)),(yt[i]/dia,r*sin(210.*pi/180.)),'k',linewidth=1.)
         plt.plot((xt[i]/dia,r*cos(330.*pi/180.)),(yt[i]/dia,r*sin(330.*pi/180.)),'k',linewidth=1.)
-    plt.savefig('/Users/ning1/Documents/FLOW Lab/tingey-2016-coupled-vawts/journal_version/images/windspire_power_vectoradd2.pdf')
 
 ########################################################################################################################
 ########################################################################################################################
@@ -391,10 +387,9 @@ elif method == 'polar_power':
 
             # Cp1,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot1,Vinf,rho,interp,wakex1,wakey1)
             # Cp2,_,_,_ = actuatorcylinder(ntheta,af_data,cl_data,cd_data,r,chord,twist,delta,B,rot2,Vinf,rho,interp,wakex2,wakey2)
+
             _,Cp1 = _vawtwake.powercalc(thetavec,Vinf,wakex1,wakey1,Vnp,Vnn,Vtp,Vtn,Cpp,Cpn,rot1,r,1.,af_data,cl_data,cd_data,twist,rho,interp)
-            # print Cp1
             _,Cp2 = _vawtwake.powercalc(thetavec,Vinf,wakex2,wakey2,Vnp,Vnn,Vtp,Vtn,Cpp,Cpn,rot2,r,1.,af_data,cl_data,cd_data,twist,rho,interp)
-            # print Cp2
 
 
             cp_mod[i] = (Cp1+Cp2)/(2*Cp_iso)
