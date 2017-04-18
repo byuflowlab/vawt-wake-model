@@ -1381,7 +1381,7 @@ subroutine powercalc(n,f,thetavec,Vinf,wake_x,wake_y,Vnp,Vnn,Vtp,Vtn,Cpp,Cpn,&
         end if
 
         ! compute new tangential force coefficient
-        ct(i) = cl(i)*sin(alpha(i)) - cd(i)*cos(alpha(i))
+        ct(i) = cl(i)*sin(phi(i)) - cd(i)*cos(phi(i))
 
         ! provide relative correction to power coefficient
         Cpl(i) = Cpn(i)*W2(i)/W20(i)*ct(i)/ct0(i)

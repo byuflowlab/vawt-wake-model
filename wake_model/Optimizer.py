@@ -53,8 +53,8 @@ def obj_func(xdict):
     m = 220
     n = 200
 
-    x = xdict['xvars']
-    y = xdict['yvars']
+    x = xdict['xvars'] # turbine x-positions
+    y = xdict['yvars'] # turbine y-positions
     funcs = {}
 
     nturb = np.size(x) # number of turbines

@@ -35,8 +35,8 @@ turbine = 'windspire'   # 1.2 kW Mariah Windspire
 
 # Option to choose the type of calculation to run
 method = 'power_curve'              # create a TSR/Cp power curve
-method = 'coupled_vawt_power'     # create power plot of two coupled turbines
-method = 'polar_power'            # create a power plot of two coupled turbines with respect to wind direction
+# method = 'coupled_vawt_power'     # create power plot of two coupled turbines
+# method = 'polar_power'            # create a power plot of two coupled turbines with respect to wind direction
 # method = 'velocity_overlap'       # create a velocity plot of overlapping turbine wakes
 
 # Option to choose the method of integration
