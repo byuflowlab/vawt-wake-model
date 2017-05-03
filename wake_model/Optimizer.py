@@ -11,10 +11,17 @@ from ACsingle import actuatorcylinder
 from sys import argv
 
 from joblib import Parallel, delayed
+from mpi4py import MPI
 
 import _vawtwake
 import _bpmvawtacoustic
 
+try:
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+except:
+    raise ImportError('mpi4py is required for parallelization')
 
 def obj_func(xdict):
     global dia
@@ -307,19 +314,25 @@ if __name__ == "__main__":
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 2               # number of paired group rows
     nCols = 2               # number of paired group columns
-
-    print '\nSPL Limit:',SPLlim
+    if rank==0:
+        print '\nSPL Limit:',SPLlim
     if rotdir_spec == 'cn':
-        print 'Rotation Specification: Counter-rotating'
+        if rank==0:
+            print 'Rotation Specification: Counter-rotating'
     elif rotdir_spec == 'co':
-        print 'Rotation Specification: Co-rotating'
-    print 'Points around VAWT:',ntheta
+        if rank==0:
+            print 'Rotation Specification: Co-rotating'
+    if rank==0:
+        print 'Points around VAWT:',ntheta
     if wake_method == 'simp':
-        print "Using Simpson's Rule for Wake Calculation"
+        if rank==0:
+            print "Using Simpson's Rule for Wake Calculation"
     elif wake_method == 'gskr':
-        print "Using 21-Point Gauss-Kronrod Quadrature for Wake Calculation"
-    print 'Rows of Paired Groups:',nRows
-    print 'Columns of Paired Groups:',nCols,'\n'
+        if rank==0:
+            print "Using 21-Point Gauss-Kronrod Quadrature for Wake Calculation"
+    if rank==0:
+        print 'Rows of Paired Groups:',nRows
+        print 'Columns of Paired Groups:',nCols,'\n'
 
     basepath = path.join(path.dirname(path.realpath('__file__')), 'data')
     foildata = basepath + path.sep + 'airfoils/du06w200.dat'
@@ -331,7 +344,8 @@ if __name__ == "__main__":
     windroseDirections = np.array([205.,225.,245.])
     windFrequencies = np.array([0.25,0.50,0.25])
     nwind = np.size(windroseDirections)
-    print 'wind:',windroseDirections
+    if rank==0:
+        print 'wind:',windroseDirections
 
     # define turbine specifications
     Vinf = 8.                           # free stream velocity (m/s)
@@ -383,8 +397,9 @@ if __name__ == "__main__":
     x0 = np.concatenate((x01,x02))
     y0 = np.concatenate((y01,y02))
     nturb = np.size(x0)
-    print 'x0:',x0.tolist()
-    print 'y0:',y0.tolist()
+    if rank==0:
+        print 'x0:',x0.tolist()
+        print 'y0:',y0.tolist()
 
     dia = np.ones(nturb)*turb_dia
 
@@ -395,7 +410,8 @@ if __name__ == "__main__":
         rot = np.concatenate((rot1,rot2))
     elif rotdir_spec == 'co':
         rot = np.ones(nturb)*turb_rot
-    print 'rot:',rot.tolist(),'\n'
+    if rank==0:
+        print 'rot:',rot.tolist(),'\n'
     for i in range(nwind-1):
         rot = np.append(rot,rot)
 
@@ -420,7 +436,8 @@ if __name__ == "__main__":
         obs[i,0] = grid_x + grid_radius*cos(obs_theta[i])
         obs[i,1] = grid_y + grid_radius*sin(obs_theta[i])
         obs[i,2] = 2.
-    print nobs,'observers around a radius of ',grid_radius,'\n'
+    if rank==0:
+        print nobs,'observers around a radius of ',grid_radius,'\n'
 
     # power value precompute (for CCW and CW directions)
     Cp_iso,Tpp,Vnp,Vtp = actuatorcylinder(ntheta,af_data,cl_data,cd_data,turb_dia/2.,chord,twist,delta,B,fabs(turb_rot),Vinf,rho,interp,np.zeros(ntheta),np.zeros(ntheta)) # CCW
@@ -449,7 +466,7 @@ if __name__ == "__main__":
         num_cons_obs = nobs*nwind
         optProb.addConGroup('SPL', num_cons_obs, lower=0, upper=SPLlim/10.)
 
-        opt = SNOPT()
+        opt = SNOPT(pll_type='POA')
         opt.setOption('Scale option',0)
         if rotdir_spec == 'cn':
             opt.setOption('Print file',basepath + path.sep + 'optimization_results/SNOPT_print_SPL'+str(SPLlim)+'_turb'+str(n)+'_counterrot.out')
@@ -460,7 +477,8 @@ if __name__ == "__main__":
 
         # run optimization
         res = opt(optProb)
-        print res
+        if rank==0:
+            print res
 
         pow = np.array(-1*res.fStar)*1e3
         xf = res.xStar['xvars']
@@ -490,13 +508,13 @@ if __name__ == "__main__":
             for j in range(nobs):
                 SPLw[i,j] = SPLd[k]
                 k += 1
-
-    print 'Wind Directions:',windroseDirections
-    print 'The power is:',pow,'W (',pow/(power_iso_tot),')'
-    print 'The isolated power is:',power_iso_tot,'W'
-    print 'The x-locations:',xf
-    print 'The y-locations:',yf
-    print 'SPL:',SPLw
+    if rank==0:
+        print 'Wind Directions:',windroseDirections
+        print 'The power is:',pow,'W (',pow/(power_iso_tot),')'
+        print 'The isolated power is:',power_iso_tot,'W'
+        print 'The x-locations:',xf
+        print 'The y-locations:',yf
+        print 'SPL:',SPLw
 
     if saveresult == True:
         # writing results to text file
