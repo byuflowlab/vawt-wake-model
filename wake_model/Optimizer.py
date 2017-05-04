@@ -10,7 +10,7 @@ import VAWT_Wake_Model as vwm
 from ACsingle import actuatorcylinder
 from sys import argv
 
-from joblib import Parallel, delayed
+#from joblib import Parallel, delayed
 from mpi4py import MPI
 
 import _vawtwake
@@ -24,6 +24,10 @@ except:
     raise ImportError('mpi4py is required for parallelization')
 
 def obj_func(xdict):
+    toOpt=True
+    print '0 opt'
+    comm.bcast(toOpt,root=0)
+    print '0 bcast 1'
     global dia
     global rot
     global chord
@@ -92,7 +96,17 @@ def obj_func(xdict):
         wakex,wakey = vawt_wake(xw,yw,dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
 
         # calculating power (W)
-        res = Parallel(n_jobs=-1)(delayed(vawt_power)(i,dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey) for i in range(nturb) )
+        comm.Barrier()
+        #           0   1       2       3  4 5 6    7       8       9       10      11  12  13      14      15
+        consts = [dia,rotw[d],ntheta,chord,H,B,Ving,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey]
+        comm.bcast(consts,root=0)
+        comm.scatter(nturb,root=0)
+        comm.Barrier()
+        comm.gather(res,root=0)
+
+        #vawt_power(i,dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
+        #res = Parallel(n_jobs=-1)(delayed(vawt_power)(i,dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey) for i in range(nturb) )
+
         for i in range(nturb):
             power_turb[i] = res[i]
         power_dir[d] = np.sum(power_turb)*windFrequencies[d]
@@ -118,7 +132,7 @@ def obj_func(xdict):
     funcs['sep'] = sep
 
     fail = False
-
+    comm.Barrier()
     return funcs, fail
 
 
@@ -208,9 +222,14 @@ def bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey):
     c1 = c*0.5
     alpha = np.ones(div)*0.0
     high = np.linspace(0,H,div+1)
-
-    SPL = Parallel(n_jobs=-1)(delayed(bpmnoise)(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey) for i in range(nobs) )
-
+    #       0       1   2   3  4    5  6   7  8  9  10         11
+    conts=[winddir,Hub,high,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot]
+    comm.bcast(conts,root=0)
+    comm.scatter(obs,root=0)
+    comm.Barrier()
+    comm.gather(SPL,root=0)
+    #SPL = Parallel(n_jobs=-1)(delayed(bpmnoise)(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey) for i in range(nobs) )
+    #SPL=bpmnoise(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
     return SPL
 
 
@@ -451,8 +470,8 @@ if __name__ == "__main__":
     # option to use actuator cylinder or not (use a correction factor method)
     useAC = True
     useAC = False
-
-    if optimize == True:
+    toOpt = None
+    if optimize == True and rank==0:
         # optimization setup
         optProb = Optimization('VAWT_Power', obj_func)
         optProb.addObj('obj')
@@ -476,10 +495,78 @@ if __name__ == "__main__":
             opt.setOption('Summary file',basepath + path.sep + 'optimization_results/SNOPT_summary_SPL'+str(SPLlim)+'_turb'+str(n)+'_corot.out')
 
         # run optimization
+    if rank==1:
+        print '1 outside 1'
+    comm.Barrier()
+    if rank!=0:
+        comm.bcast(toOpt,root=0)
+        if rank==1:
+            print '1 bcast toOpt'
+    if optimize==True and rank!=0:
+        while not toOpt:
+            if rank==1:
+                print '1 in While'
+            comm.Barrier()
+            if rank==1:
+                print '1 past 1'
+            #Recieve Constants
+            comm.bcast(consts,root=0)
+            if rank==1:
+                print '1 bacst 1'
+            dia = consts[0]
+            rotwl = consts[1]
+            ntheta=consts[2]
+            chord=consts[3]
+            H=consts[4]
+            B=consts[5]
+            Vinf = consts[6]
+            af_data=consts[7]
+            cl_data=consts[8]
+            cd_data=consts[9]
+            twist=consts[10]
+            delta=consts[11]
+            rho=consts[12]
+            interp=consts[13]
+            wakex=consts[14]
+            wakey=consts[15]
+            #Recieve Turbine Association
+            comm.scatter(nturb,root=0)
+            if rank==1:
+                print '1 scatter 1'
+            res=vawt_power(nturb,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
+            comm.Barrier()
+            if rank==1:
+                print '1 past 2'
+            comm.gather(res,root=0)
+            comm.Barrier()
+            if rank==1:
+                print '1 past 3'
+            comm.bcast(conts,root=0)
+            winddir=conts[0]
+            Hub=conts[1]
+            high=conts[2]
+            c=conts[3]
+            c1=conts[4]
+            alpha=conts[5]
+            nu=conts[6]
+            c0=conts[7]
+            psi=conts[8]
+            AR=conts[9]
+            noise_corr=conts[10]
+            rot=conts[11]
+            comm.scatter(obs,root=0)
+            SPL=bpmnoise(ntheta,turbineX,turbineY,obs,winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
+            comm.Barrier()
+            comm.gather(SPL,root=0)
+            comm.bcast(toOpt,root=0)
+    if optimize==True and rank==0:
         res = opt(optProb)
         if rank==0:
             print res
-
+        toOpt=False
+    comm.Barrier()
+    comm.bcast(toOpt,root=0)
+    if optimize==True and rank==0:
         pow = np.array(-1*res.fStar)*1e3
         xf = res.xStar['xvars']
         yf = res.xStar['yvars']
@@ -491,7 +578,7 @@ if __name__ == "__main__":
             for j in range(nobs):
                 SPLw[i,j] = SPLd[k]
                 k += 1
-    else:
+    elif optimize==False:
         xf = x0
         yf = y0
 
