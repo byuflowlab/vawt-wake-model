@@ -405,8 +405,8 @@ def overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,Vinf,pointcalc,param=None,veltyp
     vely_int = np.zeros(p)
 
     # Use parallelization (with joblib)
-    parallel = True
-    # parallel = False
+    #parallel = True
+    parallel = False
 
     # finding points around the flight path of the blades
     for i in range(p):
