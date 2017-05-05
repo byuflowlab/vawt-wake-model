@@ -20,119 +20,177 @@ try:
     from mpi4py import MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
+    status=MPI.Status()
+    size = comm.Get_size()
 except:
     raise ImportError('mpi4py is required for parallelization')
 
+def enum(*sequential, **named):
+    """Handy way to fake an enumerated type in Python
+    http://stackoverflow.com/questions/36932/how-can-i-represent-an-enum-in-python
+    """
+    enums = dict(zip(sequential, range(len(sequential))), **named)
+    return type('Enum', (), enums)
+
 def obj_func(xdict):
-    toOpt=True
-    print '0 opt'
-    comm.bcast(toOpt,root=0)
-    print '0 bcast 1'
-    global dia
-    global rot
-    global chord
-    global twist
-    global delta
-    global B
-    global H
-    global rho
-    global mu
-    global Vinf
-    global windroseDirections
-    global windFrequencies
+    if rank ==0:
+        print 'obj function',rank
+        global dia
+        global rot
+        global chord
+        global twist
+        global delta
+        global B
+        global H
+        global rho
+        global mu
+        global Vinf
+        global windroseDirections
+        global windFrequencies
 
-    global af_data
-    global cl_data
-    global cd_data
-    global coef0
-    global coef1
-    global coef2
-    global coef3
-    global coef4
-    global coef5
-    global coef6
-    global coef7
-    global coef8
-    global coef9
+        global af_data
+        global cl_data
+        global cd_data
+        global coef0
+        global coef1
+        global coef2
+        global coef3
+        global coef4
+        global coef5
+        global coef6
+        global coef7
+        global coef8
+        global coef9
 
-    global funcs
-    global power_iso_tot
-    global ntheta
-    global interp
+        global funcs
+        global power_iso_tot
+        global ntheta
+        global interp
 
-    # Simpson's rule integration division
-    m = 220
-    n = 200
+        #BPM Globals (Parameters)
+        global turb_dia
+        global obs
+        global B
+        global Hub
+        global H
+        global chord
+        global Vinf
+        global ntheta
 
-    x = xdict['xvars'] # turbine x-positions
-    y = xdict['yvars'] # turbine y-positions
-    funcs = {}
+        # Simpson's rule integration division
+        m = 220
+        n = 200
 
-    nturb = np.size(x) # number of turbines
-    nwind = np.size(windroseDirections) # number of wind directions
+        x = xdict['xvars'] # turbine x-positions
+        y = xdict['yvars'] # turbine y-positions
+        funcs = {}
 
-    power_turb = np.zeros(nturb)
-    power_dir = np.zeros(nwind)
+        nturb = np.size(x) # number of turbines
+        nwind = np.size(windroseDirections) # number of wind directions
 
-    # reordering rotation directions to a matrix of wind directions
-    rotw = np.zeros((nwind,nturb))
-    k = 0
-    for i in range(nwind):
-        for j in range(nturb):
-            rotw[i,j] = rot[k]
-            k += 1
+        power_turb = np.zeros(nturb)
+        power_dir = np.zeros(nwind)
+        # reordering rotation directions to a matrix of wind directions
+        rotw = np.zeros((nwind,nturb))
+        k = 0
+        for i in range(nwind):
+            for j in range(nturb):
+                rotw[i,j] = rot[k]
+                k += 1
 
-    winddir_turb = np.zeros_like(windroseDirections)
-    for d in range(0, nwind):
-        # adjusting coordinate system for wind direction
-        winddir_turb[d] = 270. - windroseDirections[d]
-        if winddir_turb[d] < 0.:
-            winddir_turb[d] += 360.
-        winddir_turb_rad = pi*winddir_turb[d]/180.0
-        xw = x*cos(-winddir_turb_rad) - y*sin(-winddir_turb_rad)
-        yw = x*sin(-winddir_turb_rad) + y*cos(-winddir_turb_rad)
+        winddir_turb = np.zeros_like(windroseDirections)
+        for d in range(0, nwind):
+            # adjusting coordinate system for wind direction
+            winddir_turb[d] = 270. - windroseDirections[d]
+            if winddir_turb[d] < 0.:
+                winddir_turb[d] += 360.
+            winddir_turb_rad = pi*winddir_turb[d]/180.0
+            xw = x*cos(-winddir_turb_rad) - y*sin(-winddir_turb_rad)
+            yw = x*sin(-winddir_turb_rad) + y*cos(-winddir_turb_rad)
+            print 'sdfsdf'
+            # calculating wake velocity components
+            wakex,wakey = vawt_wake(xw,yw,dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
+            print 'vawt_wake'
+            # power parameters
+            #           0   1       2       3  4 5 6    7       8       9       10      11  12  13      14      15
+            constsPWR = [dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey]
+            #BPM Precalculations
+            rot=rotw[d]
+            winddir=windroseDirections[d]
+            #BPM parameters
+            #         0 1 2                         3   4       5   6
+            contsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey,i]
+            print 'gett'
+            #While Loop for calculations (State Machine)
+            calcneeded=nturb+nobs
+            casig=0
+            calccompleted=0
+            tlocs=0
+            power_turb=np.empty(nturb)
+            SPL_d=np.empty(nwind*len(obs))
+            data=7
+            print 'gggggg'
+            while calccompleted<calcneeded:
+                data.comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
+                print 'recieve'
+                source=status.Get_source()
+                tag=status.Get_tag()
+                if tag==tags.READY:
+                    if tlocs<nturb:
+                        ConstsPWR=np.append(ConstsPWR,tlocs,dtype=object)
+                        comm.send(ConstsPWR,dest=source,tag=tags.PWR)
+                        print 'PWR sent'
+                        tlocs+=1
+                    elif tlocs>nturb:
+                        obsn=tlocs-nturb
+                        ConstsBPM=np.append(ConstsBPM,obsn,dtype=object)
+                        print 'BPM sent'
+                        comm.send(ConstsBPM,dest=source,tag=tags.BPM)
+                        tlocs+=1
+                    else:
+                        comm.send(None,dest=source,tag=tags.SLEEP)
+                elif tag==tags.SPWR:
+                    loc=data[0]
+                    pwr=data[1]
+                    powerdir[loc]=pwr
+                    calccompleted+=1
 
-        # calculating wake velocity components
-        wakex,wakey = vawt_wake(xw,yw,dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
+                elif tag==tags.SBPM:
+                    loc=data[0]
+                    SPLt=data[1]
+                    SPL_d[loc]=SPLt
+                    calccompleted+=1
 
-        # calculating power (W)
-        comm.Barrier()
-        #           0   1       2       3  4 5 6    7       8       9       10      11  12  13      14      15
-        consts = [dia,rotw[d],ntheta,chord,H,B,Ving,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey]
-        comm.bcast(consts,root=0)
-        comm.scatter(nturb,root=0)
-        comm.Barrier()
-        comm.gather(res,root=0)
+            for i in range(nturb):
+                power_turb[i] = res[i]
+            power_dir[d] = np.sum(power_turb)*windFrequencies[d]
 
-        #vawt_power(i,dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
-        #res = Parallel(n_jobs=-1)(delayed(vawt_power)(i,dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey) for i in range(nturb) )
+            # calculating noise (dB)
+            #SPL_d = bpm_noise(x,y,windroseDirections[d],rotw[d],wakex,wakey) -function pasted below
 
-        for i in range(nturb):
-            power_turb[i] = res[i]
-        power_dir[d] = np.sum(power_turb)*windFrequencies[d]
+            #For i in range(nobs) - Parrellization
+            #SPL=bpmnoise(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
 
-        # calculating noise (dB)
-        SPL_d = bpm_noise(x,y,windroseDirections[d],rotw[d],wakex,wakey)
-        SPL_dir = np.array(SPL_d)
-        if d == 0:
-            SPL = SPL_dir
-        else:
-            SPL = np.append(SPL,SPL_dir)
 
-    power = np.sum(power_dir)
+            SPL_dir = np.array(SPL_d)
+            if d == 0:
+                SPL = SPL_dir
+            else:
+                SPL = np.append(SPL,SPL_dir)
 
-    funcs['obj'] = (-1.*power/1e3)
+        power = np.sum(power_dir)
 
-    funcs['SPL'] = (SPL)/10.
+        funcs['obj'] = (-1.*power/1e3)
 
-    print 'Power:',power,'W (Isolated: '+str(power_iso_tot)+' W; '+str(power/power_iso_tot)+')   Max SPL:',max(SPL),'dB'
+        funcs['SPL'] = (SPL)/10.
 
-    # calculating separation between turbines
-    sep = sep_func(np.append(x,y))
-    funcs['sep'] = sep
+        print 'Power:',power,'W (Isolated: '+str(power_iso_tot)+' W; '+str(power/power_iso_tot)+')   Max SPL:',max(SPL),'dB'
+
+        # calculating separation between turbines
+        sep = sep_func(np.append(x,y))
+        funcs['sep'] = sep
 
     fail = False
-    comm.Barrier()
     return funcs, fail
 
 
@@ -197,7 +255,7 @@ def vawt_power(i,dia,rotw,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,de
 
 
 # SPL CALCULATION BASED ON BPM ACOUSTIC MODEL
-def bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey):
+def bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i):
     global turb_dia
     global obs
     global B
@@ -222,14 +280,8 @@ def bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey):
     c1 = c*0.5
     alpha = np.ones(div)*0.0
     high = np.linspace(0,H,div+1)
-    #       0       1   2   3  4    5  6   7  8  9  10         11
-    conts=[winddir,Hub,high,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot]
-    comm.bcast(conts,root=0)
-    comm.scatter(obs,root=0)
-    comm.Barrier()
-    comm.gather(SPL,root=0)
     #SPL = Parallel(n_jobs=-1)(delayed(bpmnoise)(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey) for i in range(nobs) )
-    #SPL=bpmnoise(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
+    SPL=bpmnoise(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
     return SPL
 
 
@@ -260,9 +312,12 @@ def sep_func(loc):
 if __name__ == "__main__":
 
     # RUN OPTIMIZATION
-    optimize = True
-    # optimize = False
+    #optimize = True
+    optimize = False
 
+    #MPI States
+    #            recieve  EXIT   calc calc   sendP  sendB  sleep
+    tags = enum('READY','EXIT', 'PWR','BPM','SPWR','SBPM','SLEEP')
     # PLOT RESULTS
     plot = True
     # plot = False
@@ -331,7 +386,7 @@ if __name__ == "__main__":
     ntheta = 72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
-    nRows = 2               # number of paired group rows
+    nRows = 1               # number of paired group rows
     nCols = 2               # number of paired group columns
     if rank==0:
         print '\nSPL Limit:',SPLlim
@@ -355,7 +410,7 @@ if __name__ == "__main__":
 
     basepath = path.join(path.dirname(path.realpath('__file__')), 'data')
     foildata = basepath + path.sep + 'airfoils/du06w200.dat'
-
+    foildata='/Users/ning3/OneDrive - BYU Office 365/Research/WES/Optimization/Combinedgit/vawt-wake-model/wake_model/data/airfoils/du06w200.dat'
     af_data,cl_data,cd_data = vwm.airfoil_data(foildata)
     coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9 = vwm.coef_val()
 
@@ -472,6 +527,10 @@ if __name__ == "__main__":
     useAC = False
     toOpt = None
     if optimize == True and rank==0:
+        num_workers = size - 1
+        closed_workers = 0
+        print 'rank',rank
+        print("Master starting with %d workers" % num_workers)
         # optimization setup
         optProb = Optimization('VAWT_Power', obj_func)
         optProb.addObj('obj')
@@ -485,7 +544,7 @@ if __name__ == "__main__":
         num_cons_obs = nobs*nwind
         optProb.addConGroup('SPL', num_cons_obs, lower=0, upper=SPLlim/10.)
 
-        opt = SNOPT(pll_type='POA')
+        opt = SNOPT()
         opt.setOption('Scale option',0)
         if rotdir_spec == 'cn':
             opt.setOption('Print file',basepath + path.sep + 'optimization_results/SNOPT_print_SPL'+str(SPLlim)+'_turb'+str(n)+'_counterrot.out')
@@ -493,79 +552,84 @@ if __name__ == "__main__":
         elif rotdir_spec == 'co':
             opt.setOption('Print file',basepath + path.sep + 'optimization_results/SNOPT_print_SPL'+str(SPLlim)+'_turb'+str(n)+'_corot.out')
             opt.setOption('Summary file',basepath + path.sep + 'optimization_results/SNOPT_summary_SPL'+str(SPLlim)+'_turb'+str(n)+'_corot.out')
-
+            toOpt = True
         # run optimization
-    if rank==1:
-        print '1 outside 1'
     comm.Barrier()
-    if rank!=0:
-        comm.bcast(toOpt,root=0)
-        if rank==1:
-            print '1 bcast toOpt'
+
     if optimize==True and rank!=0:
-        while not toOpt:
-            if rank==1:
-                print '1 in While'
-            comm.Barrier()
-            if rank==1:
-                print '1 past 1'
-            #Recieve Constants
-            comm.bcast(consts,root=0)
-            if rank==1:
-                print '1 bacst 1'
-            dia = consts[0]
-            rotwl = consts[1]
-            ntheta=consts[2]
-            chord=consts[3]
-            H=consts[4]
-            B=consts[5]
-            Vinf = consts[6]
-            af_data=consts[7]
-            cl_data=consts[8]
-            cd_data=consts[9]
-            twist=consts[10]
-            delta=consts[11]
-            rho=consts[12]
-            interp=consts[13]
-            wakex=consts[14]
-            wakey=consts[15]
-            #Recieve Turbine Association
-            comm.scatter(nturb,root=0)
-            if rank==1:
-                print '1 scatter 1'
-            res=vawt_power(nturb,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
-            comm.Barrier()
-            if rank==1:
-                print '1 past 2'
-            comm.gather(res,root=0)
-            comm.Barrier()
-            if rank==1:
-                print '1 past 3'
-            comm.bcast(conts,root=0)
-            winddir=conts[0]
-            Hub=conts[1]
-            high=conts[2]
-            c=conts[3]
-            c1=conts[4]
-            alpha=conts[5]
-            nu=conts[6]
-            c0=conts[7]
-            psi=conts[8]
-            AR=conts[9]
-            noise_corr=conts[10]
-            rot=conts[11]
-            comm.scatter(obs,root=0)
-            SPL=bpmnoise(ntheta,turbineX,turbineY,obs,winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
-            comm.Barrier()
-            comm.gather(SPL,root=0)
-            comm.bcast(toOpt,root=0)
+        name = MPI.Get_processor_name()
+        print 'I am a worker with rank %d on %s.' % (rank,name)
+        while True:
+            comm.Rsend([None,MPI.INT],dest=0,tag=tags.READY)
+            print 'ready',rank
+            task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
+            tag= status.Get_tag()
+            source=status.Get_source()
+
+            if tag==tags.PWR:
+                print 'PWR assigned to %i'%source
+                dia = task[0]
+                rotwl = task[1]
+                ntheta=task[2]
+                chord=task[3]
+                H=task[4]
+                B=task[5]
+                Vinf = task[6]
+                af_data=task[7]
+                cl_data=task[8]
+                cd_data=task[9]
+                twist=task[10]
+                delta=task[11]
+                rho=task[12]
+                interp=task[13]
+                wakex=task[14]
+                wakey=task[15]
+                i=task[16]
+                #Calculate Power
+                res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
+                result=np.array(res,i)
+                print 'calculate'
+                comm.send(result,dest=0,tag=tags.SPWR)
+            elif tag==tags.BPM:
+                print 'BPM assigned to %i'%source
+                turbineX=consts[0]
+                turbineY=consts[1]
+                winddir=consts[2]
+                rot=consts[3]
+                wakex=consts[4]
+                wakey=consts[5]
+                i=consts[6]
+                #Calculate BPM
+                SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
+                result=np.append(SPL,i)
+                comm.send(result,dest=0,tag=tags.SPWR)
+            elif tag==tags.SLEEP:
+                time.sleep(2)
+            elif tag==tags.EXIT:
+                break
+        comm.send(None,dest=0,tag=tags.EXIT)
+
+
     if optimize==True and rank==0:
+        print 'rank',rank,'opt'
         res = opt(optProb)
+        print '0 past optimization'
+        #'Close' workers and print Result
         if rank==0:
+            while closed_workers<nworkers:
+                data=comm.recv(souce=MPI>ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
+                source=status.Get_source()
+                tag=status.Get_tag()
+                if tag==tags.READY:
+                    comm.send(None, dest=source, tag=tags.EXIT)
+                elif tag==tags.EXIT:
+                    print("Worker %d exited." % source)
+                    closed_workers += 1
+            #Print the result after 'closing' processes
             print res
         toOpt=False
-    comm.Barrier()
-    comm.bcast(toOpt,root=0)
+
+
     if optimize==True and rank==0:
         pow = np.array(-1*res.fStar)*1e3
         xf = res.xStar['xvars']
@@ -603,10 +667,10 @@ if __name__ == "__main__":
         print 'The y-locations:',yf
         print 'SPL:',SPLw
 
-    if saveresult == True:
-        # writing results to text file
-        if rotdir_spec == 'cn':
-            filename = basepath + path.sep + 'optimization_results/Optrun_SPL'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_counterrot.txt'
+        if saveresult == True:
+            # writing results to text file
+            if rotdir_spec == 'cn':
+                filename = basepath + path.sep + 'optimization_results/Optrun_SPL'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_counterrot.txt'
         elif rotdir_spec == 'co':
             filename = basepath + path.sep + 'optimization_results/Optrun_SPL'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_corot.txt'
         target = open(filename,'w')
@@ -621,66 +685,65 @@ if __name__ == "__main__":
         target.write('Y-locations (final): '+str(yf.tolist())+' m\n')
         target.write('\nSPL: '+str(SPLw.tolist())+' dB\n')
         target.close()
-
-    if plot == True:
-        fs = 20
-        ms = 10
-        plt.figure(1,figsize=(11.5,8))
-        plt.subplots_adjust(right=0.68)
-        if plot_type == 'start':
-            plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='full',label='Turbines (CCW)')
-            plt.plot(1e1000,1e1000,'o',color='silver',markersize=ms,fillstyle='full',label='Turbines (CW)')
-        elif plot_type == 'start-finish':
-            plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='none',label='Original Turbines')
-            plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='full',label='Optimized (CCW)')
-            plt.plot(1e1000,1e1000,'o',color='silver',markersize=ms,fillstyle='full',label='Optimized (CW)')
-        elif plot_type == 'finish':
-            plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='full',label='Turbines (CCW)')
-            plt.plot(1e1000,1e1000,'o',color='silver',markersize=ms,fillstyle='full',label='Turbines (CW)')
-        for i in range(np.size(x0)):
-            if rot[i] > 0.:
-                if plot_type == 'start':
-                    circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='k',edgecolor='k')
-                    plt.gca().add_patch(circ)
-                elif plot_type == 'start-finish':
-                    circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='w',edgecolor='k')
-                    plt.gca().add_patch(circ)
-            elif rot[i] < 0.:
-                if plot_type == 'start':
-                    circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='silver',edgecolor='k')
-                    plt.gca().add_patch(circ)
-                elif plot_type == 'start-finish':
-                    circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='w',edgecolor='gray')
-                    plt.gca().add_patch(circ)
-        if plot_type == 'start-finish':
+        if plot == True:
+            fs = 20
+            ms = 10
+            plt.figure(1,figsize=(11.5,8))
+            plt.subplots_adjust(right=0.68)
+            if plot_type == 'start':
+                plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='full',label='Turbines (CCW)')
+                plt.plot(1e1000,1e1000,'o',color='silver',markersize=ms,fillstyle='full',label='Turbines (CW)')
+            elif plot_type == 'start-finish':
+                plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='none',label='Original Turbines')
+                plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='full',label='Optimized (CCW)')
+                plt.plot(1e1000,1e1000,'o',color='silver',markersize=ms,fillstyle='full',label='Optimized (CW)')
+            elif plot_type == 'finish':
+                plt.plot(1e1000,1e1000,'o',color='k',markersize=ms,fillstyle='full',label='Turbines (CCW)')
+                plt.plot(1e1000,1e1000,'o',color='silver',markersize=ms,fillstyle='full',label='Turbines (CW)')
             for i in range(np.size(x0)):
-                plt.plot([x0[i], xf[i]], [y0[i], yf[i]], '--k',zorder=-1)
-        for i in range(np.size(xf)):
-            if rot[i] > 0.:
-                if plot_type == 'start-finish' or plot_type == 'finish':
-                    circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,facecolor='k',edgecolor='k')
-                    plt.gca().add_patch(circ)
-            elif rot[i] < 0.:
-                if plot_type == 'start-finish' or plot_type == 'finish':
-                    circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,facecolor='silver',edgecolor='k')
-                    plt.gca().add_patch(circ)
-        plt.plot(obs[:,0],obs[:,1],'^',color='lime',markersize=ms,label='Observers')
-        rect = plt.Rectangle((xlow,ylow), xupp-xlow,yupp-ylow, linestyle='dashed',linewidth=2,facecolor="#ffffff",fill=False,label='Boundaries')
-        plt.gca().add_patch(rect)
-        plt.annotate('N', xy=((min(obs[:,0])-5)*(2./3.), (max(obs[:,0])+5)*43./45.), xycoords='data', xytext=(0,-40), textcoords='offset points', size=fs, va="center", ha="center", arrowprops=dict(arrowstyle='simple', facecolor='k'), horizontalalignment='right', verticalalignment='top',color='k')
-        plt.annotate('Wind', xy=(((max(obs[:,0])+5)-(min(obs[:,0])-5))/4.5,(min(obs[:,0])-5)*1./15.),  xycoords='data', xytext=(-50*np.tan(45.*np.pi/180),-50), textcoords='offset points', arrowprops=dict(facecolor='skyblue',width=5,headwidth=15), horizontalalignment='right', verticalalignment='top', fontsize=fs,color='k') # wind at 225 degrees
-        # plt.annotate('Wind', xy=(((max(obs[:,0])+5)-(min(obs[:,0])-5))/4.,(min(obs[:,0])-5)*4./15.),  xycoords='data', xytext=(-50,0), textcoords='offset points', arrowprops=dict(facecolor='skyblue',width=5,headwidth=15), horizontalalignment='right', verticalalignment='center', fontsize=fs,color='k') # wind at 90 degrees
-        plt.legend(loc="upper left", bbox_to_anchor=(1,1),fontsize=fs)
-        plt.xticks(fontsize=fs)
-        plt.yticks(fontsize=fs)
-        plt.xlabel('X-Position (m)',fontsize=fs)
-        plt.ylabel('Y-Position (m)',fontsize=fs)
-        plt.xlim(min(obs[:,0])-5,max(obs[:,0])+5)
-        plt.ylim(min(obs[:,0])-5,max(obs[:,0])+5)
-        if saveresult == True:
-            if rotdir_spec == 'cn':
-                plt.savefig(basepath + path.sep + 'optimization_results/SPLrunlayout_'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_counterrot.png')
-            elif rotdir_spec == 'co':
-                plt.savefig(basepath + path.sep + 'optimization_results/SPLrunlayout_'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_corot.png')
+                if rot[i] > 0.:
+                    if plot_type == 'start':
+                        circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='k',edgecolor='k')
+                        plt.gca().add_patch(circ)
+                    elif plot_type == 'start-finish':
+                        circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='w',edgecolor='k')
+                        plt.gca().add_patch(circ)
+                elif rot[i] < 0.:
+                    if plot_type == 'start':
+                        circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='silver',edgecolor='k')
+                        plt.gca().add_patch(circ)
+                    elif plot_type == 'start-finish':
+                        circ = plt.Circle((x0[i],y0[i]),dia[i]/2.,facecolor='w',edgecolor='gray')
+                        plt.gca().add_patch(circ)
+            if plot_type == 'start-finish':
+                for i in range(np.size(x0)):
+                    plt.plot([x0[i], xf[i]], [y0[i], yf[i]], '--k',zorder=-1)
+            for i in range(np.size(xf)):
+                if rot[i] > 0.:
+                    if plot_type == 'start-finish' or plot_type == 'finish':
+                        circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,facecolor='k',edgecolor='k')
+                        plt.gca().add_patch(circ)
+                elif rot[i] < 0.:
+                    if plot_type == 'start-finish' or plot_type == 'finish':
+                        circ = plt.Circle((xf[i],yf[i]),dia[i]/2.,facecolor='silver',edgecolor='k')
+                        plt.gca().add_patch(circ)
+            plt.plot(obs[:,0],obs[:,1],'^',color='lime',markersize=ms,label='Observers')
+            rect = plt.Rectangle((xlow,ylow), xupp-xlow,yupp-ylow, linestyle='dashed',linewidth=2,facecolor="#ffffff",fill=False,label='Boundaries')
+            plt.gca().add_patch(rect)
+            plt.annotate('N', xy=((min(obs[:,0])-5)*(2./3.), (max(obs[:,0])+5)*43./45.), xycoords='data', xytext=(0,-40), textcoords='offset points', size=fs, va="center", ha="center", arrowprops=dict(arrowstyle='simple', facecolor='k'), horizontalalignment='right', verticalalignment='top',color='k')
+            plt.annotate('Wind', xy=(((max(obs[:,0])+5)-(min(obs[:,0])-5))/4.5,(min(obs[:,0])-5)*1./15.),  xycoords='data', xytext=(-50*np.tan(45.*np.pi/180),-50), textcoords='offset points', arrowprops=dict(facecolor='skyblue',width=5,headwidth=15), horizontalalignment='right', verticalalignment='top', fontsize=fs,color='k') # wind at 225 degrees
+            # plt.annotate('Wind', xy=(((max(obs[:,0])+5)-(min(obs[:,0])-5))/4.,(min(obs[:,0])-5)*4./15.),  xycoords='data', xytext=(-50,0), textcoords='offset points', arrowprops=dict(facecolor='skyblue',width=5,headwidth=15), horizontalalignment='right', verticalalignment='center', fontsize=fs,color='k') # wind at 90 degrees
+            plt.legend(loc="upper left", bbox_to_anchor=(1,1),fontsize=fs)
+            plt.xticks(fontsize=fs)
+            plt.yticks(fontsize=fs)
+            plt.xlabel('X-Position (m)',fontsize=fs)
+            plt.ylabel('Y-Position (m)',fontsize=fs)
+            plt.xlim(min(obs[:,0])-5,max(obs[:,0])+5)
+            plt.ylim(min(obs[:,0])-5,max(obs[:,0])+5)
+            if saveresult == True:
+                if rotdir_spec == 'cn':
+                    plt.savefig(basepath + path.sep + 'optimization_results/SPLrunlayout_'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_counterrot.png')
+                elif rotdir_spec == 'co':
+                    plt.savefig(basepath + path.sep + 'optimization_results/SPLrunlayout_'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_corot.png')
 
 plt.show()
