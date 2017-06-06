@@ -5,7 +5,7 @@ from numpy import sqrt,pi,sin,cos,fabs
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
-
+import time
 import VAWT_Wake_Model as vwm
 from ACsingle import actuatorcylinder
 from sys import argv
@@ -15,6 +15,7 @@ from mpi4py import MPI
 
 import _vawtwake
 import _bpmvawtacoustic
+import pdb
 
 try:
     from mpi4py import MPI
@@ -34,7 +35,6 @@ def enum(*sequential, **named):
 
 def obj_func(xdict):
     if rank ==0:
-        print 'obj function',rank
         global dia
         global rot
         global chord
@@ -107,10 +107,10 @@ def obj_func(xdict):
             winddir_turb_rad = pi*winddir_turb[d]/180.0
             xw = x*cos(-winddir_turb_rad) - y*sin(-winddir_turb_rad)
             yw = x*sin(-winddir_turb_rad) + y*cos(-winddir_turb_rad)
-            print 'sdfsdf'
+            print 'Precalculate Wake Components'
             # calculating wake velocity components
             wakex,wakey = vawt_wake(xw,yw,dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
-            print 'vawt_wake'
+            print 'Wake Component Precalculations Complete'
             # power parameters
             #           0   1       2       3  4 5 6    7       8       9       10      11  12  13      14      15
             constsPWR = [dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey]
@@ -119,8 +119,8 @@ def obj_func(xdict):
             winddir=windroseDirections[d]
             #BPM parameters
             #         0 1 2                         3   4       5   6
-            contsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey,i]
-            print 'gett'
+            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey,i]
+            print 'BPM Precalculations Complete'
             #While Loop for calculations (State Machine)
             calcneeded=nturb+nobs
             casig=0
@@ -129,35 +129,37 @@ def obj_func(xdict):
             power_turb=np.empty(nturb)
             SPL_d=np.empty(nwind*len(obs))
             data=7
-            print 'gggggg'
+            pdb.set_trace()
+            print 'Master Slave Loop'
             while calccompleted<calcneeded:
-                data.comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
+                print 'Complete: ',calccompleted,'/',calcneeded
+                data = comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
                 print 'recieve'
                 source=status.Get_source()
                 tag=status.Get_tag()
+                print 'Source:',source,'Tag:',tag
                 if tag==tags.READY:
                     if tlocs<nturb:
-                        ConstsPWR=np.append(ConstsPWR,tlocs,dtype=object)
+                        ConstsPWR=np.append(constsPWR,tlocs)
                         comm.send(ConstsPWR,dest=source,tag=tags.PWR)
                         print 'PWR sent'
                         tlocs+=1
-                    elif tlocs>nturb:
+                    elif tlocs>=nturb:
                         obsn=tlocs-nturb
-                        ConstsBPM=np.append(ConstsBPM,obsn,dtype=object)
+                        ConstsBPM=np.append(constsBPM,obsn)
                         print 'BPM sent'
                         comm.send(ConstsBPM,dest=source,tag=tags.BPM)
                         tlocs+=1
                     else:
                         comm.send(None,dest=source,tag=tags.SLEEP)
                 elif tag==tags.SPWR:
-                    loc=data[0]
-                    pwr=data[1]
-                    powerdir[loc]=pwr
+                    loc=data[1]
+                    pwr=data[0]
+                    power_turb[loc]=pwr
                     calccompleted+=1
-
                 elif tag==tags.SBPM:
-                    loc=data[0]
-                    SPLt=data[1]
+                    loc=data[1]
+                    SPLt=data[0]
                     SPL_d[loc]=SPLt
                     calccompleted+=1
 
@@ -312,8 +314,8 @@ def sep_func(loc):
 if __name__ == "__main__":
 
     # RUN OPTIMIZATION
-    #optimize = True
-    optimize = False
+    optimize = True
+    #optimize = False
 
     #MPI States
     #            recieve  EXIT   calc calc   sendP  sendB  sleep
@@ -529,7 +531,6 @@ if __name__ == "__main__":
     if optimize == True and rank==0:
         num_workers = size - 1
         closed_workers = 0
-        print 'rank',rank
         print("Master starting with %d workers" % num_workers)
         # optimization setup
         optProb = Optimization('VAWT_Power', obj_func)
@@ -559,15 +560,25 @@ if __name__ == "__main__":
     if optimize==True and rank!=0:
         name = MPI.Get_processor_name()
         print 'I am a worker with rank %d on %s.' % (rank,name)
+        #pyOpt dummy mpi calls (pyOPT mpi calls that we do not use but must include)
+        lists = ['xvars','yvars']
+        other = ['SPL','sep']
+        comm.send(None,dest=0)
+        comm.gather(lists,root=0)
+        dummy = comm.bcast(lists,root=0)
+        variables = comm.bcast(lists,root=0)
+        comm.gather(other,root=0)
+        variables = comm.bcast(other,root=0)
+        comm.gather(other,root=0)
+
         while True:
-            comm.Rsend([None,MPI.INT],dest=0,tag=tags.READY)
-            print 'ready',rank
+            comm.send([None,MPI.INT],dest=0,tag=tags.READY)
+            print 'Worker',rank,'is Ready'
             task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
             tag= status.Get_tag()
             source=status.Get_source()
-
             if tag==tags.PWR:
-                print 'PWR assigned to %i'%source
+                print 'PWR assigned to %i'%rank
                 dia = task[0]
                 rotwl = task[1]
                 ntheta=task[2]
@@ -587,22 +598,22 @@ if __name__ == "__main__":
                 i=task[16]
                 #Calculate Power
                 res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
-                result=np.array(res,i)
+                result=np.array([res,i])
                 print 'calculate'
-                comm.send(result,dest=0,tag=tags.SPWR)
+                comm.Send(result,dest=0,tag=tags.SPWR)
             elif tag==tags.BPM:
-                print 'BPM assigned to %i'%source
-                turbineX=consts[0]
-                turbineY=consts[1]
-                winddir=consts[2]
-                rot=consts[3]
-                wakex=consts[4]
-                wakey=consts[5]
-                i=consts[6]
+                print 'BPM assigned to %i'%rank
+                turbineX=task[0]
+                turbineY=task[1]
+                winddir=task[2]
+                rot=task[3]
+                wakex=task[4]
+                wakey=task[5]
+                i=task[6]
                 #Calculate BPM
                 SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
                 result=np.append(SPL,i)
-                comm.send(result,dest=0,tag=tags.SPWR)
+                comm.Send(result,dest=0,tag=tags.SPWR)
             elif tag==tags.SLEEP:
                 time.sleep(2)
             elif tag==tags.EXIT:
@@ -611,9 +622,8 @@ if __name__ == "__main__":
 
 
     if optimize==True and rank==0:
-        print 'rank',rank,'opt'
         res = opt(optProb)
-        print '0 past optimization'
+        print 'Optimization Complete, Closing Workers'
         #'Close' workers and print Result
         if rank==0:
             while closed_workers<nworkers:
