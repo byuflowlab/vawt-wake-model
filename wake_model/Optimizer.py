@@ -123,7 +123,7 @@ def obj_func(xdict):
             winddir=windroseDirections[d]
             #BPM parameters
             #         0 1 2                         3   4       5   6
-            constsBPM=[x,y,windroseDirections[d],rotw[d],wake,wakey,i]
+            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey,i]
             print 'BPM Precalculations Complete'
             #While Loop for calculations (State Machine)
             calcneeded=nturb+nobs
@@ -162,6 +162,7 @@ def obj_func(xdict):
                 elif tag==tags.SBPM:
                     loc=data[1]
                     SPLt=data[0]
+                    print loc
                     SPL_d[loc]=SPLt
                     calccompleted+=1
                     print 'Complete: ',calccompleted,'/',calcneeded
@@ -169,7 +170,7 @@ def obj_func(xdict):
             for i in range(nturb):
                 power_turb[i] = power_turb[i]
             power_dir[d] = np.sum(power_turb)*windFrequencies[d]
-
+            print SPL_d
             # calculating noise (dB)
             #SPL_d = bpm_noise(x,y,windroseDirections[d],rotw[d],wakex,wakey) -function pasted below
 
