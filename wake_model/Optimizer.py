@@ -123,7 +123,7 @@ def obj_func(xdict):
             winddir=windroseDirections[d]
             #BPM parameters
             #         0 1 2                         3   4       5   6
-            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey,i]
+            constsBPM=[x,y,windroseDirections[d],rotw[d],wake,wakey,i]
             print 'BPM Precalculations Complete'
             #While Loop for calculations (State Machine)
             calcneeded=nturb+nobs
@@ -138,22 +138,17 @@ def obj_func(xdict):
             print 'Master Slave Loop'
             while calccompleted<=calcneeded:
                 tag = None
-                print 'Complete: ',calccompleted,'/',calcneeded
                 data = comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
-                print 'recieve'
                 source=status.Get_source()
                 tag=status.Get_tag()
-                print 'Source:',source,'Tag:',tag
                 if tag == tags.READY:
                     if tlocs<nturb:
                         ConstsPWR=np.append(constsPWR,tlocs)
                         comm.ssend(ConstsPWR,dest=source,tag=tags.PWR)
-                        print 'PWR sent'
                         tlocs+=1
                     elif tlocs>=nturb:
                         obsn=tlocs-nturb
                         ConstsBPM=np.append(constsBPM,obsn)
-                        print 'BPM sent'
                         comm.ssend(ConstsBPM,dest=source,tag=tags.BPM)
                         tlocs+=1
                     else:
@@ -163,11 +158,13 @@ def obj_func(xdict):
                     pwr=data[0]
                     power_turb[loc]=pwr
                     calccompleted+=1
+                    print 'Complete: ',calccompleted,'/',calcneeded
                 elif tag==tags.SBPM:
                     loc=data[1]
                     SPLt=data[0]
                     SPL_d[loc]=SPLt
                     calccompleted+=1
+                    print 'Complete: ',calccompleted,'/',calcneeded
 
             for i in range(nturb):
                 power_turb[i] = power_turb[i]
@@ -179,7 +176,7 @@ def obj_func(xdict):
             #For i in range(nobs) - Parrellization
             #SPL=bpmnoise(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
 
-
+            print len(SPL_d)
             SPL_dir = np.array(SPL_d)
             if d == 0:
                 SPL = SPL_dir
@@ -604,9 +601,7 @@ if __name__ == "__main__":
                 #Calculate Power
                 res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
                 result=np.array([res,i])
-                print 'calculate'
                 comm.send(result,dest=0,tag=tags.SPWR)
-                print 'sent'
             elif tag==tags.BPM:
                 print 'BPM assigned to %i'%rank
                 turbineX=task[0]
