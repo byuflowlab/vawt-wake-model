@@ -132,23 +132,24 @@ def obj_func(xdict):
             pdb.set_trace()
             print 'Master Slave Loop'
             while calccompleted<calcneeded:
+                tag = None
                 print 'Complete: ',calccompleted,'/',calcneeded
                 data = comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
                 print 'recieve'
                 source=status.Get_source()
                 tag=status.Get_tag()
                 print 'Source:',source,'Tag:',tag
-                if tag==tags.READY:
+                if tag == tags.READY:
                     if tlocs<nturb:
                         ConstsPWR=np.append(constsPWR,tlocs)
-                        comm.send(ConstsPWR,dest=source,tag=tags.PWR)
+                        comm.ssend(ConstsPWR,dest=source,tag=tags.PWR)
                         print 'PWR sent'
                         tlocs+=1
                     elif tlocs>=nturb:
                         obsn=tlocs-nturb
                         ConstsBPM=np.append(constsBPM,obsn)
                         print 'BPM sent'
-                        comm.send(ConstsBPM,dest=source,tag=tags.BPM)
+                        comm.ssend(ConstsBPM,dest=source,tag=tags.BPM)
                         tlocs+=1
                     else:
                         comm.send(None,dest=source,tag=tags.SLEEP)
@@ -570,7 +571,6 @@ if __name__ == "__main__":
         comm.gather(other,root=0)
         variables = comm.bcast(other,root=0)
         comm.gather(other,root=0)
-
         while True:
             comm.send([None,MPI.INT],dest=0,tag=tags.READY)
             print 'Worker',rank,'is Ready'
@@ -600,7 +600,8 @@ if __name__ == "__main__":
                 res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
                 result=np.array([res,i])
                 print 'calculate'
-                comm.Send(result,dest=0,tag=tags.SPWR)
+                comm.ssend(result,dest=0,tag=tags.SPWR)
+                print 'sent'
             elif tag==tags.BPM:
                 print 'BPM assigned to %i'%rank
                 turbineX=task[0]
@@ -613,7 +614,7 @@ if __name__ == "__main__":
                 #Calculate BPM
                 SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
                 result=np.append(SPL,i)
-                comm.Send(result,dest=0,tag=tags.SPWR)
+                comm.ssend(result,dest=0,tag=tags.SPWR)
             elif tag==tags.SLEEP:
                 time.sleep(2)
             elif tag==tags.EXIT:
