@@ -15,7 +15,11 @@ from mpi4py import MPI
 
 import _vawtwake
 import _bpmvawtacoustic
-import pdb
+
+
+debugging = False
+if debugging:
+    import pdb
 
 try:
     from mpi4py import MPI
@@ -129,9 +133,10 @@ def obj_func(xdict):
             power_turb=np.empty(nturb)
             SPL_d=np.empty(nwind*len(obs))
             data=7
-            pdb.set_trace()
+            if debugging:
+                pdb.set_trace()
             print 'Master Slave Loop'
-            while calccompleted<calcneeded:
+            while calccompleted<=calcneeded:
                 tag = None
                 print 'Complete: ',calccompleted,'/',calcneeded
                 data = comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
@@ -165,7 +170,7 @@ def obj_func(xdict):
                     calccompleted+=1
 
             for i in range(nturb):
-                power_turb[i] = res[i]
+                power_turb[i] = power_turb[i]
             power_dir[d] = np.sum(power_turb)*windFrequencies[d]
 
             # calculating noise (dB)
@@ -571,9 +576,9 @@ if __name__ == "__main__":
         comm.gather(other,root=0)
         variables = comm.bcast(other,root=0)
         comm.gather(other,root=0)
+        print 'Worker',rank,'is Ready'
         while True:
             comm.send([None,MPI.INT],dest=0,tag=tags.READY)
-            print 'Worker',rank,'is Ready'
             task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
             tag= status.Get_tag()
             source=status.Get_source()
@@ -600,7 +605,7 @@ if __name__ == "__main__":
                 res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
                 result=np.array([res,i])
                 print 'calculate'
-                comm.ssend(result,dest=0,tag=tags.SPWR)
+                comm.send(result,dest=0,tag=tags.SPWR)
                 print 'sent'
             elif tag==tags.BPM:
                 print 'BPM assigned to %i'%rank
@@ -614,7 +619,7 @@ if __name__ == "__main__":
                 #Calculate BPM
                 SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
                 result=np.append(SPL,i)
-                comm.ssend(result,dest=0,tag=tags.SPWR)
+                comm.send(result,dest=0,tag=tags.SBPM)
             elif tag==tags.SLEEP:
                 time.sleep(2)
             elif tag==tags.EXIT:
@@ -623,6 +628,7 @@ if __name__ == "__main__":
 
 
     if optimize==True and rank==0:
+        res=None
         res = opt(optProb)
         print 'Optimization Complete, Closing Workers'
         #'Close' workers and print Result
