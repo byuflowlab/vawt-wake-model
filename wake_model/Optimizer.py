@@ -37,6 +37,24 @@ def enum(*sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
     return type('Enum', (), enums)
 
+def dist(legs,master=True):
+    size=comm.Get_size()
+    num = np.linspace(0,size-1,size)
+    if master:
+        dist = np.ones(size-1)
+    else:
+        dist = np.ones(size)
+    base=np.floor(legs/size)
+    dist = dist*base
+    remain=int(legs-size*base)
+    for i in range(0,remain):
+        dist[i]=dist[i]+1
+    if master:
+        dists = np.append([0],dist)
+    else:
+        dists=dist
+    return [dists,num]
+
 def obj_func(xdict):
     if rank ==0:
         global dia
@@ -103,27 +121,60 @@ def obj_func(xdict):
                 k += 1
 
         winddir_turb = np.zeros_like(windroseDirections)
-        for d in range(0, nwind):
-            # adjusting coordinate system for wind direction
+        #Parallel Wind Direction Precomputations
+        winddir_turb = np.zeros_like(windroseDirections)
+        winddir_turb_rad = np.zeros_like(windroseDirections)
+        xw = np.zeros([len(windroseDirections),nturb])
+        yw = np.zeros([len(windroseDirections),nturb])
+        #xw = np.zeros_like(windroseDirections)
+        #yw = np.zeros_like(windroseDirections)
+        for d in range(0,nwind):
             winddir_turb[d] = 270. - windroseDirections[d]
             if winddir_turb[d] < 0.:
                 winddir_turb[d] += 360.
-            winddir_turb_rad = pi*winddir_turb[d]/180.0
-            xw = x*cos(-winddir_turb_rad) - y*sin(-winddir_turb_rad)
-            yw = x*sin(-winddir_turb_rad) + y*cos(-winddir_turb_rad)
-            print 'Precalculate Wake Components'
-            # calculating wake velocity components
-            wakex,wakey = vawt_wake(xw,yw,dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
-            print 'Wake Component Precalculations Complete'
+            winddir_turb_rad[d] = pi*winddir_turb[d]/180.0
+            xw[d] = x*cos(-winddir_turb_rad[d]) - y*sin(-winddir_turb_rad[d])
+            yw[d] = x*sin(-winddir_turb_rad[d]) + y*cos(-winddir_turb_rad[d])
+        print 'Precalculate Wake Components'
+        tstart=time.time()
+        # calculating wake velocity components
+        for i in range(1,size):
+            comm.send([None,MPI.INT],dest=i,tag=tags.PRECOMP)
+        dlocal = np.zeros(1)
+        e= len(windroseDirections)-1
+        d=np.linspace(0,e,e+1)
+        scatv = dist(len(windroseDirections))
+        comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
+        #         0  1  2    3      4   5    6 7    8       9       10  11  12      13   14     15   16     17 18 19
+        coefs = [xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n]
+        comm.bcast(coefs,root=0)
+        results = np.zeros(e*3)
+        comm.gather(results,root=0)
+        #wakex,wakey = vawt_wake(xw[d],yw[d],dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
+        wakex = np.zeros([nwind,nturb*ntheta])
+        wakey = np.zeros([nwind,ntheta*nturb])
+        results= comm.gather(results,root=0)
+        print 'Waiting on Calculations'
+        comm.Barrier()
+        tend=time.time()
+        print 'Wake Calculations Complete in ',tend-tstart,'seconds'
+        print results
+        if debugging:
+            pdb.set_trace()
+        for i in range(1,4):
+            unpack=results[i]
+            wakex[i-1]=unpack[1]
+            wakey[i-1]=unpack[2]
+        #completion code goes here
+        for d in range(0, nwind):
             # power parameters
             #           0   1       2       3  4 5 6    7       8       9       10      11  12  13      14      15
-            constsPWR = [dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey]
+            constsPWR = [dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex[d],wakey[d]]
             #BPM Precalculations
-            rot=rotw[d]
             winddir=windroseDirections[d]
             #BPM parameters
             #         0 1 2                         3   4       5   6
-            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey]
+            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex[d],wakey[d]]
             print 'BPM Precalculations Complete'
             #While Loop for calculations (State Machine)
             calcneeded=nturb+nobs
@@ -147,11 +198,9 @@ def obj_func(xdict):
                         comm.ssend(ConstsPWR,dest=source,tag=tags.PWR)
                         tlocs+=1
                     elif tlocs>=nturb and tlocs-nturb<=len(obs):
-                        print nturb,tlocs
                         obsn=tlocs-nturb
                         print 'Calculate Observer: ',obsn
                         ConstsBPM=np.append(constsBPM,obsn)
-                        print ConstsBPM[6]
                         comm.ssend(ConstsBPM,dest=source,tag=tags.BPM)
                         tlocs+=1
                     else:
@@ -165,7 +214,6 @@ def obj_func(xdict):
                 elif tag==tags.SBPM:
                     loc=data[1]
                     SPLt=data[0]
-                    print loc,SPLt
                     SPL_d[loc]=SPLt
                     calccompleted+=1
                     print 'Complete: ',calccompleted,'/',calcneeded
@@ -324,7 +372,7 @@ if __name__ == "__main__":
 
     #MPI States
     #            recieve  EXIT   calc calc   sendP  sendB  sleep
-    tags = enum('READY','EXIT', 'PWR','BPM','SPWR','SBPM','SLEEP')
+    tags = enum('READY','EXIT', 'PWR','BPM','SPWR','SBPM','SLEEP','PRECOMP')
     # PLOT RESULTS
     plot = True
     # plot = False
@@ -390,7 +438,7 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 72             # number of points around blade flight path
+    ntheta = 5#72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 1               # number of paired group rows
@@ -576,13 +624,35 @@ if __name__ == "__main__":
         variables = comm.bcast(other,root=0)
         comm.gather(other,root=0)
         print 'Worker',rank,'is Ready'
+        #Precompute Wake Components
+        task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
+        d = None
+        dlocal = np.zeros(1)
+        scatv = dist(len(windroseDirections))
+        comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
+        coefs=None
+        dummy= comm.bcast(dummy,root=0)
+        dummys= comm.bcast(dummy,root=0)
+        dummys= comm.bcast(dummy,root=0)
+        cpfs =comm.bcast(coefs,root=0)
+        if debugging:
+            pdb.set_trace()
+        xwl=cpfs[0]
+        ywl=cpfs[1]
+        tstart= time.time()
+        print "Wake Calculations"
+        wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
+        tend= time.time()
+        print "Wake Calculations Completed in ",tend-tstart,"seconds"
+        results = [dlocal,wakelx,wakely]
+        comm.gather(results,root=0)
+        comm.Barrier()
         while True:
             comm.send([None,MPI.INT],dest=0,tag=tags.READY)
             task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
             tag= status.Get_tag()
             source=status.Get_source()
             if tag==tags.PWR:
-
                 dia = task[0]
                 rotwl = task[1]
                 ntheta=task[2]
@@ -623,6 +693,38 @@ if __name__ == "__main__":
                 time.sleep(2)
             elif tag==tags.EXIT:
                 break
+            elif tag==tags.PRECOMP:
+                #Dummy MPI
+                #comm.send(None,dest=0)
+                #comm.gather(lists,root=0)
+                #dummy = comm.bcast(lists,root=0)
+                #variables = comm.bcast(lists,root=0)
+                #comm.gather(other,root=0)
+                #        variables = comm.bcast(other,root=0)
+                #            comm.gather(other,root=0)
+                #Precompute Wake Components
+                d = None
+                dlocal = np.zeros(1)
+                scatv = dist(len(windroseDirections))
+                comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
+                coefs=None
+                dummy =comm.bcast(coefs,root=0)
+                dummy =comm.bcast(coefs,root=0)
+                cpfs =comm.bcast(coefs,root=0)
+                if debugging:
+                    pdb.set_trace()
+                xwl=cpfs[0]
+                ywl=cpfs[1]
+                tstart= time.time()
+                print "Wake Calculations"
+                wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
+                tend= time.time()
+                print "Wake Calculations Completed in ",tend-tstart,"seconds"
+                results = [dlocal,wakelx,wakely]
+                comm.gather(results,root=0)
+                comm.gather(results,root=0)
+                print 'wait'
+                comm.Barrier()
         comm.send(None,dest=0,tag=tags.EXIT)
 
 
