@@ -123,7 +123,7 @@ def obj_func(xdict):
             winddir=windroseDirections[d]
             #BPM parameters
             #         0 1 2                         3   4       5   6
-            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey,i]
+            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex,wakey]
             print 'BPM Precalculations Complete'
             #While Loop for calculations (State Machine)
             calcneeded=nturb+nobs
@@ -131,7 +131,7 @@ def obj_func(xdict):
             calccompleted=0
             tlocs=0
             power_turb=np.empty(nturb)
-            SPL_d=np.empty(nwind*len(obs))
+            SPL_d=np.empty(len(obs))
             data=7
             if debugging:
                 pdb.set_trace()
@@ -146,9 +146,12 @@ def obj_func(xdict):
                         ConstsPWR=np.append(constsPWR,tlocs)
                         comm.ssend(ConstsPWR,dest=source,tag=tags.PWR)
                         tlocs+=1
-                    elif tlocs>=nturb:
+                    elif tlocs>=nturb and tlocs-nturb<=len(obs):
+                        print nturb,tlocs
                         obsn=tlocs-nturb
+                        print 'Calculate Observer: ',obsn
                         ConstsBPM=np.append(constsBPM,obsn)
+                        print ConstsBPM[6]
                         comm.ssend(ConstsBPM,dest=source,tag=tags.BPM)
                         tlocs+=1
                     else:
@@ -162,7 +165,7 @@ def obj_func(xdict):
                 elif tag==tags.SBPM:
                     loc=data[1]
                     SPLt=data[0]
-                    print loc
+                    print loc,SPLt
                     SPL_d[loc]=SPLt
                     calccompleted+=1
                     print 'Complete: ',calccompleted,'/',calcneeded
@@ -170,14 +173,12 @@ def obj_func(xdict):
             for i in range(nturb):
                 power_turb[i] = power_turb[i]
             power_dir[d] = np.sum(power_turb)*windFrequencies[d]
-            print SPL_d
             # calculating noise (dB)
             #SPL_d = bpm_noise(x,y,windroseDirections[d],rotw[d],wakex,wakey) -function pasted below
 
             #For i in range(nobs) - Parrellization
             #SPL=bpmnoise(ntheta,turbineX,turbineY,obs[i],winddir,B,Hub,high,rad,c,c1,alpha,nu,c0,psi,AR,noise_corr,rot,Vinf,wakex,wakey)
 
-            print len(SPL_d)
             SPL_dir = np.array(SPL_d)
             if d == 0:
                 SPL = SPL_dir
@@ -581,7 +582,7 @@ if __name__ == "__main__":
             tag= status.Get_tag()
             source=status.Get_source()
             if tag==tags.PWR:
-                print 'PWR assigned to %i'%rank
+
                 dia = task[0]
                 rotwl = task[1]
                 ntheta=task[2]
@@ -599,19 +600,21 @@ if __name__ == "__main__":
                 wakex=task[14]
                 wakey=task[15]
                 i=task[16]
+                print 'PWR for turbine %i'%i
                 #Calculate Power
                 res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
                 result=np.array([res,i])
                 comm.send(result,dest=0,tag=tags.SPWR)
             elif tag==tags.BPM:
-                print 'BPM assigned to %i'%rank
+
                 turbineX=task[0]
                 turbineY=task[1]
                 winddir=task[2]
                 rot=task[3]
                 wakex=task[4]
                 wakey=task[5]
-                i=task[6]
+                i=task[6]-1
+                print 'BPM for observer %i'%task[6]
                 #Calculate BPM
                 SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
                 result=np.append(SPL,i)
