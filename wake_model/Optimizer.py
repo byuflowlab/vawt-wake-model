@@ -143,7 +143,9 @@ def obj_func(xdict):
         dlocal = np.zeros(1)
         e= len(windroseDirections)-1
         d=np.linspace(0,e,e+1)
-        scatv = dist(len(windroseDirections))
+        while len(d)<(size-1):
+            d=np.append(d,-1)
+        scatv = dist(len(d))
         comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
         #         0  1  2    3      4   5    6 7    8       9       10  11  12      13   14     15   16     17 18 19
         coefs = [xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n]
@@ -158,10 +160,9 @@ def obj_func(xdict):
         comm.Barrier()
         tend=time.time()
         print 'Wake Calculations Complete in ',tend-tstart,'seconds'
-        print results
         if debugging:
             pdb.set_trace()
-        for i in range(1,4):
+        for i in range(1,nwind+1):
             unpack=results[i]
             wakex[i-1]=unpack[1]
             wakey[i-1]=unpack[2]
@@ -628,7 +629,7 @@ if __name__ == "__main__":
         task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
         d = None
         dlocal = np.zeros(1)
-        scatv = dist(len(windroseDirections))
+        scatv = dist(size-1)
         comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
         coefs=None
         dummy= comm.bcast(dummy,root=0)
@@ -639,12 +640,15 @@ if __name__ == "__main__":
             pdb.set_trace()
         xwl=cpfs[0]
         ywl=cpfs[1]
-        tstart= time.time()
-        print "Wake Calculations"
-        wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
-        tend= time.time()
-        print "Wake Calculations Completed in ",tend-tstart,"seconds"
-        results = [dlocal,wakelx,wakely]
+        if dlocal!=-1:
+            tstart= time.time()
+            print "Wake Calculations"
+            wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
+            tend= time.time()
+            print "Wake Calculations Completed in ",tend-tstart,"seconds"
+            results = [dlocal,wakelx,wakely]
+        else:
+            results = [0,0,0]
         comm.gather(results,root=0)
         comm.Barrier()
         while True:
@@ -705,8 +709,9 @@ if __name__ == "__main__":
                 #Precompute Wake Components
                 d = None
                 dlocal = np.zeros(1)
-                scatv = dist(len(windroseDirections))
+                scatv = dist(size-1)
                 comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
+                print dlocal
                 coefs=None
                 dummy =comm.bcast(coefs,root=0)
                 dummy =comm.bcast(coefs,root=0)
@@ -715,15 +720,17 @@ if __name__ == "__main__":
                     pdb.set_trace()
                 xwl=cpfs[0]
                 ywl=cpfs[1]
-                tstart= time.time()
-                print "Wake Calculations"
-                wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
-                tend= time.time()
-                print "Wake Calculations Completed in ",tend-tstart,"seconds"
-                results = [dlocal,wakelx,wakely]
+                if dlocal!=-1:
+                    tstart= time.time()
+                    print "Wake Calculations"
+                    wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
+                    tend= time.time()
+                    print "Wake Calculations Completed in ",tend-tstart,"seconds"
+                    results = [dlocal,wakelx,wakely]
+                else:
+                    results=[0,0,0]
                 comm.gather(results,root=0)
                 comm.gather(results,root=0)
-                print 'wait'
                 comm.Barrier()
         comm.send(None,dest=0,tag=tags.EXIT)
 
