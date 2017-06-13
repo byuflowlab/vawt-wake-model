@@ -57,6 +57,7 @@ def dist(legs,master=True):
 
 def obj_func(xdict):
     if rank ==0:
+        global verbose
         global dia
         global rot
         global chord
@@ -135,7 +136,8 @@ def obj_func(xdict):
             winddir_turb_rad[d] = pi*winddir_turb[d]/180.0
             xw[d] = x*cos(-winddir_turb_rad[d]) - y*sin(-winddir_turb_rad[d])
             yw[d] = x*sin(-winddir_turb_rad[d]) + y*cos(-winddir_turb_rad[d])
-        print 'Precalculate Wake Components'
+        if verbose:
+            print 'Precalculate Wake Components'
         tstart=time.time()
         # calculating wake velocity components
         for i in range(1,size):
@@ -156,10 +158,12 @@ def obj_func(xdict):
         wakex = np.zeros([nwind,nturb*ntheta])
         wakey = np.zeros([nwind,ntheta*nturb])
         results= comm.gather(results,root=0)
-        print 'Waiting on Calculations'
+        if verbose:
+            print 'Waiting on Calculations'
         comm.Barrier()
         tend=time.time()
-        print 'Wake Calculations Complete in ',tend-tstart,'seconds'
+        if verbose:
+            print 'Wake Calculations Complete in ',tend-tstart,'seconds'
         if debugging:
             pdb.set_trace()
         for i in range(1,nwind+1):
@@ -176,7 +180,8 @@ def obj_func(xdict):
             #BPM parameters
             #         0 1 2                         3   4       5   6
             constsBPM=[x,y,windroseDirections[d],rotw[d],wakex[d],wakey[d]]
-            print 'BPM Precalculations Complete'
+            if verbose:
+                print 'BPM Precalculations Complete'
             #While Loop for calculations (State Machine)
             calcneeded=nturb+nobs
             casig=0
@@ -187,7 +192,8 @@ def obj_func(xdict):
             data=7
             if debugging:
                 pdb.set_trace()
-            print 'Master Slave Loop'
+            if verbose:
+                print 'Power/BPM Loop'
             while calccompleted<=calcneeded:
                 tag = None
                 data = comm.recv(source=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
@@ -200,7 +206,8 @@ def obj_func(xdict):
                         tlocs+=1
                     elif tlocs>=nturb and tlocs-nturb<=len(obs):
                         obsn=tlocs-nturb
-                        print 'Calculate Observer: ',obsn
+                        if verbose:
+                            print 'Calculate Observer: ',obsn
                         ConstsBPM=np.append(constsBPM,obsn)
                         comm.ssend(ConstsBPM,dest=source,tag=tags.BPM)
                         tlocs+=1
@@ -209,15 +216,17 @@ def obj_func(xdict):
                 elif tag==tags.SPWR:
                     loc=data[1]
                     pwr=data[0]
-                    power_turb[loc]=pwr
+                    power_turb[int(loc)]=pwr
                     calccompleted+=1
-                    print 'Complete: ',calccompleted,'/',calcneeded
+                    if verbose:
+                        print 'Complete: ',calccompleted,'/',calcneeded
                 elif tag==tags.SBPM:
                     loc=data[1]
                     SPLt=data[0]
-                    SPL_d[loc]=SPLt
+                    SPL_d[int(loc)]=SPLt
                     calccompleted+=1
-                    print 'Complete: ',calccompleted,'/',calcneeded
+                    if verbose:
+                        print 'Complete: ',calccompleted,'/',calcneeded
 
             for i in range(nturb):
                 power_turb[i] = power_turb[i]
@@ -384,6 +393,9 @@ if __name__ == "__main__":
     # SAVE RESULTS
     saveresult = True
     # saveresult = False
+    global verbose
+    verbose = True
+
 
     global turb_dia
     global dia
@@ -439,10 +451,10 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 5#72             # number of points around blade flight path
+    ntheta = 72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
-    nRows = 1               # number of paired group rows
+    nRows = 2               # number of paired group rows
     nCols = 2               # number of paired group columns
     if rank==0:
         print '\nSPL Limit:',SPLlim
@@ -585,7 +597,7 @@ if __name__ == "__main__":
     if optimize == True and rank==0:
         num_workers = size - 1
         closed_workers = 0
-        print("Master starting with %d workers" % num_workers)
+        print("Master starting with %d workers \n" % num_workers)
         # optimization setup
         optProb = Optimization('VAWT_Power', obj_func)
         optProb.addObj('obj')
@@ -613,7 +625,8 @@ if __name__ == "__main__":
 
     if optimize==True and rank!=0:
         name = MPI.Get_processor_name()
-        print 'I am a worker with rank %d on %s.' % (rank,name)
+        if verbose:
+            print 'I am a worker with rank %d on %s.' % (rank,name)
         #pyOpt dummy mpi calls (pyOPT mpi calls that we do not use but must include)
         lists = ['xvars','yvars']
         other = ['SPL','sep']
@@ -624,7 +637,8 @@ if __name__ == "__main__":
         comm.gather(other,root=0)
         variables = comm.bcast(other,root=0)
         comm.gather(other,root=0)
-        print 'Worker',rank,'is Ready'
+        if verbose:
+            print 'Worker',rank,'is Ready'
         #Precompute Wake Components
         task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
         d = None
@@ -640,12 +654,15 @@ if __name__ == "__main__":
             pdb.set_trace()
         xwl=cpfs[0]
         ywl=cpfs[1]
+        tstart=[]
         if dlocal!=-1:
-            tstart= time.time()
-            print "Wake Calculations"
+            if verbose:
+                tstart= time.time()
+                print "Wake Calculations"
             wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
-            tend= time.time()
-            print "Wake Calculations Completed in ",tend-tstart,"seconds"
+            if verbose:
+                tend= time.time()
+                print "Wake Calculations Completed in ",tend-tstart,"seconds"
             results = [dlocal,wakelx,wakely]
         else:
             results = [0,0,0]
@@ -674,7 +691,8 @@ if __name__ == "__main__":
                 wakex=task[14]
                 wakey=task[15]
                 i=task[16]
-                print 'PWR for turbine %i'%i
+                if verbose:
+                    print 'PWR for turbine %i'%i
                 #Calculate Power
                 res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
                 result=np.array([res,i])
@@ -688,7 +706,8 @@ if __name__ == "__main__":
                 wakex=task[4]
                 wakey=task[5]
                 i=task[6]-1
-                print 'BPM for observer %i'%task[6]
+                if verbose:
+                    print 'BPM for observer %i'%task[6]
                 #Calculate BPM
                 SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
                 result=np.append(SPL,i)
@@ -711,7 +730,6 @@ if __name__ == "__main__":
                 dlocal = np.zeros(1)
                 scatv = dist(size-1)
                 comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
-                print dlocal
                 coefs=None
                 dummy =comm.bcast(coefs,root=0)
                 dummy =comm.bcast(coefs,root=0)
@@ -721,11 +739,13 @@ if __name__ == "__main__":
                 xwl=cpfs[0]
                 ywl=cpfs[1]
                 if dlocal!=-1:
-                    tstart= time.time()
-                    print "Wake Calculations"
+                    if verbose:
+                        tstart= time.time()
+                        print "Wake Calculations"
                     wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
-                    tend= time.time()
-                    print "Wake Calculations Completed in ",tend-tstart,"seconds"
+                    if verbose:
+                        tend= time.time()
+                        print "Wake Calculations Completed in ",tend-tstart,"seconds"
                     results = [dlocal,wakelx,wakely]
                 else:
                     results=[0,0,0]
