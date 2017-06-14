@@ -17,7 +17,7 @@ import _vawtwake
 import _bpmvawtacoustic
 
 
-debugging = False
+debugging = True
 if debugging:
     import pdb
 
@@ -39,18 +39,18 @@ def enum(*sequential, **named):
 
 def dist(legs,master=True):
     size=comm.Get_size()
-    num = np.linspace(0,size-1,size)
+    num = numpy.linspace(0,size-1,size)
+    nsize = size
     if master:
-        dist = np.ones(size-1)
-    else:
-        dist = np.ones(size)
-    base=np.floor(legs/size)
+        nsize = size-1
+    dist = numpy.ones(nsize)
+    base=numpy.floor(legs/nsize)
     dist = dist*base
-    remain=int(legs-size*base)
+    remain=int(legs-len(dist)*base)
     for i in range(0,remain):
         dist[i]=dist[i]+1
     if master:
-        dists = np.append([0],dist)
+        dists = numpy.append([0],dist)
     else:
         dists=dist
     return [dists,num]
@@ -129,6 +129,13 @@ def obj_func(xdict):
         yw = np.zeros([len(windroseDirections),nturb])
         #xw = np.zeros_like(windroseDirections)
         #yw = np.zeros_like(windroseDirections)
+        wakex = np.zeros([nwind,nturb*ntheta])
+        wakey = np.zeros([nwind,ntheta*nturb])
+        if debugging:
+            pdb.set_trace()
+        if verbose:
+            print 'Precalculate Wake Components'
+        tstart=time.time()
         for d in range(0,nwind):
             winddir_turb[d] = 270. - windroseDirections[d]
             if winddir_turb[d] < 0.:
@@ -136,40 +143,19 @@ def obj_func(xdict):
             winddir_turb_rad[d] = pi*winddir_turb[d]/180.0
             xw[d] = x*cos(-winddir_turb_rad[d]) - y*sin(-winddir_turb_rad[d])
             yw[d] = x*sin(-winddir_turb_rad[d]) + y*cos(-winddir_turb_rad[d])
-        if verbose:
-            print 'Precalculate Wake Components'
-        tstart=time.time()
-        # calculating wake velocity components
-        for i in range(1,size):
-            comm.send([None,MPI.INT],dest=i,tag=tags.PRECOMP)
-        dlocal = np.zeros(1)
-        e= len(windroseDirections)-1
-        d=np.linspace(0,e,e+1)
-        while len(d)<(size-1):
-            d=np.append(d,-1)
-        scatv = dist(len(d))
-        comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
-        #         0  1  2    3      4   5    6 7    8       9       10  11  12      13   14     15   16     17 18 19
-        coefs = [xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n]
-        comm.bcast(coefs,root=0)
-        results = np.zeros(e*3)
-        comm.gather(results,root=0)
-        #wakex,wakey = vawt_wake(xw[d],yw[d],dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
-        wakex = np.zeros([nwind,nturb*ntheta])
-        wakey = np.zeros([nwind,ntheta*nturb])
-        results= comm.gather(results,root=0)
-        if verbose:
-            print 'Waiting on Calculations'
-        comm.Barrier()
+
+            for i in range(1,size):
+                comm.recv(None,source=i,tag=MPI.ANY_TAG)
+                comm.send([None,MPI.INT],dest=i,tag=tags.PRECOMP)
+            print d
+            if debugging:
+                pdb.set_trace()
+            wakex[d],wakey[d] = vawt_wake(xw[d],yw[d],dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
         tend=time.time()
         if verbose:
             print 'Wake Calculations Complete in ',tend-tstart,'seconds'
         if debugging:
             pdb.set_trace()
-        for i in range(1,nwind+1):
-            unpack=results[i]
-            wakex[i-1]=unpack[1]
-            wakey[i-1]=unpack[2]
         #completion code goes here
         for d in range(0, nwind):
             # power parameters
@@ -261,33 +247,29 @@ def obj_func(xdict):
 
 def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n):
     global wake_method
-
     t = np.size(xw) # number of turbines
-
+    ss=time.time()
+    d=np.linspace(0,t-1,t)#.tolist()
+    scatv=dist(nturb)
+    dlocal= np.zeros(t)
+    print d
+    comm.Scatterv([d,scatv[0],scatv[1],MPI.DOUBLE],dlocal,root=0)
+    print dlocal
+    #       0      1 2  3      4   5    6  7  8  9   10   11   12      13  14    15      16   17   18      19  20   21 22
+    coefs=[ntheta,xw,yw,dia,rotw,chord,B,xw,yw,dia,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n]
+    comm.bcast(coefs,root=0)
+    results = np.zeros(t)
+    comm.gather(results,root=0)
+    results= comm.gather(results,root=0)
+    print results
+    print time.time()-ss
+    wakex=np.zeros(t,dtype=object)
+    wakey=np.zeros(t,dtype=object)
     for i in range(t):
-        xt = np.delete(xw,i)
-        yt = np.delete(yw,i)
-        diat = np.delete(dia,i)
-        rott = np.delete(rotw,i)
-
-        # xtd = np.delete(xw,i)
-        # ytd = np.delete(yw,i)
-        # diatd = np.delete(dia,i)
-        # rottd = np.delete(rotw,i)
-        # xt,yt,diat,rott = vwm.wake_order(xw[i],yw[i],dia[i],xtd,ytd,diatd,rottd)
-
-        if wake_method == 'simp':
-            wakexd,wakeyd = _vawtwake.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n,1,1)
-        elif wake_method == 'gskr':
-            wakexd,wakeyd = vwm.overlap(ntheta,xt,yt,diat,rott,chord,B,xw[i],yw[i],dia[i],Vinf,False)
-
-        if i == 0:
-            wakex = wakexd
-            wakey = wakeyd
-        else:
-            wakex = np.append(wakex,wakexd)
-            wakey = np.append(wakey,wakeyd)
-
+        print t
+        unpack=results[i]
+        wakex[i-1]=unpack[1]
+        wakey[i-1]=unpack[2]
     return wakex,wakey
 
 
@@ -451,7 +433,7 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 72             # number of points around blade flight path
+    ntheta = 5#72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 2               # number of paired group rows
@@ -640,34 +622,9 @@ if __name__ == "__main__":
         if verbose:
             print 'Worker',rank,'is Ready'
         #Precompute Wake Components
-        task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
-        d = None
-        dlocal = np.zeros(1)
-        scatv = dist(size-1)
-        comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
-        coefs=None
-        dummy= comm.bcast(dummy,root=0)
-        dummys= comm.bcast(dummy,root=0)
-        dummys= comm.bcast(dummy,root=0)
-        cpfs =comm.bcast(coefs,root=0)
         if debugging:
             pdb.set_trace()
-        xwl=cpfs[0]
-        ywl=cpfs[1]
         tstart=[]
-        if dlocal!=-1:
-            if verbose:
-                tstart= time.time()
-                print "Wake Calculations"
-            wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
-            if verbose:
-                tend= time.time()
-                print "Wake Calculations Completed in ",tend-tstart,"seconds"
-            results = [dlocal,wakelx,wakely]
-        else:
-            results = [0,0,0]
-        comm.gather(results,root=0)
-        comm.Barrier()
         while True:
             comm.send([None,MPI.INT],dest=0,tag=tags.READY)
             task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
@@ -717,6 +674,8 @@ if __name__ == "__main__":
             elif tag==tags.EXIT:
                 break
             elif tag==tags.PRECOMP:
+
+
                 #Dummy MPI
                 #comm.send(None,dest=0)
                 #comm.gather(lists,root=0)
@@ -727,31 +686,54 @@ if __name__ == "__main__":
                 #            comm.gather(other,root=0)
                 #Precompute Wake Components
                 d = None
-                dlocal = np.zeros(1)
-                scatv = dist(size-1)
-                comm.Scatterv([d,(scatv[0]),(scatv[1]),MPI.DOUBLE],dlocal,root=0)
+                scatv = dist(nturb)
+                dlocal = np.zeros(scatv[0][rank])
+                print dlocal
+                comm.Scatterv([d,scatv[0],scatv[1],MPI.DOUBLE],dlocal)
+                print dlocal
                 coefs=None
                 dummy =comm.bcast(coefs,root=0)
                 dummy =comm.bcast(coefs,root=0)
+                dummy =comm.bcast(coefs,root=0)
                 cpfs =comm.bcast(coefs,root=0)
+                print cpfs
                 if debugging:
                     pdb.set_trace()
-                xwl=cpfs[0]
-                ywl=cpfs[1]
-                if dlocal!=-1:
+                xwl=cpfs[7]
+                ywl=cpfs[8]
+                dial=cpfs[9]
+                rotwl=cpfs[4]
+                results=np.zeros([len(dlocal),3],dtype=object)
+                if dlocal.any()!=-1:
                     if verbose:
-                        tstart= time.time()
                         print "Wake Calculations"
-                    wakelx,wakely = vawt_wake(xwl[int(dlocal)],ywl[int(dlocal)],cpfs[2],cpfs[3],cpfs[4],cpfs[5],cpfs[6],cpfs[7],cpfs[8],cpfs[9],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19])
-                    if verbose:
-                        tend= time.time()
-                        print "Wake Calculations Completed in ",tend-tstart,"seconds"
-                    results = [dlocal,wakelx,wakely]
+                    print dlocal
+                    for i in range(len(dlocal)):
+                        i=int(i)
+                        xt = np.delete(xwl,dlocal[i])
+                        yt = np.delete(ywl,dlocal[i])
+                        diat = np.delete(dial,dlocal[i])
+                        rott = np.delete(rotwl,dlocal[i])
+                        if wake_method == 'simp':
+                            wakexd,wakeyd = _vawtwake.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[dlocal[i]],ywl[dlocal[i]],diat[dlocal[i]],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19],cpfs[20],cpfs[21],cpfs[22],1,1)
+                        elif wake_method == 'gskr':
+                            wakexd,wakeyd =       vwm.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[dlocal[i]],ywl[dlocal[i]],diat[dlocal[i]],cpfs[10],False)
+                        '''if i == dlocal[0]:
+                            wakex = wakexd
+                            wakey = wakeyd
+                        else:
+                            wakex = np.append(wakex,wakexd)
+                            wakey = np.append(wakey,wakeyd)
+                        '''
+                        results[i] = [dlocal[i],wakexd,wakeyd]
+                        print results
                 else:
                     results=[0,0,0]
                 comm.gather(results,root=0)
                 comm.gather(results,root=0)
-                comm.Barrier()
+
+
+
         comm.send(None,dest=0,tag=tags.EXIT)
 
 
