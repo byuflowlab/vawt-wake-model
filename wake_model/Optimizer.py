@@ -17,9 +17,10 @@ import _vawtwake
 import _bpmvawtacoustic
 
 
-debugging = True
+debugging = False
 if debugging:
     import pdb
+bugs = False
 
 try:
     from mpi4py import MPI
@@ -39,20 +40,24 @@ def enum(*sequential, **named):
 
 def dist(legs,master=True):
     size=comm.Get_size()
-    num = numpy.linspace(0,size-1,size)
+    num = np.zeros(size)
     nsize = size
     if master:
         nsize = size-1
-    dist = numpy.ones(nsize)
-    base=numpy.floor(legs/nsize)
+    dist = np.ones(nsize)
+    base=np.floor(legs/nsize)
     dist = dist*base
     remain=int(legs-len(dist)*base)
     for i in range(0,remain):
         dist[i]=dist[i]+1
     if master:
-        dists = numpy.append([0],dist)
+        dists = np.append([0],dist)
     else:
         dists=dist
+    index = 0
+    for i in range(1,len(num)):
+        num[i]=index
+        index+=dist[i-1]
     return [dists,num]
 
 def obj_func(xdict):
@@ -147,13 +152,13 @@ def obj_func(xdict):
             for i in range(1,size):
                 comm.recv(None,source=i,tag=MPI.ANY_TAG)
                 comm.send([None,MPI.INT],dest=i,tag=tags.PRECOMP)
-            print d
+            print 'Wind Direction: ',d+1
             if debugging:
                 pdb.set_trace()
             wakex[d],wakey[d] = vawt_wake(xw[d],yw[d],dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
         tend=time.time()
-        if verbose:
-            print 'Wake Calculations Complete in ',tend-tstart,'seconds'
+        #comm.gather(dummy,root=0)
+        print 'Wake Calculations Complete in ',tend-tstart,'seconds'
         if debugging:
             pdb.set_trace()
         #completion code goes here
@@ -252,24 +257,34 @@ def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,c
     d=np.linspace(0,t-1,t)#.tolist()
     scatv=dist(nturb)
     dlocal= np.zeros(t)
-    print d
     comm.Scatterv([d,scatv[0],scatv[1],MPI.DOUBLE],dlocal,root=0)
-    print dlocal
     #       0      1 2  3      4   5    6  7  8  9   10   11   12      13  14    15      16   17   18      19  20   21 22
     coefs=[ntheta,xw,yw,dia,rotw,chord,B,xw,yw,dia,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n]
+    comm.bcast(ss,root=0)
     comm.bcast(coefs,root=0)
     results = np.zeros(t)
-    comm.gather(results,root=0)
+    dummy = np.zeros(t)
+    if bugs:
+        pdb.set_trace()
+    comm.Barrier()
+    dummy=comm.gather(results,root=0)
     results= comm.gather(results,root=0)
-    print results
-    print time.time()-ss
-    wakex=np.zeros(t,dtype=object)
-    wakey=np.zeros(t,dtype=object)
-    for i in range(t):
-        print t
-        unpack=results[i]
-        wakex[i-1]=unpack[1]
-        wakey[i-1]=unpack[2]
+    results
+    print 'Time: ',time.time()-ss,'s'
+
+    wakex=np.zeros(t*ntheta)
+    wakey=np.zeros(t*ntheta)
+    count=0
+    output=np.zeros(t)
+    for i in range(1,size):
+        for j in range(0,len(results[i])):
+            output[count]=results[i][j][0]
+            for k in range(0,ntheta):
+                wakex[count*ntheta+k]=results[i][j][1][k]
+                wakey[count*ntheta+k]=results[i][j][2][k]
+            count+=1
+    if debugging:
+        pdb.set_trace()
     return wakex,wakey
 
 
@@ -376,7 +391,7 @@ if __name__ == "__main__":
     saveresult = True
     # saveresult = False
     global verbose
-    verbose = True
+    verbose = False
 
 
     global turb_dia
@@ -433,7 +448,7 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 5#72             # number of points around blade flight path
+    ntheta = 72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 2               # number of paired group rows
@@ -612,6 +627,8 @@ if __name__ == "__main__":
         #pyOpt dummy mpi calls (pyOPT mpi calls that we do not use but must include)
         lists = ['xvars','yvars']
         other = ['SPL','sep']
+        first = True
+        second = True
         comm.send(None,dest=0)
         comm.gather(lists,root=0)
         dummy = comm.bcast(lists,root=0)
@@ -624,7 +641,7 @@ if __name__ == "__main__":
         #Precompute Wake Components
         if debugging:
             pdb.set_trace()
-        tstart=[]
+        tstart=0
         while True:
             comm.send([None,MPI.INT],dest=0,tag=tags.READY)
             task=comm.recv(source=0,tag=MPI.ANY_TAG,status=status)
@@ -653,6 +670,7 @@ if __name__ == "__main__":
                 #Calculate Power
                 res=vawt_power(i,dia,rotwl,ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex,wakey)
                 result=np.array([res,i])
+                first = True
                 comm.send(result,dest=0,tag=tags.SPWR)
             elif tag==tags.BPM:
 
@@ -669,6 +687,7 @@ if __name__ == "__main__":
                 SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
                 result=np.append(SPL,i)
                 comm.send(result,dest=0,tag=tags.SBPM)
+                first = True
             elif tag==tags.SLEEP:
                 time.sleep(2)
             elif tag==tags.EXIT:
@@ -687,16 +706,16 @@ if __name__ == "__main__":
                 #Precompute Wake Components
                 d = None
                 scatv = dist(nturb)
-                dlocal = np.zeros(scatv[0][rank])
-                print dlocal
+                dlocal = np.zeros(int(scatv[0][rank]))
                 comm.Scatterv([d,scatv[0],scatv[1],MPI.DOUBLE],dlocal)
-                print dlocal
                 coefs=None
-                dummy =comm.bcast(coefs,root=0)
-                dummy =comm.bcast(coefs,root=0)
-                dummy =comm.bcast(coefs,root=0)
+                if first:
+                    dummy =comm.bcast(coefs,root=0)
+                    dummy =comm.bcast(coefs,root=0)
+                    if second:
+                        dummy =comm.bcast(coefs,root=0)
+                dubs = comm.bcast(coefs,root=0)
                 cpfs =comm.bcast(coefs,root=0)
-                print cpfs
                 if debugging:
                     pdb.set_trace()
                 xwl=cpfs[7]
@@ -707,7 +726,6 @@ if __name__ == "__main__":
                 if dlocal.any()!=-1:
                     if verbose:
                         print "Wake Calculations"
-                    print dlocal
                     for i in range(len(dlocal)):
                         i=int(i)
                         xt = np.delete(xwl,dlocal[i])
@@ -715,9 +733,9 @@ if __name__ == "__main__":
                         diat = np.delete(dial,dlocal[i])
                         rott = np.delete(rotwl,dlocal[i])
                         if wake_method == 'simp':
-                            wakexd,wakeyd = _vawtwake.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[dlocal[i]],ywl[dlocal[i]],diat[dlocal[i]],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19],cpfs[20],cpfs[21],cpfs[22],1,1)
+                            wakexd,wakeyd = _vawtwake.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dlocal[i])],ywl[int(dlocal[i])],dial[int(dlocal[i])],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19],cpfs[20],cpfs[21],cpfs[22],1,1)
                         elif wake_method == 'gskr':
-                            wakexd,wakeyd =       vwm.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[dlocal[i]],ywl[dlocal[i]],diat[dlocal[i]],cpfs[10],False)
+                            wakexd,wakeyd =       vwm.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dlocal[i])],ywl[int(dlocal[i])],dial[int(dlocal[i])],cpfs[10],False)
                         '''if i == dlocal[0]:
                             wakex = wakexd
                             wakey = wakeyd
@@ -726,11 +744,21 @@ if __name__ == "__main__":
                             wakey = np.append(wakey,wakeyd)
                         '''
                         results[i] = [dlocal[i],wakexd,wakeyd]
-                        print results
                 else:
                     results=[0,0,0]
+                if bugs:
+                    pdb.set_trace()
+                comm.Barrier()
+                if first:
+                    first = False
+                    if not second:
+                        comm.gather([90,90,90,90,90,90,90],root=0)
+                else:
+                    comm.gather([90,90,90,90,90,90,90],root=0)
                 comm.gather(results,root=0)
-                comm.gather(results,root=0)
+                second = False
+
+
 
 
 
