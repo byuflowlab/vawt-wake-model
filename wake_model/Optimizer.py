@@ -10,6 +10,8 @@ import VAWT_Wake_Model as vwm
 from ACsingle import actuatorcylinder
 from sys import argv
 
+
+
 #from joblib import Parallel, delayed
 from mpi4py import MPI
 
@@ -233,7 +235,6 @@ def obj_func(xdict):
                 SPL = SPL_dir
             else:
                 SPL = np.append(SPL,SPL_dir)
-
         power = np.sum(power_dir)
 
         funcs['obj'] = (-1.*power/1e3)
@@ -269,7 +270,6 @@ def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,c
     comm.Barrier()
     dummy=comm.gather(results,root=0)
     results= comm.gather(results,root=0)
-    results
     print 'Time: ',time.time()-ss,'s'
 
     wakex=np.zeros(t*ntheta)
@@ -285,6 +285,7 @@ def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,c
             count+=1
     if debugging:
         pdb.set_trace()
+    results = []
     return wakex,wakey
 
 
@@ -393,7 +394,6 @@ if __name__ == "__main__":
     global verbose
     verbose = False
 
-
     global turb_dia
     global dia
     global rot
@@ -448,7 +448,7 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 72             # number of points around blade flight path
+    ntheta = 5#72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 2               # number of paired group rows
@@ -475,7 +475,7 @@ if __name__ == "__main__":
 
     basepath = path.join(path.dirname(path.realpath('__file__')), 'data')
     foildata = basepath + path.sep + 'airfoils/du06w200.dat'
-    foildata='/Users/ning3/OneDrive - BYU Office 365/Research/WES/Optimization/Combinedgit/vawt-wake-model/wake_model/data/airfoils/du06w200.dat'
+    #foildata='/Users/ning3/OneDrive - BYU Office 365/Research/WES/Optimization/Combinedgit/vawt-wake-model/wake_model/data/airfoils/du06w200.dat'
     af_data,cl_data,cd_data = vwm.airfoil_data(foildata)
     coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9 = vwm.coef_val()
 
@@ -672,6 +672,7 @@ if __name__ == "__main__":
                 result=np.array([res,i])
                 first = True
                 comm.send(result,dest=0,tag=tags.SPWR)
+                result = []
             elif tag==tags.BPM:
 
                 turbineX=task[0]
@@ -687,6 +688,7 @@ if __name__ == "__main__":
                 SPL=bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,i)
                 result=np.append(SPL,i)
                 comm.send(result,dest=0,tag=tags.SBPM)
+                result = []
                 first = True
             elif tag==tags.SLEEP:
                 time.sleep(2)
@@ -756,6 +758,7 @@ if __name__ == "__main__":
                 else:
                     comm.gather([90,90,90,90,90,90,90],root=0)
                 comm.gather(results,root=0)
+                results= []
                 second = False
 
 
