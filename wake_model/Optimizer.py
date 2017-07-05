@@ -150,14 +150,13 @@ def obj_func(xdict):
             winddir_turb_rad[d] = pi*winddir_turb[d]/180.0
             xw[d] = x*cos(-winddir_turb_rad[d]) - y*sin(-winddir_turb_rad[d])
             yw[d] = x*sin(-winddir_turb_rad[d]) + y*cos(-winddir_turb_rad[d])
-
-            for i in range(1,size):
-                comm.recv(None,source=i,tag=MPI.ANY_TAG)
-                comm.send([None,MPI.INT],dest=i,tag=tags.PRECOMP)
-            print 'Wind Direction: ',d+1
-            if debugging:
-                pdb.set_trace()
-            wakex[d],wakey[d] = vawt_wake(xw[d],yw[d],dia,rotw[d],ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
+        for i in range(1,size):
+            comm.recv(None,source=i,tag=MPI.ANY_TAG)
+            comm.send([None,MPI.INT],dest=i,tag=tags.PRECOMP)
+        print 'Wind Direction: ',d+1
+        if debugging:
+            pdb.set_trace()
+        wakex,wakey = vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
         tend=time.time()
         #comm.gather(dummy,root=0)
         print 'Wake Calculations Complete in ',tend-tstart,'seconds'
@@ -167,12 +166,12 @@ def obj_func(xdict):
         for d in range(0, nwind):
             # power parameters
             #           0   1       2       3  4 5 6    7       8       9       10      11  12  13      14      15
-            constsPWR = [dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex[d],wakey[d]]
+            constsPWR = [dia,rotw[d],ntheta,chord,H,B,Vinf,af_data,cl_data,cd_data,twist,delta,rho,interp,wakex[:,d],wakey[:,d]]
             #BPM Precalculations
             winddir=windroseDirections[d]
             #BPM parameters
             #         0 1 2                         3   4       5   6
-            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex[d],wakey[d]]
+            constsBPM=[x,y,windroseDirections[d],rotw[d],wakex[:,d],wakey[:,d]]
             if verbose:
                 print 'BPM Precalculations Complete'
             #While Loop for calculations (State Machine)
@@ -247,18 +246,22 @@ def obj_func(xdict):
         sep = sep_func(np.append(x,y))
         funcs['sep'] = sep
 
+
     fail = False
     return funcs, fail
 
 
 def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n):
     global wake_method
-    t = np.size(xw) # number of turbines
+    global windroseDirections
+    global nturb
+    d= len(windroseDirections)
+    t = nturb # number of turbines
     ss=time.time()
-    d=np.linspace(0,t-1,t)#.tolist()
-    scatv=dist(nturb)
-    dlocal= np.zeros(t)
-    comm.Scatterv([d,scatv[0],scatv[1],MPI.DOUBLE],dlocal,root=0)
+    ds=np.linspace(0,d*t-1,d*t)#.tolist()
+    scatv=dist(t*d)
+    dlocal= np.zeros(t*d)
+    comm.Scatterv([ds,scatv[0],scatv[1],MPI.DOUBLE],dlocal,root=0)
     #       0      1 2  3      4   5    6  7  8  9   10   11   12      13  14    15      16   17   18      19  20   21 22
     coefs=[ntheta,xw,yw,dia,rotw,chord,B,xw,yw,dia,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n]
     comm.bcast(ss,root=0)
@@ -272,16 +275,18 @@ def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,c
     results= comm.gather(results,root=0)
     print 'Time: ',time.time()-ss,'s'
 
-    wakex=np.zeros(t*ntheta)
-    wakey=np.zeros(t*ntheta)
+    wakex=np.zeros([t*ntheta,len(windroseDirections)])
+    wakey=np.zeros([t*ntheta,len(windroseDirections)])
     count=0
-    output=np.zeros(t)
+    output=np.zeros(t*nwind)
     for i in range(1,size):
         for j in range(0,len(results[i])):
-            output[count]=results[i][j][0]
+            output=results[i][j][0]
+            wind = int(0 + np.floor(output/nturb))
+            count= int(output % nturb)
             for k in range(0,ntheta):
-                wakex[count*ntheta+k]=results[i][j][1][k]
-                wakey[count*ntheta+k]=results[i][j][2][k]
+                wakex[count*ntheta+k,wind]=results[i][j][1][k]
+                wakey[count*ntheta+k,wind]=results[i][j][2][k]
             count+=1
     if debugging:
         pdb.set_trace()
@@ -577,16 +582,13 @@ if __name__ == "__main__":
         obs[i,2] = 2.
     if rank==0:
         print nobs,'observers around a radius of ',grid_radius,'\n'
-
-    # power value precompute (for CCW and CW directions)
+        # power value precompute (for CCW and CW directions)
     Cp_iso,Tpp,Vnp,Vtp = actuatorcylinder(ntheta,af_data,cl_data,cd_data,turb_dia/2.,chord,twist,delta,B,fabs(turb_rot),Vinf,rho,interp,np.zeros(ntheta),np.zeros(ntheta)) # CCW
     Cpp = (fabs(turb_rot)*B/(2.*pi*rho*Vinf**3))*Tpp
     _,Tpn,Vnn,Vtn = actuatorcylinder(ntheta,af_data,cl_data,cd_data,turb_dia/2.,chord,twist,delta,B,-fabs(turb_rot),Vinf,rho,interp,np.zeros(ntheta),np.zeros(ntheta)) # CW
     Cpn = (fabs(turb_rot)*B/(2.*pi*rho*Vinf**3))*Tpn
-
     power_iso = (0.5*rho*Vinf**3)*(dia[0]*H)*Cp_iso # isolated power of a single turbine (W)
     power_iso_tot = power_iso*nturb # total power of isolated turbines (W)
-
     # option to use actuator cylinder or not (use a correction factor method)
     useAC = True
     useAC = False
@@ -707,7 +709,7 @@ if __name__ == "__main__":
                 #            comm.gather(other,root=0)
                 #Precompute Wake Components
                 d = None
-                scatv = dist(nturb)
+                scatv = dist(nturb*len(windroseDirections))
                 dlocal = np.zeros(int(scatv[0][rank]))
                 comm.Scatterv([d,scatv[0],scatv[1],MPI.DOUBLE],dlocal)
                 coefs=None
@@ -720,24 +722,33 @@ if __name__ == "__main__":
                 cpfs =comm.bcast(coefs,root=0)
                 if debugging:
                     pdb.set_trace()
-                xwl=cpfs[7]
-                ywl=cpfs[8]
-                dial=cpfs[9]
-                rotwl=cpfs[4]
+
                 results=np.zeros([len(dlocal),3],dtype=object)
                 if dlocal.any()!=-1:
                     if verbose:
                         print "Wake Calculations"
                     for i in range(len(dlocal)):
                         i=int(i)
-                        xt = np.delete(xwl,dlocal[i])
-                        yt = np.delete(ywl,dlocal[i])
-                        diat = np.delete(dial,dlocal[i])
-                        rott = np.delete(rotwl,dlocal[i])
+                        wind = 0
+                        dloc=dlocal[i]
+                        if dloc>nturb-1:
+                            dloc = dloc - nturb
+                            wind+=1
+                            if dloc>nturb-1:
+                                dloc=dloc-nturb
+                                wind+=1
+                        xwl=cpfs[7][wind]
+                        ywl=cpfs[8][wind]
+                        dial=cpfs[9]
+                        rotwl=cpfs[4][wind]
+                        xt = np.delete(xwl,dloc)
+                        yt = np.delete(ywl,dloc)
+                        diat = np.delete(dial,dloc)
+                        rott = np.delete(rotwl,dloc)
                         if wake_method == 'simp':
-                            wakexd,wakeyd = _vawtwake.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dlocal[i])],ywl[int(dlocal[i])],dial[int(dlocal[i])],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19],cpfs[20],cpfs[21],cpfs[22],1,1)
+                            wakexd,wakeyd = _vawtwake.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dloc)],ywl[int(dloc)],dial[int(dloc)],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19],cpfs[20],cpfs[21],cpfs[22],1,1)
                         elif wake_method == 'gskr':
-                            wakexd,wakeyd =       vwm.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dlocal[i])],ywl[int(dlocal[i])],dial[int(dlocal[i])],cpfs[10],False)
+                            wakexd,wakeyd =       vwm.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dloc)],ywl[int(dloc)],dial[int(dloc)],cpfs[10],False)
                         '''if i == dlocal[0]:
                             wakex = wakexd
                             wakey = wakeyd
