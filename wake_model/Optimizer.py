@@ -257,7 +257,7 @@ def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,c
     global nturb
     d= len(windroseDirections)
     t = nturb # number of turbines
-    ss=time.time()
+    ss = time.time()
     ds=np.linspace(0,d*t-1,d*t)#.tolist()
     scatv=dist(t*d)
     dlocal= np.zeros(t*d)
@@ -273,8 +273,6 @@ def vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,c
     comm.Barrier()
     dummy=comm.gather(results,root=0)
     results= comm.gather(results,root=0)
-    print 'Time: ',time.time()-ss,'s'
-
     wakex=np.zeros([t*ntheta,len(windroseDirections)])
     wakey=np.zeros([t*ntheta,len(windroseDirections)])
     count=0
@@ -453,7 +451,7 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 5#72             # number of points around blade flight path
+    ntheta = 72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 2               # number of paired group rows
