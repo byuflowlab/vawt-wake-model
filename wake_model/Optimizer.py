@@ -793,7 +793,7 @@ if __name__ == "__main__":
         #'Close' workers and print Result
         if rank==0:
             while closed_workers<num_workers:
-                data=comm.recv(souce=MPI>ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
+                data=comm.recv(souce=MPI.ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
                 source=status.Get_source()
                 tag=status.Get_tag()
                 if tag==tags.READY:
