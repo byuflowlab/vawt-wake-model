@@ -153,7 +153,8 @@ def obj_func(xdict):
         for i in range(1,size):
             comm.recv(None,source=i,tag=MPI.ANY_TAG)
             comm.send([None,MPI.INT],dest=i,tag=tags.PRECOMP)
-        print 'Wind Direction: ',d+1
+        #print 'Wind Direction: ',d+1
+        #print len(xw),len(xw[0])
         if debugging:
             pdb.set_trace()
         wakex,wakey = vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf,coef0,coef1,coef2,coef3,coef4,coef5,coef6,coef7,coef8,coef9,m,n)
@@ -451,9 +452,9 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 72             # number of points around blade flight path
+    ntheta = 5#72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
-    wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
+    #wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 2               # number of paired group rows
     nCols = 2               # number of paired group columns
     if rank==0:
@@ -691,7 +692,8 @@ if __name__ == "__main__":
                 result = []
                 first = True
             elif tag==tags.SLEEP:
-                time.sleep(2)
+                results=[]
+                #time.sleep(2)
             elif tag==tags.EXIT:
                 break
             elif tag==tags.PRECOMP:
@@ -735,6 +737,12 @@ if __name__ == "__main__":
                             if dloc>nturb-1:
                                 dloc=dloc-nturb
                                 wind+=1
+                        if len(cpfs)<8:
+                            print 'Attention Error on rank ',rank
+                            print cpfs
+                            cpfs =comm.bcast(coefs,root=0)
+                            print cpfs
+                        #print wind,dloc,dlocal[i],len(cpfs),cpfs[7]
                         xwl=cpfs[7][wind]
                         ywl=cpfs[8][wind]
                         dial=cpfs[9]
@@ -768,6 +776,7 @@ if __name__ == "__main__":
                     comm.gather([90,90,90,90,90,90,90],root=0)
                 comm.gather(results,root=0)
                 results= []
+                cpfs=[]
                 second = False
 
 
@@ -783,7 +792,7 @@ if __name__ == "__main__":
         print 'Optimization Complete, Closing Workers'
         #'Close' workers and print Result
         if rank==0:
-            while closed_workers<nworkers:
+            while closed_workers<num_workers:
                 data=comm.recv(souce=MPI>ANY_SOURCE,tag=MPI.ANY_TAG,status=status)
                 source=status.Get_source()
                 tag=status.Get_tag()
