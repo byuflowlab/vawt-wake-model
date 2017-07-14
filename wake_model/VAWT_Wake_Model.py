@@ -321,7 +321,7 @@ def velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,param=None,veltype='all',int
                 vel = vel_ys
             elif veltype == 'ind':
                 vel = np.array([vel_xs,vel_ys])
-    ###################################
+        ###################################
         elif integration == 'gskr':
             # 21-POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION
             xbound = (scl3+5.)*dia
