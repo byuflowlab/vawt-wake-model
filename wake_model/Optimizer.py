@@ -1,28 +1,13 @@
-from pyoptsparse import Optimization, SNOPT, pyOpt_solution
+#from joblib import Parallel, delayed
+from mpi4py import MPI
 from os import path
-import numpy as np
-from numpy import sqrt,pi,sin,cos,fabs
-import matplotlib.pyplot as plt
-from matplotlib import rcParams
-rcParams['font.family'] = 'Times New Roman'
+
+import _vawtwake
+import _bpmvawtacoustic
 import time
 import VAWT_Wake_Model as vwm
 from ACsingle import actuatorcylinder
 from sys import argv
-
-
-
-#from joblib import Parallel, delayed
-from mpi4py import MPI
-
-import _vawtwake
-import _bpmvawtacoustic
-
-
-debugging = False
-if debugging:
-    import pdb
-bugs = False
 
 try:
     from mpi4py import MPI
@@ -32,6 +17,21 @@ try:
     size = comm.Get_size()
 except:
     raise ImportError('mpi4py is required for parallelization')
+
+if rank==0:
+    from pyoptsparse import Optimization, SNOPT, pyOpt_solution
+
+    import matplotlib.pyplot as plt
+    from matplotlib import rcParams
+    rcParams['font.family'] = 'Times New Roman'
+import numpy as np
+from numpy import sqrt,pi,sin,cos,fabs
+
+debugging = False
+if debugging:
+    import pdb
+bugs = False
+
 
 def enum(*sequential, **named):
     """Handy way to fake an enumerated type in Python
@@ -108,8 +108,8 @@ def obj_func(xdict):
         global ntheta
 
         # Simpson's rule integration division
-        m = 220
-        n = 200
+        m = 320
+        n = 300
 
         x = xdict['xvars'] # turbine x-positions
         y = xdict['yvars'] # turbine y-positions
@@ -452,7 +452,7 @@ if __name__ == "__main__":
 
     SPLlim = 100.           # sound pressure level limit of observers
     rotdir_spec = 'cn'      # rotation direction (cn- counter-rotating, co- co-rotating)
-    ntheta = 5#72             # number of points around blade flight path
+    ntheta = 72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     #wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
     nRows = 2               # number of paired group rows
@@ -485,8 +485,11 @@ if __name__ == "__main__":
 
     # define wind specifications
     windroseDirections = np.array([205.,225.,245.])
+    windroseDirections = np.array([225.])
     windFrequencies = np.array([0.25,0.50,0.25])
+    windFrequencies = np.array([1.0])
     nwind = np.size(windroseDirections)
+
     if rank==0:
         print 'wind:',windroseDirections
 
@@ -557,7 +560,7 @@ if __name__ == "__main__":
         print 'rot:',rot.tolist(),'\n'
     for i in range(nwind-1):
         rot = np.append(rot,rot)
-
+    
     # specifying boundary locations
     spaceval = 2.
     xlow = 0.
@@ -609,7 +612,7 @@ if __name__ == "__main__":
         num_cons_obs = nobs*nwind
         optProb.addConGroup('SPL', num_cons_obs, lower=0, upper=SPLlim/10.)
 
-        opt = SNOPT()
+        opt = SNOPT(sens_mode='serial')
         opt.setOption('Scale option',0)
         if rotdir_spec == 'cn':
             opt.setOption('Print file',basepath + path.sep + 'optimization_results/SNOPT_print_SPL'+str(SPLlim)+'_turb'+str(n)+'_counterrot.out')
@@ -620,11 +623,14 @@ if __name__ == "__main__":
             toOpt = True
         # run optimization
     comm.Barrier()
-
+    print 'clear'
+    if debugging:
+        pdb.set_trace()
     if optimize==True and rank!=0:
         name = MPI.Get_processor_name()
         if verbose:
             print 'I am a worker with rank %d on %s.' % (rank,name)
+
         #pyOpt dummy mpi calls (pyOPT mpi calls that we do not use but must include)
         lists = ['xvars','yvars']
         other = ['SPL','sep']
@@ -637,6 +643,7 @@ if __name__ == "__main__":
         comm.gather(other,root=0)
         variables = comm.bcast(other,root=0)
         comm.gather(other,root=0)
+
         if verbose:
             print 'Worker',rank,'is Ready'
         #Precompute Wake Components
@@ -738,10 +745,9 @@ if __name__ == "__main__":
                                 dloc=dloc-nturb
                                 wind+=1
                         if len(cpfs)<8:
-                            print 'Attention Error on rank ',rank
-                            print cpfs
+                            print 'Attention Error caught on rank ',rank
                             cpfs =comm.bcast(coefs,root=0)
-                            print cpfs
+                            cpfs =comm.bcast(coefs,root=0)
                         #print wind,dloc,dlocal[i],len(cpfs),cpfs[7]
                         xwl=cpfs[7][wind]
                         ywl=cpfs[8][wind]
@@ -788,6 +794,7 @@ if __name__ == "__main__":
 
     if optimize==True and rank==0:
         res=None
+        print 'start'
         res = opt(optProb)
         print 'Optimization Complete, Closing Workers'
         #'Close' workers and print Result
@@ -860,6 +867,11 @@ if __name__ == "__main__":
         target.write('Y-locations (initial): '+str(y0.tolist())+' m\n')
         target.write('Y-locations (final): '+str(yf.tolist())+' m\n')
         target.write('\nSPL: '+str(SPLw.tolist())+' dB\n')
+        target.write('Turbine Diameter: '+str(turb_dia)+' \n')
+        target.write('Observer X-Locations: '+str(obs[:,0].tolist())+' \n')
+        target.write('Observer Y-Locations: '+str(obs[:,1].tolist())+' \n')
+        target.write('Observer Paratmeter: '+str(obs[:,2].tolist())+' \n')
+        target.write('Rotation Directions: '+str(rot.tolist())+' \n')
         target.close()
         if plot == True:
             fs = 20
@@ -922,4 +934,4 @@ if __name__ == "__main__":
                 elif rotdir_spec == 'co':
                     plt.savefig(basepath + path.sep + 'optimization_results/SPLrunlayout_'+str(SPLlim)+'_r'+str(nRows)+'_c'+str(nCols)+'_corot.png')
 
-plt.show()
+#plt.show()
