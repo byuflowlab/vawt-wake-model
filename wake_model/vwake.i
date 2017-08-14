@@ -24,3 +24,10 @@
         return velocity_fieldx_c(in_array, size_in);
     }
 %}
+%inline %{
+    /*  takes as input two numpy arrays */
+    double velocity_fieldy(double * in_array, int size_in) {
+        /*  calls the original funcion, providing only the size of the first */
+        return velocity_fieldy_c(in_array, size_in);
+    }
+%}

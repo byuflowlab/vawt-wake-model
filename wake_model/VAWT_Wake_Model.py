@@ -34,10 +34,11 @@ from scipy.integrate import _quadpack
 from scipy.interpolate import UnivariateSpline
 import csv
 from os import path
-
-from joblib import Parallel,delayed
+#from cubature import cubature
+#from joblib import Parallel,delayed
 
 import _vawtwake
+import vwake
 
 ##########################################################################################
 # Double Integration Method using necessary Quadpack (SciPy) code (_qagse)
@@ -58,10 +59,19 @@ def _infunc(x,func,gfun,hfun,more_args):
 
     return _quad(func,a,b,args=myargs)[0]
 
-def _dblquad(func, a, b, gfun, hfun, args=(), epsabs=1.49e-8, epsrel=1.49e-8):
+def _dblquad(func, a, b, gfun, hfun, args=(), epsabs=1.49e-6, epsrel=1.49e-6):
     # Performing a double integration using _infunc and _quad
 
     return _quad(_infunc, a, b, (func, gfun, hfun, args), epsabs=epsabs, epsrel=epsrel)
+
+def cbquadx(array):
+    global argval
+    return _vawtwake.integrandx(array[1],array[0],*argval)
+
+def cbquady(array):
+    global argval
+    return _vawtwake.integrandy(array[1],array[0],*argval)
+
 ##########################################################################################
 
 
@@ -341,7 +351,48 @@ def velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,param=None,veltype='all',int
                 vel = vel_ys/Vinf
             elif veltype == 'ind':
                 vel = np.array([vel_xs,vel_ys])/Vinf
-    ###################################
+        ###################################
+        elif integration == 'cub':
+            # 21-POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION
+            xbound = (scl3+5.)*dia
+            global argval
+            argval = (x0t,y0t,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3)
+            if veltype == 'all' or veltype == 'x' or veltype == 'ind':
+                vel_x = cubature(cbquadx,ndim=2,fdim=1,xmin=[0,-dia],xmax=[xbound,dia])
+                vel_xs = (vel_x[0]*fabs(rot))/(2.*pi)
+            if veltype == 'all' or veltype == 'y' or veltype == 'ind':
+                vel_y = cubature(cbquady,ndim=2,fdim=1,xmin=[0,-dia],xmax=[xbound,dia])
+                vel_ys = (vel_y[0]*fabs(rot))/(2.*pi)
+
+            if veltype == 'all':
+                vel = sqrt((vel_xs + Vinf)**2 + (vel_ys)**2)/Vinf
+            elif veltype == 'x':
+                vel = (vel_xs + Vinf)/Vinf
+            elif veltype == 'y':
+                vel = vel_ys/Vinf
+            elif veltype == 'ind':
+                vel = np.array([vel_xs,vel_ys])/Vinf
+        ###################################
+        elif integration == 'cgk':
+            # 21-POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION
+            xbound = (scl3+5.)*dia
+            global argval
+            argval = (xt,yt,x0t,y0t,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3)
+            if veltype == 'all' or veltype == 'x' or veltype == 'ind':
+                vel_x = vwake.velocity_fieldx(argval)
+                vel_xs = (vel_x*fabs(rot))/(2.*pi)
+            if veltype == 'all' or veltype == 'y' or veltype == 'ind':
+                vel_y = vwake.velocity_fieldx(argval)
+                vel_ys = (vel_y*fabs(rot))/(2.*pi)
+
+            if veltype == 'all':
+                vel = sqrt((vel_xs + Vinf)**2 + (vel_ys)**2)/Vinf
+            elif veltype == 'x':
+                vel = (vel_xs + Vinf)/Vinf
+            elif veltype == 'y':
+                vel = vel_ys/Vinf
+            elif veltype == 'ind':
+                vel = np.array([vel_xs,vel_ys])/Vinf
 
     return vel
 

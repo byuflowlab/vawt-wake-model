@@ -7,6 +7,8 @@ double integrandx(double y,double x,Arguments *Args);
 double integrandy(double y,double x,Arguments *Args);
 double fx(double x,void *p);
 double fxy(double x,void *p);
+double fy(double x,void *p);
+double fyx(double x,void *p);
 double argtest(double x,double y,Arguments *Args);
 double modifyParams(double x, double y, Arguments *Args);
 double vorticitystrength(double x,double y,Arguments *Args);
@@ -232,6 +234,33 @@ double fxy(double y,void *p){
   results = integrandx(Args->xvalue,y,Args);
   return results;
 }
+double fy(double x,void *p){
+
+  ///Arguments Args=ptoArgs(p);
+  Arguments *Args = (Arguments *)p;
+  Args->xvalue = x;
+  gsl_function F;
+  F.function = &fyx;
+  F.params = Args;
+  // Initialise values to put the result in
+
+  double result;
+  double abserror;
+  double epsabs=1.49e-8;
+  double epsrel=1.49e-8;
+
+  gsl_integration_qag(&F, Args->ybound1, Args->ybound2, epsabs, epsrel, Args->workspacesize, Args->imethod, Args->giw, &result, &abserror);
+  //result=integrandx(5.0,5.0,Args);
+  return result;
+}
+double fyx(double y,void *p){
+  //Arguments Args;
+  //Args=ptoArgs(Args,p);
+  Arguments *Args = (Arguments *)p;
+  double results;
+  results = integrandy(Args->xvalue,y,Args);
+  return results;
+}
 double functest(double x,double y,Arguments *Args){
   //double value=integrandx(y,x,Args);
 
@@ -301,6 +330,58 @@ double velocity_fieldx_c(double * in_array,int size){
     // Create GSL function
     gsl_function F;
     F.function = &fx;
+    F.params = &Args;
+
+    // Initialise values to put the result in
+    double result;
+    double abserror;
+    double epsabs=1.49e-8;
+    double epsrel=1.49e-8;
+    // Perform integration
+    gsl_integration_qag(&F, xbounds[0], xbounds[1], epsabs, epsrel, allocationsize, Args.imethod, giw, &result, &abserror);
+
+    // Free the integration workspace
+    gsl_integration_workspace_free(giw);
+
+    //result=0;
+    //result = functest(x,y,Argsz);
+   return result;
+}
+double velocity_fieldy_c(double * in_array,int size){
+    // Unpack Pyton (numpy) Values
+
+    double x=in_array[0];
+    double y=in_array[1];
+    int allocationsize=10000; // maximum only affects memory useage, but to little will fail
+    //Arguments Args;
+    struct Arguments *Argsz, Args;
+    Argsz = &Args;
+    Args = unpack(in_array,allocationsize);
+    // Set bounds of integration
+    double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
+
+    // Set G-K Points
+    int imethod = 1;
+    /*
+    int imethod = 1; // 15pt
+    int imethod = 2; // 21 pt
+    int imethod = 3; // 31 pt
+    int imethod = 4; // 41 pt
+    int imethod = 5; // 51 pt
+    int imethod = 6; // 61 pt
+    */
+
+
+    Args.imethod=imethod;
+
+    // Allocate integration workspace
+
+
+    gsl_integration_workspace *giw = gsl_integration_workspace_alloc(allocationsize);
+
+    // Create GSL function
+    gsl_function F;
+    F.function = &fy;
     F.params = &Args;
 
     // Initialise values to put the result in
