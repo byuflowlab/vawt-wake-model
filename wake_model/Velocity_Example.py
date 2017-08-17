@@ -54,11 +54,12 @@ veltype = 'all'         # calculate velocity magnitude
 # veltype = 'ind'       # calculate induced velocity (in both x and y directions)
 
 # Option to choose the method of integration
-#integration = 'simp'    # use Simpson's Rule integration (Fortran code)
+integration = 'simp'    # use Simpson's Rule integration (Fortran code)
 m = 220                 # number of divisions in the downstream direction (for Simpson's Rule)
 n = 200                 # number of divisions in the lateral direction (for Simpson's Rule)
-integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
-
+#integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
+#integration ='cub'
+integration = 'cgk'
 ########################################################################################################################
 ########################################################################################################################
 ########################################################################################################################
@@ -66,7 +67,6 @@ integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
 
 # CALCULATING VELOCITY AT GIVEN POINT (x0,y0)
 vel = velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,param=None,veltype=veltype,integration=integration,m=m,n=n)
-print xt,yt,x0,y0,Vinf,dia,rot,chord,B,veltype,integration,m,n
 print '\nNormalized velocity at (',x0,',',y0,') =',vel,'\n' # output velocity (normalized by free stream wind speed)
 pointval1 = 1.
 pointval2 = 0.
