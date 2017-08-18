@@ -203,20 +203,16 @@ Arguments ptoArgs(Arguments Args,void *p){
     Args.ybound2=in_array[14];
     Args.xvalue=in_array[15];
     Args.workspacesize=in_array[16];
-    //gsl_integration_workspace *giw=(gsl_integration_workspace*)(*((double*)[17]));
-    //Args.giw = giw;
     return Args;
 }
 double fx(double x,void *p){
-
-  ///Arguments Args=ptoArgs(p);
   Arguments Args = *(Arguments *)p;
   Args.xvalue = x;
   gsl_function F;
   F.function = &fxy;
   F.params = &Args;
-  // Initialise values to put the result in
 
+  // Initialise values to put the result in
   double result;
   double abserror;
   double epsabs=1.49e-8;
@@ -254,14 +250,10 @@ double fyx(double y,void *p){
   return results;
 }
 double functest(double x,double y,Arguments Args){
-  //double value=integrandx(y,x,Args);
-
-  double value=integrandx(x,y,Args);
-  //double value = vorticitystrengthx(5.0,8.0,Args);
+  // This is a function tester
+  //double value=integrandy(x,y,Args);
+  double value = vorticitystrength(x,y,Args);
   return value;
-}
-double tester(double a){
-  return a;
 }
 Arguments unpack(double *in_array,double allocationsize){
   // Unpack Numpy Array into Arguments Struct
@@ -281,7 +273,7 @@ Arguments unpack(double *in_array,double allocationsize){
   Args.scl3=in_array[14];
   Args.workspacesize=allocationsize;
   // Set Ybounds in Struct for passing into GSL
-  Args.ybound1=-Args.dia;
+  Args.ybound1=-1.0*Args.dia;
   Args.ybound2=Args.dia;
   Args.giw= gsl_integration_workspace_alloc(allocationsize);
   // Return Struct
@@ -289,13 +281,13 @@ Arguments unpack(double *in_array,double allocationsize){
 }
 double velocity_fieldx_c(double * in_array,int size){
     // Unpack Pyton (numpy) Values
-
+    // These Two Arguments are only used for debugging
     double x=in_array[0];
     double y=in_array[1];
+
     int allocationsize=10000; // maximum only affects memory useage, but to little will fail
     //Arguments Args;
-    struct Arguments *Argsz, Args;
-    Argsz = &Args;
+    Arguments  Args;
     Args = unpack(in_array,allocationsize);
     // Set bounds of integration
     double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
@@ -315,8 +307,6 @@ double velocity_fieldx_c(double * in_array,int size){
     Args.imethod=imethod;
 
     // Allocate integration workspace
-
-
     gsl_integration_workspace *giw = gsl_integration_workspace_alloc(allocationsize);
 
     // Create GSL function
@@ -334,9 +324,9 @@ double velocity_fieldx_c(double * in_array,int size){
 
     // Free the integration workspace
     gsl_integration_workspace_free(giw);
-
+    gsl_integration_workspace_free(Args.giw);
     //result=0;
-    //result = functest(x,y,Argsz);
+    //result = functest(x,y,Args);
    return result;
 }
 double velocity_fieldy_c(double * in_array,int size){
@@ -346,8 +336,7 @@ double velocity_fieldy_c(double * in_array,int size){
     double y=in_array[1];
     int allocationsize=10000; // maximum only affects memory useage, but to little will fail
     //Arguments Args;
-    struct Arguments *Argsz, Args;
-    Argsz = &Args;
+    Arguments Args;
     Args = unpack(in_array,allocationsize);
     // Set bounds of integration
     double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
@@ -363,11 +352,9 @@ double velocity_fieldy_c(double * in_array,int size){
     int imethod = 6; // 61 pt
     */
 
-
     Args.imethod=imethod;
 
     // Allocate integration workspace
-
 
     gsl_integration_workspace *giw = gsl_integration_workspace_alloc(allocationsize);
 
@@ -386,9 +373,10 @@ double velocity_fieldy_c(double * in_array,int size){
 
     // Free the integration workspace
     gsl_integration_workspace_free(giw);
-
+    gsl_integration_workspace_free(Args.giw);
     //result=0;
-    //result = functest(x,y,Argsz);
+    //result = functest(x,y,Args);
+
    return result;
 }
 double integrandxext(double y,double x,double x0,double y0,double dia,double loc1,double loc2,double loc3,double spr1,double spr2,double skw1,double skw2,double scl1,double scl2,double scl3){

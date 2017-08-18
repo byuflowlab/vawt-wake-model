@@ -24,7 +24,6 @@ struct Arguments{
   gsl_integration_workspace *giw;
 };
 
-double tester(double n);
 double velocity_fieldx_c(double * in_array,int size);
 double EMGdists(double x,double mu,double sigma,double lamda,double scale);
 double velocity_fieldy_c(double * in_array,int size);
