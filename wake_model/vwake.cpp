@@ -17,10 +17,11 @@ double vorticitystrengthx(double x,double y,Arguments Args);
 double vorticitystrengthy(double x,double y,Arguments Args);
 
 double EMGdists(double x,double mu,double sigma,double lamda,double scale){
-  double lss = lamda*sigma*sigma;
-  double p1=exp((lamda/2.0)*(2.0*mu+lss-2*x));
-  double p2=1.0-erf((mu+lss-x)/(sqrt(2.0)*sigma));
-  double EMG=(lamda/2.0)*p1*p2*scale;
+  // Exponentially modified Gaussian distribution Implementation
+  double lss = lamda*sigma*sigma; // Stored Valued to Save on computation time
+  double p1=exp((lamda/2.0)*(2.0*mu+lss-2*x)); // part 1
+  double p2=1.0-erf((mu+lss-x)/(sqrt(2.0)*sigma)); // part 2
+  double EMG=(lamda/2.0)*p1*p2*scale; // combine together and scale
   return EMG;
 }
 void modifyParams(double x,double y,Arguments Args,double params[]){
@@ -114,55 +115,53 @@ void modifyParams(double x,double y,Arguments Args,double params[]){
   //return params;
 }
 double vorticitystrength(double x,double y,Arguments Args){
-  //double xd  = x/Args.dia; //Normalizing x by the diameter
   double yd = y/Args.dia; // Normalizing y by the diameter
 
-  double params[4];
-  modifyParams(x,y,Args,params);
+  double params[4]; // Initalize Array that is returned by reference
+  modifyParams(x,y,Args,params); // Ensure correct behavior
+  // Unpack Results
   double loc = params[0];
   double spr = params[1];
   double skw = params[2];
   double scl = params[3];
+  // Calculate Vorticity Strength
   double g1=EMGdists(yd,loc,spr,skw,scl);
   double g2=EMGdists(yd,-loc,-spr,-skw,-scl);
   double gam_lat = (g1-g2);
   return gam_lat;
 }
 double vorticitystrengthx(double x,double y,Arguments Args){
-  //double xd  = x/Args.dia; //Normalizing x by the diameter
   double yd = y/Args.dia; // Normalizing y by the diameter
   double pi = 3.1415926535897932;
-  double params[4];
-  modifyParams(x,y,Args,params);
+
+  double params[4];// Initalize Array that is returned by reference
+  modifyParams(x,y,Args,params); // Ensure correct behavior
+  // Unpack Results
   double loc = params[0];
   double spr = params[1];
   double skw = params[2];
   double scl = params[3];
   double kpp = skw*spr*spr;
 
-  //double gam_lat=EMGdists(yd,loc,spr,skw,scl);
-
-  //double gam_lat = (1.0/(2.0*spr))*scl*skw*(exp(-(loc-yd)*(loc-yd)/(2.0*spr*spr))*sqrt(2.0/pi) + exp(-(loc+yd)*(loc+yd)/(2.*spr*spr))*sqrt(2.0/pi) +exp(0.5*skw*(2.0*loc + skw*spr*spr - 2.0*y)*skw*spr*(-1.0 + erf((loc + skw*spr*spr - yd)/(sqrt(2.0)*spr)))) + exp(0.5*skw*(2.0* loc + skw*spr*spr + 2.0*y)*skw*spr*(-1.0 + erf((loc + skw*spr*spr +yd)/(sqrt(2.0)*spr)))));
+  // Calculate Voriticty Strength X
   double gam_lat =  (1.0/(2.0*spr))*scl*skw*(exp(-(loc-yd)*(loc-yd)/(2.0*spr*spr))*\
   sqrt(2.0/pi) + exp(-(loc+yd)*(loc+yd)/(2.0*spr*spr))*sqrt(2.0/pi) + \
   exp(0.5*skw*(2.0*loc + kpp - 2.0*y)*skw*spr*(-1.0 + \
   erf((loc + kpp - yd)/(sqrt(2.0)*spr)))) + exp(0.5*skw*(2.0*
   loc + kpp + 2.0*y)*skw*spr*(-1.0 + erf((loc + kpp + \
   yd)/(sqrt(2.0)*spr)))));
-  //return yd;
-
   return gam_lat;
 }
 double vorticitystrengthy(double x,double y,Arguments Args){
-  //double xd  = x/Args.dia; //Normalizing x by the diameter
   double yd = y/Args.dia; // Normalizing y by the diameter
-  double params[4];
-  modifyParams(x,y,Args,params);
+  double params[4];  // Initalize Array that is returned by reference
+  modifyParams(x,y,Args,params);// Ensure correct behavior
+  // Unpack Results
   double loc = params[0];
   double spr = params[1];
   double skw = params[2];
   double scl = params[3];
-
+  // Calculate Vorticity Strength
   double g1=EMGdists(yd,loc,spr,skw,scl);
   double g2=EMGdists(yd,-loc,-spr,-skw,-scl);
   double gam_lat = (g1-g2);
@@ -170,44 +169,26 @@ double vorticitystrengthy(double x,double y,Arguments Args){
   return gam_lat;
 }
 double integrandx(double x,double y,Arguments Args){
+  //Calculates the X integrand
   double gammav=vorticitystrength(x,y,Args);
   double num = (y-Args.y0);
   double den = ((x-Args.x0)*(x-Args.x0))+((y-Args.y0)*(y-Args.y0));
   double inte = gammav*num/den;
-  //double inte = gammav*((y-Args.y0)/(((x-Args.x0)*(x-Args.x0))+((y-Args.y0)*(y-Args.y0))));
-  //inte = Args.dia;
   return inte;
 }
 double integrandy(double x,double y,Arguments Args){
+  //Calculates the Y integrand
   double gammav=vorticitystrength(x,y,Args);
-  double inte = gammav*((Args.x0-x)/((x-Args.x0)*(x-Args.x0)+(y-Args.y0)*(y-Args.y0)));
+  double num = (Args.x0-x);
+  double den = (x-Args.x0)*(x-Args.x0)+(y-Args.y0)*(y-Args.y0);
+  double inte=gammav*num/den;
   return inte;
 }
-Arguments ptoArgs(Arguments Args,void *p){
-  // converts GSL Void pointer into Arguments Struct
-    double *in_array=(double *) p;
-    Args.x0=in_array[0];
-    Args.y0=in_array[1];
-    Args.dia=in_array[2];
-    Args.loc1=in_array[3];
-    Args.loc2=in_array[4];
-    Args.loc3=in_array[5];
-    Args.spr1=in_array[6];
-    Args.spr2=in_array[7];
-    Args.skw1=in_array[8];
-    Args.skw2=in_array[9];
-    Args.scl1=in_array[10];
-    Args.scl2=in_array[11];
-    Args.scl3=in_array[12];
-    Args.ybound1=in_array[13];
-    Args.ybound2=in_array[14];
-    Args.xvalue=in_array[15];
-    Args.workspacesize=in_array[16];
-    return Args;
-}
 double fx(double x,void *p){
-  Arguments Args = *(Arguments *)p;
-  Args.xvalue = x;
+  // Outside X Integral Function
+  Arguments Args = *(Arguments *)p; // Convert void pointer to Arguments struct
+  Args.xvalue = x; // Store x in Argument Struct
+  // Define Inner Integrand Function
   gsl_function F;
   F.function = &fxy;
   F.params = &Args;
@@ -223,17 +204,22 @@ double fx(double x,void *p){
   return result;
 }
 double fxy(double y,void *p){
-  Arguments Args = *(Arguments *)p;
+  // X Inner Integrand function
+  Arguments Args = *(Arguments *)p; // Convert void pointer to Arguments struct
   double results;
   results = integrandx(Args.xvalue,y,Args);
-  return results;
+  return results; // Return Integrand x
 }
 double fy(double x,void *p){
-  Arguments Args = *(Arguments*)p;
-  Args.xvalue = x;
+  // Outside of Y double integrand
+  Arguments Args = *(Arguments*)p; // Convert void pointer to Arguments struct
+  Args.xvalue = x; // Store x in Argument Struct
+
+  // Define Inner Integrand Function
   gsl_function F;
   F.function = &fyx;
   F.params = &Args;
+
   // Initialise values to put the result in
   double result;
   double abserror;
@@ -244,10 +230,11 @@ double fy(double x,void *p){
   return result;
 }
 double fyx(double y,void *p){
-  Arguments Args = *(Arguments*)p;
+  // Y Inner Integrand function
+  Arguments Args = *(Arguments*)p; // Convert void pointer to Arguments struct
   double results;
   results = integrandy(Args.xvalue,y,Args);
-  return results;
+  return results; // Return Integrand y
 }
 double functest(double x,double y,Arguments Args){
   // This is a function tester
@@ -275,18 +262,21 @@ Arguments unpack(double *in_array,double allocationsize){
   // Set Ybounds in Struct for passing into GSL
   Args.ybound1=-1.0*Args.dia;
   Args.ybound2=Args.dia;
+  // Allocation Inner Integral workspace to minimize memory functions (speed)
   Args.giw= gsl_integration_workspace_alloc(allocationsize);
   // Return Struct
   return Args;
 }
 double velocity_fieldx_c(double * in_array,int size){
     // Unpack Pyton (numpy) Values
+
     // These Two Arguments are only used for debugging
-    double x=in_array[0];
-    double y=in_array[1];
+    //double x=in_array[0]; // To be removed
+    //double y=in_array[1]; // To be removed
 
     int allocationsize=10000; // maximum only affects memory useage, but to little will fail
-    //Arguments Args;
+
+    //Convert Input to Parameter Struct
     Arguments  Args;
     Args = unpack(in_array,allocationsize);
     // Set bounds of integration
@@ -302,9 +292,7 @@ double velocity_fieldx_c(double * in_array,int size){
     int imethod = 5; // 51 pt
     int imethod = 6; // 61 pt
     */
-
-
-    Args.imethod=imethod;
+    Args.imethod=imethod;// Set to Arguments Struct
 
     // Allocate integration workspace
     gsl_integration_workspace *giw = gsl_integration_workspace_alloc(allocationsize);
@@ -324,24 +312,27 @@ double velocity_fieldx_c(double * in_array,int size){
 
     // Free the integration workspace
     gsl_integration_workspace_free(giw);
-    gsl_integration_workspace_free(Args.giw);
-    //result=0;
+    gsl_integration_workspace_free(Args.giw); // Free inner integration workspace
     //result = functest(x,y,Args);
    return result;
 }
 double velocity_fieldy_c(double * in_array,int size){
     // Unpack Pyton (numpy) Values
 
-    double x=in_array[0];
-    double y=in_array[1];
+    // These variables are only used in debugging
+    //double x=in_array[0]; // To be removed
+    //double y=in_array[1]; // To be removed
+
     int allocationsize=10000; // maximum only affects memory useage, but to little will fail
-    //Arguments Args;
+
+    //Convert Input to Parameter Struct
     Arguments Args;
     Args = unpack(in_array,allocationsize);
+
     // Set bounds of integration
     double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
 
-    // Set G-K Points
+    // Set # of points for G-K
     int imethod = 1;
     /*
     int imethod = 1; // 15pt
@@ -351,11 +342,9 @@ double velocity_fieldy_c(double * in_array,int size){
     int imethod = 5; // 51 pt
     int imethod = 6; // 61 pt
     */
-
-    Args.imethod=imethod;
+    Args.imethod=imethod; // Set to Arguments Struct
 
     // Allocate integration workspace
-
     gsl_integration_workspace *giw = gsl_integration_workspace_alloc(allocationsize);
 
     // Create GSL function
@@ -370,30 +359,9 @@ double velocity_fieldy_c(double * in_array,int size){
     double epsrel=1.49e-8;
     // Perform integration
     gsl_integration_qag(&F, xbounds[0], xbounds[1], epsabs, epsrel, allocationsize, Args.imethod, giw, &result, &abserror);
-
     // Free the integration workspace
     gsl_integration_workspace_free(giw);
-    gsl_integration_workspace_free(Args.giw);
-    //result=0;
+    gsl_integration_workspace_free(Args.giw); // Free inner integration workspace as well
     //result = functest(x,y,Args);
-
    return result;
-}
-double integrandxext(double y,double x,double x0,double y0,double dia,double loc1,double loc2,double loc3,double spr1,double spr2,double skw1,double skw2,double scl1,double scl2,double scl3){
-  Arguments Args;
-  Args.x0=x0;
-  Args.y0=y0;
-  Args.dia=dia;
-  Args.loc1=loc1;
-  Args.loc2=loc2;
-  Args.loc3=loc3;
-  Args.spr1=spr1;
-  Args.spr2=spr2;
-  Args.skw1=skw1;
-  Args.skw2=skw2;
-  Args.scl1=scl1;
-  Args.scl2=scl2;
-  Args.scl3=scl3;
-  double inte = integrandx(x,y,Args);
-  return inte;
 }
