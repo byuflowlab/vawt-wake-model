@@ -34,7 +34,7 @@ from scipy.integrate import _quadpack
 from scipy.interpolate import UnivariateSpline
 import csv
 from os import path
-#from cubature import cubature
+
 #from joblib import Parallel,delayed
 
 import _vawtwake
@@ -352,39 +352,20 @@ def velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,param=None,veltype='all',int
             elif veltype == 'ind':
                 vel = np.array([vel_xs,vel_ys])/Vinf
         ###################################
-        elif integration == 'cub':
-            # 21-POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION
-            xbound = (scl3+5.)*dia
-            global argval
-            argval = (x0t,y0t,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3)
-            if veltype == 'all' or veltype == 'x' or veltype == 'ind':
-                vel_x = cubature(cbquadx,ndim=2,fdim=1,xmin=[0,-dia],xmax=[xbound,dia])
-                vel_xs = (vel_x[0]*fabs(rot))/(2.*pi)
-            if veltype == 'all' or veltype == 'y' or veltype == 'ind':
-                vel_y = cubature(cbquady,ndim=2,fdim=1,xmin=[0,-dia],xmax=[xbound,dia])
-                vel_ys = (vel_y[0]*fabs(rot))/(2.*pi)
-
-            if veltype == 'all':
-                vel = sqrt((vel_xs + Vinf)**2 + (vel_ys)**2)/Vinf
-            elif veltype == 'x':
-                vel = (vel_xs + Vinf)/Vinf
-            elif veltype == 'y':
-                vel = vel_ys/Vinf
-            elif veltype == 'ind':
-                vel = np.array([vel_xs,vel_ys])/Vinf
-        ###################################
         elif integration == 'cgk':
-            # 21-POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION
-            xbound = (scl3+5.)*dia
-            global argval
-            argval = (xt,yt,x0t,y0t,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3)
+            # 15-POINT GAUSS-KRONROD RULE QUADRATURE INTEGRATION from GSL
+            argval =[xt,yt,x0t,y0t,dia,loc1,loc2,loc3,spr1,spr2,skw1,skw2,scl1,scl2,scl3]
+            #argval[14]=round(argval[14],8) #Potential Speedups by reducing what is rounded
+            #argval[2]=round(argval[2],8)   #Potential Speedups by reducing what is rounded
+            # Round to Prevent GSL Numerical Rounding Error ?? (This works but is questionable)
+            for i in range(0,15):
+                argval[i]=round(argval[i],9) # Prevents GSL from sensing Numerical Rounding Error
             if veltype == 'all' or veltype == 'x' or veltype == 'ind':
                 vel_x = vwake.velocity_fieldx(argval)
                 vel_xs = (vel_x*fabs(rot))/(2.*pi)
             if veltype == 'all' or veltype == 'y' or veltype == 'ind':
-                vel_y = vwake.velocity_fieldx(argval)
+                vel_y = vwake.velocity_fieldy(argval)
                 vel_ys = (vel_y*fabs(rot))/(2.*pi)
-
             if veltype == 'all':
                 vel = sqrt((vel_xs + Vinf)**2 + (vel_ys)**2)/Vinf
             elif veltype == 'x':
