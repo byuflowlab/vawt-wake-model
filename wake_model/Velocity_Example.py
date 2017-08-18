@@ -58,7 +58,6 @@ integration = 'simp'    # use Simpson's Rule integration (Fortran code)
 m = 220                 # number of divisions in the downstream direction (for Simpson's Rule)
 n = 200                 # number of divisions in the lateral direction (for Simpson's Rule)
 #integration = 'gskr'  # use 21 Point Gauss-Kronrod Rule Quadrature integration
-#integration ='cub'
 integration = 'cgk'
 ########################################################################################################################
 ########################################################################################################################
