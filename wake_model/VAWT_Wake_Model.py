@@ -359,7 +359,7 @@ def velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,param=None,veltype='all',int
             #argval[2]=round(argval[2],8)   #Potential Speedups by reducing what is rounded
             # Round to Prevent GSL Numerical Rounding Error ?? (This works but is questionable)
             for i in range(0,15):
-                argval[i]=round(argval[i],9) # Prevents GSL from sensing Numerical Rounding Error
+                argval[i]=round(argval[i],8) # Prevents GSL from sensing Numerical Rounding Error
             if veltype == 'all' or veltype == 'x' or veltype == 'ind':
                 vel_x = vwake.velocity_fieldx(argval)
                 vel_xs = (vel_x*fabs(rot))/(2.*pi)
