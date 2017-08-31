@@ -455,6 +455,7 @@ if __name__ == "__main__":
     ntheta = 72             # number of points around blade flight path
     wake_method = 'simp'    # wake model calculation using Simpson's rule
     #wake_method = 'gskr'    # wake model calculation using 21-point Gauss-Kronrod
+    wake_method = 'cgk'
     nRows = 2               # number of paired group rows
     nCols = 2               # number of paired group columns
     if rank==0:
@@ -560,7 +561,7 @@ if __name__ == "__main__":
         print 'rot:',rot.tolist(),'\n'
     for i in range(nwind-1):
         rot = np.append(rot,rot)
-    
+
     # specifying boundary locations
     spaceval = 2.
     xlow = 0.
@@ -761,6 +762,9 @@ if __name__ == "__main__":
                             wakexd,wakeyd = _vawtwake.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dloc)],ywl[int(dloc)],dial[int(dloc)],cpfs[10],cpfs[11],cpfs[12],cpfs[13],cpfs[14],cpfs[15],cpfs[16],cpfs[17],cpfs[18],cpfs[19],cpfs[20],cpfs[21],cpfs[22],1,1)
                         elif wake_method == 'gskr':
                             wakexd,wakeyd =       vwm.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dloc)],ywl[int(dloc)],dial[int(dloc)],cpfs[10],False)
+                        elif wake_method == 'cgk':
+                            wakexd,wakeyd =       vwm.overlap(cpfs[0],xt,yt,diat,rott,cpfs[5],cpfs[6],xwl[int(dloc)],ywl[int(dloc)],dial[int(dloc)],cpfs[10],False)
+
                         '''if i == dlocal[0]:
                             wakex = wakexd
                             wakey = wakeyd
