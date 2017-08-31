@@ -6,6 +6,7 @@
 
 %include "vwake.h"
 
+
 /*  include the numpy typemaps */
 %include "numpy.i"
 /*  need this for correct module initialization */
