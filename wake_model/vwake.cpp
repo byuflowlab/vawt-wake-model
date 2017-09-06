@@ -15,7 +15,7 @@ double vorticitystrength(double x,double y,Arguments Args);
 Arguments unpack(double *in_array);
 double vorticitystrengthx(double x,double y,Arguments Args);
 double vorticitystrengthy(double x,double y,Arguments Args);
-double rombergintegration(double (*F)(double),double a,double b,Arguments Args,double error,double *workspace1,double *workspace2,int sizework);
+double rombergintegration(double (*F)(double,void*),double a,double b,Arguments Args,double error,double *workspace1,double *workspace2);
 
 
 double EMGdists(double x,double mu,double sigma,double lamda,double scale){
@@ -28,7 +28,6 @@ double EMGdists(double x,double mu,double sigma,double lamda,double scale){
 }
 void modifyParams(double x,double y,Arguments Args,double params[]){
   double xd  = x/Args.dia; //Normalizing x by the diameter
-  //double yd = y/Args.dia; // Normalizing y by the diameter - unused
 
   // Limiting parameter components to create expected behavior
   double loc1d;
@@ -113,8 +112,6 @@ void modifyParams(double x,double y,Arguments Args,double params[]){
   params[1]=spr;
   params[2]=skw;
   params[3]=scl;
-  //params={loc,spr,skw,scl};
-  //return params;
 }
 double vorticitystrength(double x,double y,Arguments Args){
   double yd = y/Args.dia; // Normalizing y by the diameter
@@ -220,14 +217,13 @@ double fxr(double x,void *p){
   // Define Inner Integrand Function
 
   // Initialise values to put the result in
-  double result;
-  double abserror;
+  double result=0.0;
+  //double abserror;
   double epsabs=1.49e-8;
-  double epsrel=1.49e-8;
+  //double epsrel=1.49e-8;
 
   // Perform Romberg Integration
-  result=romberg(*fxr,Args.ybound1, Args.ybound2,Args,epsabs,Args.workspace1,Args.workspace2,Args.allocationsize);
-
+  result=rombergintegration(*fxr,Args.ybound1, Args.ybound2,Args,epsabs,Args.workspace1,Args.workspace2);
   return result;
 }
 double fxyr(double y,void *p){
@@ -270,13 +266,13 @@ double fyr(double x,void *p){
   // Define Inner Integrand Function
 
   // Initialise values to put the result in
-  double result;
-  double abserror;
+  double result=0.0;
+  //double abserror;
   double epsabs=1.49e-8;
-  double epsrel=1.49e-8;
+  //double epsrel=1.49e-8;
 
   // Perform Romberg Integration
-  result=romberg(*fxr,Args.ybound1, Args.ybound2,Args,epsabs,Args.workspace1,Args.workspace2,Args.allocationsize);
+  result=rombergintegration(*fyr,Args.ybound1, Args.ybound2,Args,epsabs,Args.workspace1,Args.workspace2);
 
   return result;
 }
@@ -321,14 +317,16 @@ Arguments unpack(double *in_array,double allocationsize,int imethod){
   return Args;
 }
 
-double rombergintegration(double (*F)(double,void),double a,double b,Arguments Args,double error,double* workspace1,double* workspace2,int sizework){
+double rombergintegration(double (*F)(double,void*),double a,double b,Arguments Args,double error,double* workspace1,double* workspace2){
       // Use Allocated Memory
       //double R1[sizework] = workspace1;
       //double R2[sizework]= workspace2;
       //double R1[max_steps], R2[max_steps]; //buffers
-     double *Rp = &workspace1[0], *Rc = workspace2[0]; //Rp is previous row, Rc is current row
-     double h = (b-a); //step size
-     Rp[0] = (F(a,&Args) + F(b,&Args))*h*.5; //first trapezoidal step
+    int max_steps = Args.allocationsize;
+    double acc = 1.49e-8;
+    double *Rp = &workspace1[0], *Rc = &workspace2[0]; //Rp is previous row, Rc is current row
+    double h = (b-a); //step size
+    Rp[0] = (F(a,&Args) + F(b,&Args))*h*.5; //first trapezoidal step
 
      for(size_t i = 1; i < max_steps; ++i){
         h /= 2.;
@@ -354,14 +352,13 @@ double rombergintegration(double (*F)(double,void),double a,double b,Arguments A
         Rc = rt;
      }
      return Rp[max_steps-1]; //return our best guess
-  }
 }
 
 double velocity_fieldx_c(double * in_array,int size){
     // Unpack Pyton (numpy) Values
 
     // Set G-K Points
-    int imethod = 1;
+    int imethod = 7;
     /*
     GSL Guass-Konrod
     int imethod = 1; // 15pt
@@ -387,8 +384,8 @@ double velocity_fieldx_c(double * in_array,int size){
     Args.imethod=imethod;// Set to Arguments Struct
 
     // Initialise values to put the result in
-    double result;
-    double abserror;
+    double result=0.0;
+    //double abserror;
     double epsabs=1.49e-8;
     double epsrel=1.49e-8;
 
@@ -406,10 +403,8 @@ double velocity_fieldx_c(double * in_array,int size){
       F.params = &Args;
 
       // Initialise values to put the result in
-      double result;
       double abserror;
-      double epsabs=1.49e-8;
-      double epsrel=1.49e-8;
+
       // Perform integration
       gsl_integration_qag(&F, xbounds[0], xbounds[1], epsabs, epsrel, allocationsize, Args.imethod, giw, &result, &abserror);
 
@@ -428,7 +423,7 @@ double velocity_fieldx_c(double * in_array,int size){
 
 
 
-      result=romberg(*fxr,xbounds[0],xbounds[1],Args,epsabs,workspace2,workspace1,allocationsize);
+      result=rombergintegration(*fxr,xbounds[0],xbounds[1],Args,epsabs,workspace2,workspace1);
 
     }
    return result;
@@ -437,7 +432,7 @@ double velocity_fieldy_c(double * in_array,int size){
   // Unpack Pyton (numpy) Values
 
   // Set G-K Points
-  int imethod = 1;
+  int imethod = 7;
   /*
   GSL Guass-Konrod
   int imethod = 1; // 15pt
@@ -501,8 +496,12 @@ double velocity_fieldy_c(double * in_array,int size){
     // Allocate integration workspace
     double workspace1[allocationsize];
     double workspace2[allocationsize];
+    double workspace3[allocationsize];
+    double workspace4[allocationsize];
+    Args.workspace1=workspace3;
+    Args.workspace2=workspace4;
 
-    result=romberg(*fyr,xbounds[0],xbounds[1],Args,epsabs,workspace2,workspace1,allocationsize);
+    result=rombergintegration(*fyr,xbounds[0],xbounds[1],Args,epsabs,workspace2,workspace1);
 
   }
  return result;
