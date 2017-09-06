@@ -15,7 +15,7 @@ double vorticitystrength(double x,double y,Arguments Args);
 Arguments unpack(double *in_array);
 double vorticitystrengthx(double x,double y,Arguments Args);
 double vorticitystrengthy(double x,double y,Arguments Args);
-double rombergintegration(double (*F)(double),double a,double b,Arguments2 Args,double error,double *workspace1,double *workspace2,int sizework);
+double rombergintegration(double (*F)(double),double a,double b,Arguments Args,double error,double *workspace1,double *workspace2,int sizework);
 
 
 double EMGdists(double x,double mu,double sigma,double lamda,double scale){
@@ -186,6 +186,7 @@ double integrandy(double x,double y,Arguments Args){
   double inte=gammav*num/den;
   return inte;
 }
+
 double fx(double x,void *p){
   // Outside X Integral Function
   Arguments Args = *(Arguments *)p; // Convert void pointer to Arguments struct
@@ -214,7 +215,7 @@ double fxy(double y,void *p){
 }
 double fxr(double x,void *p){
   // Outside X Integral Function
-  Arguments2 Args = *(Arguments2 *)p; // Convert void pointer to Arguments struct
+  Arguments Args = *(Arguments *)p; // Convert void pointer to Arguments struct
   Args.xvalue = x; // Store x in Argument Struct
   // Define Inner Integrand Function
 
@@ -231,7 +232,7 @@ double fxr(double x,void *p){
 }
 double fxyr(double y,void *p){
   // X Inner Integrand function
-  Arguments2 Args = *(Arguments2 *)p; // Convert void pointer to Arguments struct
+  Arguments Args = *(Arguments *)p; // Convert void pointer to Arguments struct
   double results;
   results = integrandx(Args.xvalue,y,Args);
   return results; // Return Integrand x
@@ -257,14 +258,14 @@ double fy(double x,void *p){
 }
 double fyx(double y,void *p){
   // Y Inner Integrand function
-  Arguments2 Args = *(Arguments2*)p; // Convert void pointer to Arguments struct
+  Arguments Args = *(Arguments*)p; // Convert void pointer to Arguments struct
   double results;
   results = integrandy(Args.xvalue,y,Args);
   return results; // Return Integrand y
 }
 double fyr(double x,void *p){
   // Outside Y Integral Function
-  Arguments2 Args = *(Arguments2 *)p; // Convert void pointer to Arguments struct
+  Arguments Args = *(Arguments *)p; // Convert void pointer to Arguments struct
   Args.xvalue = x; // Store x in Argument Struct
   // Define Inner Integrand Function
 
@@ -281,7 +282,7 @@ double fyr(double x,void *p){
 }
 double fyxr(double y,void *p){
   // Y Inner Integrand function
-  Arguments2 Args = *(Arguments2 *)p; // Convert void pointer to Arguments struct
+  Arguments Args = *(Arguments *)p; // Convert void pointer to Arguments struct
   double results;
   results = integrandy(Args.xvalue,y,Args);
   return results; // Return Integrand x
@@ -292,7 +293,7 @@ double functest(double x,double y,Arguments Args){
   double value = vorticitystrength(x,y,Args);
   return value;
 }
-Arguments unpack(double *in_array,double allocationsize){
+Arguments unpack(double *in_array,double allocationsize,int imethod){
   // Unpack Numpy Array into Arguments Struct
   Arguments Args;
   Args.x0=in_array[2];
@@ -312,54 +313,29 @@ Arguments unpack(double *in_array,double allocationsize){
   // Set Ybounds in Struct for passing into GSL
   Args.ybound1=-1.0*Args.dia;
   Args.ybound2=Args.dia;
-  // Allocation Inner Integral workspace to minimize memory functions (speed)
-  Args.giw= gsl_integration_workspace_alloc(allocationsize);
+  if (imethod<7){
+    // Allocation Inner Integral workspace to minimize memory functions (speed)
+    Args.giw= gsl_integration_workspace_alloc(allocationsize);
+  }
   // Return Struct
   return Args;
 }
-Arguments2 unpack2(double *in_array,int allocationsize){
-  // Unpack Numpy Array into Arguments Struct
-  Arguments2 Args;
-  Args.x0=in_array[2];
-  Args.y0=in_array[3];
-  Args.dia=in_array[4];
-  Args.loc1=in_array[5];
-  Args.loc2=in_array[6];
-  Args.loc3=in_array[7];
-  Args.spr1=in_array[8];
-  Args.spr2=in_array[9];
-  Args.skw1=in_array[10];
-  Args.skw2=in_array[11];
-  Args.scl1=in_array[12];
-  Args.scl2=in_array[13];
-  Args.scl3=in_array[14];
-  Args.workspacesize=allocationsize;
-  // Set Ybounds in Struct for passing into GSL
-  Args.ybound1=-1.0*Args.dia;
-  Args.ybound2=Args.dia;
-  // Allocation Inner Integral workspace to minimize memory functions (speed)
-  double a[allocationsize];
-  double b[allocationsize];
-  Args.workspace1=a;
-  Args.workspace2=b;
-  // Return Struct
-  return Args;
-}
-double rombergintegration(double (*F)(double),double a,double b,Arguments2 Args,double error,double* workspace1,double* workspace2,int sizework){
+
+double rombergintegration(double (*F)(double,void),double a,double b,Arguments Args,double error,double* workspace1,double* workspace2,int sizework){
       // Use Allocated Memory
       //double R1[sizework] = workspace1;
       //double R2[sizework]= workspace2;
       //double R1[max_steps], R2[max_steps]; //buffers
      double *Rp = &workspace1[0], *Rc = workspace2[0]; //Rp is previous row, Rc is current row
      double h = (b-a); //step size
-     Rp[0] = (F(a,Args) + F(b,Args))*h*.5; //first trapezoidal step
+     Rp[0] = (F(a,&Args) + F(b,&Args))*h*.5; //first trapezoidal step
 
      for(size_t i = 1; i < max_steps; ++i){
         h /= 2.;
         double c = 0;
         size_t ep = 1 << (i-1); //2^(n-1)
         for(size_t j = 1; j <= ep; ++j){
-           c += F(a+(2*j-1)*h,Args);
+           c += F(a+(2*j-1)*h,&Args);
         }
         Rc[0] = h*c + .5*Rp[0]; //R(i,0)
 
@@ -384,35 +360,42 @@ double rombergintegration(double (*F)(double),double a,double b,Arguments2 Args,
 double velocity_fieldx_c(double * in_array,int size){
     // Unpack Pyton (numpy) Values
 
-    // 1 for GSL Gauss=Konrod
-    // 2 for Romberg
-    int integrationmethod=2;
+    // Set G-K Points
+    int imethod = 1;
+    /*
+    GSL Guass-Konrod
+    int imethod = 1; // 15pt
+    int imethod = 2; // 21 pt
+    int imethod = 3; // 31 pt
+    int imethod = 4; // 41 pt
+    int imethod = 5; // 51 pt
+    int imethod = 6; // 61 pt
+    7 for Romberg
+    */
+
+    int allocationsize=10000; // maximum only affects memory useage, but to little will fail
 
 
     // These Two Arguments are only used for debugging
     //double x=in_array[0]; // To be removed
     //double y=in_array[1]; // To be removed
 
-    if(integrationmethod==1){
-      int allocationsize=10000; // maximum only affects memory useage, but to little will fail
+    //Convert Input to Parameter Struct
+    Arguments  Args;
+    Args = unpack(in_array,allocationsize,imethod);
 
-      //Convert Input to Parameter Struct
-      Arguments  Args;
-      Args = unpack(in_array,allocationsize);
+    Args.imethod=imethod;// Set to Arguments Struct
+
+    // Initialise values to put the result in
+    double result;
+    double abserror;
+    double epsabs=1.49e-8;
+    double epsrel=1.49e-8;
+
+    if(Args.imethod<7){
+
       // Set bounds of integration
       double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
-
-      // Set G-K Points
-      int imethod = 1;
-      /*
-      int imethod = 1; // 15pt
-      int imethod = 2; // 21 pt
-      int imethod = 3; // 31 pt
-      int imethod = 4; // 41 pt
-      int imethod = 5; // 51 pt
-      int imethod = 6; // 61 pt
-      */
-      Args.imethod=imethod;// Set to Arguments Struct
 
       // Allocate integration workspace
       gsl_integration_workspace *giw = gsl_integration_workspace_alloc(allocationsize);
@@ -435,29 +418,17 @@ double velocity_fieldx_c(double * in_array,int size){
       gsl_integration_workspace_free(Args.giw); // Free inner integration workspace
       //result = functest(x,y,Args);
     }
-    if(integrationmethod==2){
-      int allocationsize=10000; // maximum only affects memory useage, but to little will fail
-
-      //Convert Input to Parameter Struct
-      Arguments2  Args;
-      Args = unpack2(in_array,allocationsize);
+    if(Args.imethod==7){
       // Set bounds of integration
       double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
-
-
-      Args.imethod=77;// Set to Arguments Struct
 
       // Allocate integration workspace
       double workspace1[allocationsize];
       double workspace2[allocationsize];
 
-      // Initialise values to put the result in
-      double result;
-      double abserror;
-      double epsabs=1.49e-8;
-      double epsrel=1.49e-8;
 
-      result=romberg(*fxr,xbounds[0],xbounds[1],Args,epsabs,workspace1,workspace2,allocationsize);
+
+      result=romberg(*fxr,xbounds[0],xbounds[1],Args,epsabs,workspace2,workspace1,allocationsize);
 
     }
    return result;
@@ -465,35 +436,43 @@ double velocity_fieldx_c(double * in_array,int size){
 double velocity_fieldy_c(double * in_array,int size){
   // Unpack Pyton (numpy) Values
 
-  // 1 for GSL Gauss=Konrod
-  // 2 for Romberg
-  int integrationmethod=2;
+  // Set G-K Points
+  int imethod = 1;
+  /*
+  GSL Guass-Konrod
+  int imethod = 1; // 15pt
+  int imethod = 2; // 21 pt
+  int imethod = 3; // 31 pt
+  int imethod = 4; // 41 pt
+  int imethod = 5; // 51 pt
+  int imethod = 6; // 61 pt
+  7 for Romberg
+  */
+  int allocationsize=10000; // maximum only affects memory useage, but to little will fail
 
 
   // These Two Arguments are only used for debugging
   //double x=in_array[0]; // To be removed
   //double y=in_array[1]; // To be removed
 
-  if(integrationmethod==1){
-    int allocationsize=10000; // maximum only affects memory useage, but to little will fail
+  Arguments  Args;
+  Args = unpack(in_array,allocationsize,imethod);
+
+  Args.imethod=imethod;// Set to Arguments Struct
+
+  // Initialise values to put the result in
+  double result;
+  double abserror;
+  double epsabs=1.49e-8;
+  double epsrel=1.49e-8;
+
+
+  if(Args.imethod<7){
 
     //Convert Input to Parameter Struct
-    Arguments  Args;
-    Args = unpack(in_array,allocationsize);
+
     // Set bounds of integration
     double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
-
-    // Set G-K Points
-    int imethod = 1;
-    /*
-    int imethod = 1; // 15pt
-    int imethod = 2; // 21 pt
-    int imethod = 3; // 31 pt
-    int imethod = 4; // 41 pt
-    int imethod = 5; // 51 pt
-    int imethod = 6; // 61 pt
-    */
-    Args.imethod=imethod;// Set to Arguments Struct
 
     // Allocate integration workspace
     gsl_integration_workspace *giw = gsl_integration_workspace_alloc(allocationsize);
@@ -503,11 +482,8 @@ double velocity_fieldy_c(double * in_array,int size){
     F.function = &fx;
     F.params = &Args;
 
-    // Initialise values to put the result in
-    double result;
-    double abserror;
-    double epsabs=1.49e-8;
-    double epsrel=1.49e-8;
+
+
     // Perform integration
     gsl_integration_qag(&F, xbounds[0], xbounds[1], epsabs, epsrel, allocationsize, Args.imethod, giw, &result, &abserror);
 
@@ -516,29 +492,17 @@ double velocity_fieldy_c(double * in_array,int size){
     gsl_integration_workspace_free(Args.giw); // Free inner integration workspace
     //result = functest(x,y,Args);
   }
-  if(integrationmethod==2){
-    int allocationsize=10000; // maximum only affects memory useage, but to little will fail
+  if(Args.imethod==7){
 
-    //Convert Input to Parameter Struct
-    Arguments2  Args;
-    Args = unpack2(in_array,allocationsize);
     // Set bounds of integration
     double xbounds[2]={0,(Args.scl3+5.0)*Args.dia};
 
-
-    Args.imethod=77;// Set to Arguments Struct
 
     // Allocate integration workspace
     double workspace1[allocationsize];
     double workspace2[allocationsize];
 
-    // Initialise values to put the result in
-    double result;
-    double abserror;
-    double epsabs=1.49e-8;
-    double epsrel=1.49e-8;
-
-    result=romberg(*fyr,xbounds[0],xbounds[1],Args,epsabs,workspace1,workspace2,allocationsize);
+    result=romberg(*fyr,xbounds[0],xbounds[1],Args,epsabs,workspace2,workspace1,allocationsize);
 
   }
  return result;
