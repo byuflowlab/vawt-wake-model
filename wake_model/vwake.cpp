@@ -1,7 +1,7 @@
 #import <iostream>
 #include <math.h>
 #include "vwake.h"
-
+//
 // Function Declarations for Functions that cannot be called from Python
 double integrandx(double y,double x,Arguments Args);
 double integrandy(double y,double x,Arguments Args);
@@ -131,7 +131,7 @@ double vorticitystrength(double x,double y,Arguments Args){
 }
 double vorticitystrengthx(double x,double y,Arguments Args){
   double yd = y/Args.dia; // Normalizing y by the diameter
-  double pi = 3.1415926535897932;
+  double pi = 3.141592653589793238462643383;
 
   double params[4];// Initalize Array that is returned by reference
   modifyParams(x,y,Args,params); // Ensure correct behavior
@@ -327,7 +327,7 @@ double rombergintegration(double (*F)(double,void*),double a,double b,Arguments 
     double *Rp = &workspace1[0], *Rc = &workspace2[0]; //Rp is previous row, Rc is current row
     double h = (b-a); //step size
     Rp[0] = (F(a,&Args) + F(b,&Args))*h*.5; //first trapezoidal step
-
+    /*
      for(size_t i = 1; i < max_steps; ++i){
         h /= 2.;
         double c = 0;
@@ -351,6 +351,7 @@ double rombergintegration(double (*F)(double,void*),double a,double b,Arguments 
         Rp = Rc;
         Rc = rt;
      }
+     */
      return Rp[max_steps-1]; //return our best guess
 }
 
@@ -358,7 +359,7 @@ double velocity_fieldx_c(double * in_array,int size){
     // Unpack Pyton (numpy) Values
 
     // Set G-K Points
-    int imethod = 7;
+    int imethod = 2;
     /*
     GSL Guass-Konrod
     int imethod = 1; // 15pt
@@ -370,7 +371,7 @@ double velocity_fieldx_c(double * in_array,int size){
     7 for Romberg
     */
 
-    int allocationsize=10000; // maximum only affects memory useage, but to little will fail
+    int allocationsize=10000; // maximum only affects memory useage, but too little will fail
 
 
     // These Two Arguments are only used for debugging
@@ -432,7 +433,7 @@ double velocity_fieldy_c(double * in_array,int size){
   // Unpack Pyton (numpy) Values
 
   // Set G-K Points
-  int imethod = 7;
+  int imethod = 2;
   /*
   GSL Guass-Konrod
   int imethod = 1; // 15pt
@@ -441,10 +442,9 @@ double velocity_fieldy_c(double * in_array,int size){
   int imethod = 4; // 41 pt
   int imethod = 5; // 51 pt
   int imethod = 6; // 61 pt
-  7 for Romberg
+  int imethod = 7; // for Romberg
   */
   int allocationsize=10000; // maximum only affects memory useage, but to little will fail
-
 
   // These Two Arguments are only used for debugging
   //double x=in_array[0]; // To be removed
@@ -458,7 +458,7 @@ double velocity_fieldy_c(double * in_array,int size){
   // Initialise values to put the result in
   double result;
   double abserror;
-  double epsabs=1.49e-8;
+  double epsabs=1.49e-6;
   double epsrel=1.49e-8;
 
 
@@ -474,9 +474,8 @@ double velocity_fieldy_c(double * in_array,int size){
 
     // Create GSL function
     gsl_function F;
-    F.function = &fx;
+    F.function = &fy;
     F.params = &Args;
-
 
 
     // Perform integration
