@@ -613,7 +613,6 @@ if __name__ == "__main__":
         num_cons_obs = nobs*nwind
         optProb.addConGroup('SPL', num_cons_obs, lower=0, upper=SPLlim/10.)
 
-        #opt = SNOPT(sens_mode='serial')
         opt = SNOPT(sens_mode='serial')
         opt.setOption('Scale option',0)
         if rotdir_spec == 'cn':

@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 
 """
-setup.py file for SWIG example
+setup.py file for SWIG module
 """
 
 from distutils.core import setup, Extension
 import numpy
-
+#import os
+#os.environ["CC"] = "g++-4.7"
+#os.environ["CXX"] = "g++-4.7"
 
 vwake_module = Extension('_vwake',
+                           #extra_compile_args=["--fsanitize=leak"],
                            libraries = ['gsl',"gslcblas"],
                            include_dirs = ['/usr/local/lib/'],
                            sources=['vwake.i','vwake.cpp'],
