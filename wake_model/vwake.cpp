@@ -1,7 +1,7 @@
 #import <iostream>
 #include <math.h>
 #include "vwake.h"
-//
+
 // Function Declarations for Functions that cannot be called from Python
 double integrandx(double y,double x,Arguments Args);
 double integrandy(double y,double x,Arguments Args);
@@ -203,6 +203,7 @@ double fx(double x,void *p){
 
   gsl_integration_qag(&F, Args.ybound1, Args.ybound2, epsabs, epsrel, Args.workspacesize, Args.imethod, giw, &result, &abserror);
   //result=integrandx(5.0,5.0,Args);
+  gsl_integration_workspace_free(giw);
   return result;
 }
 double fxy(double y,void *p){
@@ -255,6 +256,7 @@ double fy(double x,void *p){
   gsl_integration_workspace *giw = gsl_integration_workspace_alloc(Args.workspacesize);
 
   gsl_integration_qag(&F, Args.ybound1, Args.ybound2, epsabs, epsrel, Args.workspacesize, Args.imethod, giw, &result, &abserror);
+  gsl_integration_workspace_free(giw);
   return result;
 }
 double fyx(double y,void *p){
