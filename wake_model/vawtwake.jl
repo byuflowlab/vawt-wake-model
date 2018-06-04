@@ -5,8 +5,8 @@ using CSV
 export vfieldx,vfieldy,vorticitystrength,model_gen,velocity_field
 
 struct Arguments
-        xt
-        yt
+        x0
+        y0
         dia
         loc1
         loc2
@@ -21,114 +21,7 @@ struct Arguments
         ybound1
         ybound2
         rot
-end
-
-function interpolate(n,x,y,xval)
-    for i=1:n
-        if (xval <x[i])
-            yval = y[i-1]+(xval - x[i-1])*((y[i]-y[i-1])/(x[i]-x[i-1]))
-            break
-        elseif (xval==x[i])
-            yval = y[i]
-        end
-    end
-    return yval
-end
-
-#Cubic Splin interpolation setup
-function splineint(n,x,y,xval)
-    for i=1:n
-        if (xval<x[i])
-            if (i==2)
-                x1=x[1]
-                x2=x[2]
-                x3=x[3]
-                y1=y[1]
-                y2=y[2]
-                y3=y[3]
-                yval = cubspline(x1,x2,x3,y1,y2,y3,xval)
-            elseif (i==n)
-                x1=x[n-2]
-                x2=x[n-1]
-                x3=x[n]
-                y1=y[n-2]
-                y2=y[n-1]
-                y3=y[n]
-                yval=cubspline(x1,x2,x3,y1,y2,y3,xval)
-            else
-                if (xval <= (x[i]+x[i-1])/2.0)
-                    x1=x[i-2]
-                    x2=x[i-1]
-                    x3=x[i]
-                    y1=y[i-2]
-                    y2=y[i-1]
-                    y3=y[i]
-                    yval=cubspline(x1,x2,x3,y1,y2,y3,xval)
-                else
-                    x1=x[i-1]
-                    x2=x[i]
-                    x3=x[i+1]
-                    y1=y[i-1]
-                    y2=y[i]
-                    y3=y[i+1]
-                    yval=cubsline(x1,x2,x3,y1,y2,y3,xval)
-                end
-            end
-            return yval
-        elseif (xval==x[i])
-            yval=y[i]
-            return yval
-        end
-    end
-end #splineint
-
-#cubic spline interpolation (for airfoil data)
-
-function cubspline(x1,x2,x3,y1,y2,y3,xval)
-    #solve tridiagonal linear equation system
-    a11=2.0/(x2-x1)
-    a12=1.0/(x2-x1)
-    a13=0.0
-    a21=1.0/(x2-x1)
-    a22=2.0*((1.0/(x2-x1))+(1.0/(x3-x2)))
-    a23=1.0/(x3-x2)
-    a31=0.0
-    a32=1.0/(x3-x2)
-    a33=2.0/(x3-x2)
-    b1=3.0*(y2-y1)/(x20x1)^2
-    b2=3.0*(((y2-y1)/(x2-x1)^2)+((y3-y2)/(x3-x2)^2))
-    b3=3.0*(y3-y2)/(x3-x2)^2
-
-    #solve using inverse matrix method
-    bot = a11*a22*a33 + a12*a23*a31 + a13*a21*a32 - a13*a22*a31 - a12*a21*a33 - a11*a23*a32
-    if (xval < x2)
-      xtop = b1*a22*a33 + a12*a23*b3 + a13*b2*a32 - a13*a22*b3 - a12*b2*a33 - b1*a23*a32
-      ytop = a11*b2*a33 + b1*a23*a31 + a13*a21*b3 - a13*b2*a31 - b1*a21*a33 - a11*a23*b3
-
-      k1 = xtop/bot
-      k2 = ytop/bot
-
-      a = k1*(x2-x1) - (y2-y1)
-      b = -k2*(x2-x1) + (y2-y1)
-      t = (xval-x1)/(x2-x1)
-
-      yval = (1.0 - t)*y1 + t*y2 + t*(1.0 - t)*(a*(1.0 - t) + b*t)
-    else
-      ytop = a11*b2*a33 + b1*a23*a31 + a13*a21*b3 - a13*b2*a31 - b1*a21*a33 - a11*a23*b3
-      ztop = a11*a22*b3 + a12*b2*a31 + b1*a21*a32 - b1*a22*a31 - a12*a21*b3 - a11*b2*a32
-
-      k2 = ytop/bot
-      k3 = ztop/bot
-
-      a = k2*(x3-x2) - (y3-y2)
-      b = -k3*(x3-x2) + (y3-y2)
-      t = (xval-x2)/(x3-x2)
-
-      yval = (1.0 - t)*y2 + t*y3 + t*(1.0 - t)*(a*(1.0 - t) + b*t)
-    end
-
-    return yval
-end #cubspline
+end #Arguments
 
 #Calculating EMG parameter values based on given polynomial surface
 function parametereval(tsr,sol,coef)
@@ -149,7 +42,7 @@ function parametereval(tsr,sol,coef)
 end #parametereval
 
 function EMGdist(y,loc,spr,skw,scl)
-    gam_skew = scl*skw/2.0*exp(skw/2.0*(2.0*loc+skw*spr^2-2.0*y))*(1.0-erf((loc + skw*spr^2.0 - y)/(sqrt(2.0*spr))))
+    gam_skew = scl*skw/2.0*exp(skw/2.0*(2.0*loc+skw*spr^2-2.0*y))*(1.0-erf((loc + skw*spr^2.0 - y)/(sqrt(2.0)*spr)))
     return gam_skew
 end #EMGdist
 
@@ -266,16 +159,16 @@ end #vorticitystrengthy
 
 function integrandx(x,y,Args)
         gammav=vorticitystrength(x,y,Args)
-        num=(y-Args.yt)
-        den=((x-Args.xt)*(x-Args.xt))+((y-Args.yt)*(y-Args.yt))
+        num=(y-Args.y0)
+        den=((x-Args.x0)*(x-Args.x0))+((y-Args.y0)*(y-Args.y0))
         inte=gammav*num/den
         return inte
 end #integrandx
 
 function integrandy(x,y,Args)
         gammav=vorticitystrength(x,y,Args)
-        num=x0-Args.xt
-        den=(x-Args.xt)*(x-Args.xt)+(y-Args.yt)*(y-Args.yt)
+        num=Args.x0-x
+        den=(x-Args.x0)*(x-Args.x0)+(y-Args.y0)*(y-Args.y0)
         inte=gammav*num/den
         return inte
 end #integrandy
@@ -318,7 +211,7 @@ function vfieldx(Args)
         epsabs=1.49e-8
         epsrel=1.49e-8
         #limits of intigration
-        xbounds=(0,(Args.scl1+5.0)*Args.dia)
+        xbounds=(0,(Args.scl3+5.0)*Args.dia)
         #Integration
         funcxpass(x)=fx(x,Args)
         #Outer Integral
@@ -360,14 +253,19 @@ function model_gen(x0,y0,tsr,solidity,dia,rot)
     return Args
 end #model_gen
 
-function velocity_field(x0,y0,Args,veltype)
+function velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,veltype,param="None")
+        rad=dia/2.0
+        tsr=rad*abs(rot)/Vinf
+        solidity = (chord*B)/rad
+        x0t=x0-xt
+        x0y=y0-yt
 
-    x0t=Args.xt-x0
-    y0t=Args.yt-y0
+    if param=="None"
+            Args=model_gen(x0,y0,tsr,solidity,dia,rot)
+    else
+            Args=param
+    end
 
-    #Eric Includes 2 options here
-    #Caclaulate Surface coefficents
-    #Load Surface coefficents
 
     if veltype=="vort"
         #Vorticity Caclculation (No Integration)
@@ -394,11 +292,11 @@ function velocity_field(x0,y0,Args,veltype)
         elseif veltype=="ind"
             vel=[vel_xs,vel_ys]/Vinf
         else
+            throw(DomainError)
             println("Error in veltype Option")
         end
-        return vel
     end
-
+    return vel
 end #velocity_field
 
 function _parameterval(tsr,sol,coef)
