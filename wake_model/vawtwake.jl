@@ -3,6 +3,7 @@ using SpecialFunctions
 using QuadGK
 using CSV
 export vfieldx,vfieldy,vorticitystrength,model_gen,velocity_field
+path,_ = splitdir(@__FILE__)
 
 struct Arguments
         x0
@@ -234,7 +235,8 @@ end #vfieldy
 
 function model_gen(x0,y0,tsr,solidity,dia,rot)
     #Get file locatoin (absolute)
-    fileloc=pwd()*"/data/VAWTPolySurfaceCoef_pub.csv" #Not sure if this is the best way
+    #path,_ = splitdir(@__FILE__)
+    fileloc="$path/../Data/VAWTPolySurfaceCoef_pub.csv" #Not sure if this is the best way
     csvdata=CSV.read(fileloc,delim=',')
     #Project Point Onto Surface
     loc1=_parameterval(tsr,solidity,csvdata[:,1])
