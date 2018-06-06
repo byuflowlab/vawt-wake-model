@@ -6,22 +6,22 @@ export vfieldx,vfieldy,vorticitystrength,model_gen,velocity_field
 path,_ = splitdir(@__FILE__)
 
 struct Arguments
-        x0
-        y0
-        dia
-        loc1
-        loc2
-        loc3
-        spr1
-        spr2
-        skw1
-        skw2
-        scl1
-        scl2
-        scl3
-        ybound1
-        ybound2
-        rot
+        x0::Float64
+        y0::Float64
+        dia::Float64
+        loc1::Float64
+        loc2::Float64
+        loc3::Float64
+        spr1::Float64
+        spr2::Float64
+        skw1::Float64
+        skw2::Float64
+        scl1::Float64
+        scl2::Float64
+        scl3::Float64
+        ybound1::Float64
+        ybound2::Float64
+        rot::Float64
 end #Arguments
 
 #Calculating EMG parameter values based on given polynomial surface
