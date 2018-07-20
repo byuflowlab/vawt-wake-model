@@ -1,10 +1,12 @@
 #Pkg.build("Snopt")
 using Snopt
 using vawtwake
+#@everywhere include("vawtwake.jl")
 using BPM
 using PyCall
 using vawtac
 @pyimport matplotlib.pyplot as plt
+using JLD
 
 
 #Replacing Eric's Globals with a struct
@@ -62,6 +64,7 @@ function full_obj(xopt,gl)
 
     winddir_turb=zeros(nwind)
     for d=1:nwind
+        tic()
         println("Wind Direction #",d)
         #adjusting coordinate system for wind direction
         winddir_turb[d] = 270-gl.windroseDirections[d]
@@ -72,14 +75,17 @@ function full_obj(xopt,gl)
         xw=x*cos(-winddir_turb_rad) - y*sin(-winddir_turb_rad)
         yw = x*sin(-winddir_turb_rad) + y*cos(-winddir_turb_rad)
 
-        tic()
         #calculate wake velocity components
+        tic()
         wakex,wakey = vawt_wake(xw,yw,gl.dia,rotw[d,:],gl.ntheta,gl.chord,gl.B,gl.Vinf)
         toc()
+        tic()
         #Calculate Power
-        for i=1:nturb
-            power_turb[i]=vawt_power(i,gl.dia,rotw[d,:],gl.ntheta,gl.chord,gl.H,gl.B,gl.Vinf,gl.twist,gl.delta,gl.rho,wakex,wakey,gl)
-        end
+        power_turb=vawt_power(0.0,gl.dia,rotw[d,:],gl.ntheta,gl.chord,gl.H,gl.B,gl.Vinf,gl.twist,gl.delta,gl.rho,wakex,wakey,gl,xw,yw)
+        toc()
+        #for i=1:nturb
+        #    power_turb[i]=vawt_power(i,gl.dia,rotw[d,:],gl.ntheta,gl.chord,gl.H,gl.B,gl.Vinf,gl.twist,gl.delta,gl.rho,wakex,wakey,gl)
+        #end
         power_dir[d]=sum(power_turb)*gl.windFrequencies[d]
         #Calculating Noise (dB)
         SPL_d=bpm_noise(x,y,gl.windroseDirections[d],rotw[d],wakex,wakey,gl)
@@ -88,6 +94,7 @@ function full_obj(xopt,gl)
         else
             append!(SPL,SPL_d)
         end
+        toc()
     end
     power=sum(power_dir)
     percent=power/gl.power_iso_tot
@@ -103,7 +110,10 @@ function full_obj(xopt,gl)
     funcs=obj
     fail=false
     #Combine Constants into 1 group
-    c=[SPL,sep]
+    #c=[SPL,sep]
+    c=SPL
+    append!(c,sep)
+    #println(funcs,c,fail)
     return funcs,c,fail
 
 end #obj_func
@@ -135,26 +145,30 @@ function vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf)
     return wakex,wakey
 end #vawt_wake
 
-function vawt_power(i,dia,rotw,ntheta,chord,H,B,Vinf,twist,delta,rho,wakext,wakeyt,gl)
+function vawt_power(k,dia,rotw,ntheta,chord,H,B,Vinf,twist,delta,rho,wakext,wakeyt,gl,xw,yw)
     wakex=zeros(gl.ntheta)
     wakey=zeros(gl.ntheta)
-    for j=1:ntheta
-        wakex[j]=wakext[j+ntheta*(i-1)]
-        wakey[j]=wakeyt[j+ntheta*(i-1)]
-    end
+    nturb=length(rotw)
+    power_turb=zeros(nturb)
+    #for j=1:ntheta
+    #    wakex[j]=wakext[j+ntheta*(i-1)]
+    #    wakey[j]=wakeyt[j+ntheta*(i-1)]
+    #end
     if gl.useAC==true
-        Omega=rotw[i]
-        env=vawtac.Environment(gl.Vinf,gl.rho,gl.mu)
-        turbines=Array{vawtac.Turbine}(1)
-        turbines[1]=vawtac.Turbine(gl.turb_dia/2,gl.chord,gl.twist,gl.delta,gl.B,gl.af,Omega,0.0,0.0)
+        env=vawtac.Environment(Vinf,gl.rho,gl.mu)
+        turbines=Array{vawtac.Turbine}(nturb)
+        for i=1:nturb
+            turbines[i]=vawtac.Turbine(gl.dia[i]/2,gl.chord,gl.twist,gl.delta,gl.B,gl.af,rotw[i],xw[i],yw[i])
+        end
         _,Cp,_,_,_,_= vawtac.actuatorcylinder(turbines,env,gl.ntheta)
-
-        power_turb=(0.5*rho*Vinf^3)*(dia[i]*H)*Cp
-
+        for i=1:nturb
+            power_turb[i]=(0.5*rho*Vinf^3)*(gl.dia[i]*H)*Cp[i]
+        end
+        #power_turb=
     else
         power_turb,Cp=vawtwake.powercalc(gl.thetavec,gl.Vinf,wakex,wakey,gl.Vnp,Vnn,Vtp,Vtn,Cpp,Cpn,rotw[i],dia[i]/2.,H,af_data,cl_data,cd_data,twist,rho,interp)
     end
-    return power_turb[1]
+    return power_turb
 end #vawt_power
 
 function bpm_noise(turbineX,turbineY,winddir,rot,wakex,wakey,gl)
@@ -197,17 +211,10 @@ function sep_func(x,y,turb_dia)
             k+=1
         end
     end
-    return sep-(space*turb_dia)^2
+    return (space*turb_dia)^2-sep
 end #sep_func
 
-function optimize()
-    #run optimization
-    optimize=false
-
-    #plot results
-
-    #save Results
-
+function dglobes()
     useAC=false
     #Model Setup Parameters
     SPLlim = 100.           # sound pressure level limit of observers
@@ -216,11 +223,11 @@ function optimize()
     nRows = 2               # number of paired group rows
     nCols = 2               # number of paired group columns
 
-    windroseDirections=[205.,225.,245.]
-    windFrequencies=[0.25,0.5,0.25]
+    #windroseDirections=[205.,225.,245.]
+    #windFrequencies=[0.25,0.5,0.25]
     #One Directional Test
-    #windroseDirections=[225]
-    #windFrequencies=[1]
+    windroseDirections=[225]
+    windFrequencies=[1]
 
     nwind=length(windFrequencies)
 
@@ -248,12 +255,12 @@ function optimize()
     #setup initial turbine positions
     # setup initial turbine positions
     grid_start = 2.             # location of starting corner (m)
-    pair_sep = 3.               # separation distance between pairs (m)
-    group_sep = pair_sep + 10.  # separation distance between paired groups (m)
+    pair_sep = 2.               # separation distance between pairs (m)
+    group_sep = pair_sep + 4.  # separation distance between paired groups (m)
 
     #Limits
-    xlim=[0,20]
-    ylim=[0,20]
+    xlim=[1,10]
+    ylim=[1,10]
 
 
     nRC=nRows*nCols
@@ -333,7 +340,7 @@ function optimize()
     af=vawtac.readaerodyn(foildata)
 
     #AC Calculation
-    Omega=0.0
+    Omega=turb_rot
     turbines=Array{vawtac.Turbine}(1)
     turbines[1] = vawtac.Turbine(turb_dia/2.,chord,twist,delta,B,af,Omega,0.0,0.0)
     env=vawtac.Environment(Vinf,rho,mu)
@@ -345,7 +352,6 @@ function optimize()
     Cpn=0.0
 
     _,Cp_iso,_,_,_,_ = vawtac.actuatorcylinder(turbines,env,ntheta)
-
     power_iso= (0.5*rho*Vinf^3)*(dia[1]*H)*Cp_iso
     power_iso_tot=power_iso*nturb
 
@@ -357,98 +363,105 @@ function optimize()
     windFrequencies,obs,Hub,af,power_iso_tot[1],Vpn,Vnn,Vtp,Cpp,Cpn,ntheta,
     thetavec,useAC,SPLlim)
 
-    #Test OBJ Function
-    println("Testing OBJ Function")
+
     xf=x0
     append!(xf,y0)
-    tic()
-    a=full_obj(xf,globes)
-    toc()
+    return globes,xf
+end #dglobes
 
+function optimize(opt)
+    #run optimization
+    optimize=opt
+
+    #plot results
+
+    #save Results
+
+    #Load Model
+    globes,xf=dglobes()
+
+    if optimize==false
+        #Test OBJ Function
+        #println("Testing OBJ Function")
+        #tic()
+        #xopt,fopt,info=full_obj(xf,globes)
+        #toc()
+        xopt=xf
+        fopt=0.0
+        info="Skipped Function"
+    else
     #Optimize
-    #Limits
-    #lb=
-    #ub=
+    sz=ones(nturb)
+    #Convert Limits to Snopt format
+    lb=sz*xlim[1]
+    append!(lb,sz*ylim[1])
+    ub=sz*xlim[2]
+    append!(ub,sz*ylim[2])
 
+    options = Dict{String, Any}()
+    options["Derivative option"] = 0
 
+    #Define Objective Function (no parameters)
+    sobj(xx)=full_obj(xx,globes)
 
+    xopt,fopt,info=snopt(sobj,xf,lb,ub,options)
+
+    println(xopt)
+    println(fopt)
+    println(info)
+    end
+    return xopt,globes
 end #optimize
 
-optimize()
+function contour(globes,x)
+    #Grid Resolution
+    gs=20
 
-function powercalc(n,wake_x,wake_y,Omega,r,gl)
-    n=gl.ntheta
-    #local Variables
-    W20=zeros(n)
-    phi0=zeros(n)
-    alpha0=zeros(n)
-    cl0=zeros(n)
-    cd0=zeros(n)
-    ct0=zeros(n)
-    Vn=zeros(n)
-    Vt=zeros(n)
-    W2=zeros(n)
-    phi=zeros(n)
-    alpha=zeros(n)
-    cl=zeros(n)
-    cd=zeros(n)
-    ct=zeros(n)
-    Cpl=zeros(n)
+    nturb=floor(Int,length(x)/2)
+    #Plot Boundary
+    bxlim=[1,10]
+    bylim=[1,10]
 
-    if (Omega>=0.0)
-        for i=1:n
-            W20[i]=gl.Vnp[i]^2+gl.Vtp[i]^2
-            phi0[i]=atan2(gl.Vnp[i],gl.Vtp[i])
-            alpha0[i]=phi0[i]-gl.twist
+    xls=linspace(bxlim[1],bxlim[2],gs)
+    yls=linspace(bylim[1],bylim[2],gs)
 
-            ct0[i]=cl0[i]*sin(alpha0[i])-cd0[i]*cos(alpha0[i])
+    grid=zeros(nturb,gs,gs,3)
+    xss=x
 
-            #Correct Normal/tangential velocities with wake velocities
-            Vn[i] = gl.Vnp[i] + wake_x[i]*sin(gl.thetavec[i]) - wake_y[i]*cos(gl.thetavec[i])
-            Vt[i] = gl.Vtp[i] + wake_x[i]*cos(gl.thetavec[i]) + wake_y[i]*sin(gl.thetavec[i])
-            W2[i] = Vn[i]^2 + Vt[i]^2
+    for t=1:nturb
+        for i=1:gs
+            for j=1:gs
+                println([t,i,j])
+                xxs=copy(x)
+                #Modify turbine x and y
+                xxs[t]=xls[i]
+                xxs[t+nturb]=yls[j]
 
-            #Compute new inflow angle
-            phi[i]=atan2(Vn[i],Vt[i])
-            alpha[i]=phi[i]-gl.twist
+                #Test Seperation
+                sep=sep_func(xxs[1:nturb],xxs[nturb+1:end],globes.turb_dia)
+                #println(maximum(sep))
+                #println(xxs)
+                if maximum(sep)>0.65
+                    tf=0
+                    tc=zeros(nturb+1+20)
+                    #Leave as zero
+                else
+                    tf,tc,~=full_obj(xxs,globes)
+                end
 
-            #Airfoil
-            cl[i], cd[i] = gl.af(alpha[i])
-            #Compute new tangential force coefficient
-            ct[i]=cl[i]*sin(alpha[i])-cd[i]/ct0[i]
-
-            #Provide relative correction to power coefficient
-            Cpl[i]=gl.Cpp[i]*W2[i]/W20[i]*ct[i]/ct0[i]
-        end
-    else
-        for i=1:n
-            #calculate baseline values
-            W20[i] = Vnn[i]^2 + Vtn[i]^2
-            phi0[i] = atan2(Vnn[i],Vtn[i])
-            alpha0[i] = phi0[i] - twist
-            cl0[i], cd0[i] = gl.af(alpha[i])
-
-            ct0[i] = cl0[i]*sin(alpha0[i]) - cd0[i]*cos(alpha0[i])
-
-            # correct normal/tangential velocities with wake velocities
-            Vn[i] = Vnn[i] + wake_x[i]*sin(thetavec[i]) - wake_y[i]*cos(thetavec[i])
-            Vt[i] = Vtn[i] - wake_x[i]*cos(thetavec[i]) - wake_y[i]*sin(thetavec[i])
-            W2[i] = Vn[i]^2 + Vt[i]^2
-
-            # compute new inflow angle
-            phi[i] = atan2(Vn[i],Vt[i])
-            alpha[i] = phi[i] - twist
-
-            # airfoil
-            cl[i], cd[i] = gl.af(alpha[i])
-
-            # compute new tangential force coefficient
-            ct[i] = cl[i]*sin(phi[i]) - cd[i]*cos(phi[i])
-
-            # provide relative correction to power coefficient
-            Cpl[i] = Cpn[i]*W2[i]/W20[i]*ct[i]/ct0[i]
+                grid[t,i,j,1]=tf
+                grid[t,i,j,2]=maximum(tc[1:nturb])
+                grid[t,i,j,3]=maximum(tc[nturb+1:end])
+            end
         end
     end
-    return P,Cp
+    println(grid)
+    save("grid.jld", "data", grid)
 
-end #powercalc
+
+end
+x=[1.0, 8.6962, 1.0, 3.09605, 3.09744, 9.91555, 1.09723, 5.41997, 2.67624, 3.41189, 8.48557, 3.43793, 1.0, 1.02541, 5.7729, 4.00314]
+
+x,globes=optimize(false)
+println(x)
+contour(globes,x)

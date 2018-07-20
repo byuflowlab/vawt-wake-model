@@ -192,7 +192,7 @@ function fx(x,Args)
         #Create Inner Function
         funcypass(y)=fxy(x,y,Args)
         #Inner Integral
-        result,tol=quadgk(funcypass,Args.ybound1,Args.ybound2;reltol=epsrel,abstol=epsabs)
+        result,tol=quadgk(funcypass,Args.ybound1,Args.ybound2;rtol=epsrel,atol=epsabs)
         return result
 end #fx
 
@@ -203,7 +203,7 @@ function fy(x,Args)
         #Create Inner Function
         funcxpass(y)=fyx(x,y,Args)
         #Inner Integral
-        result,tol=quadgk(funcxpass,Args.ybound1,Args.ybound2;reltol=epsrel,abstol=epsabs)
+        result,tol=quadgk(funcxpass,Args.ybound1,Args.ybound2;rtol=epsrel,atol=epsabs)
         return result
 
 end #fy
@@ -217,7 +217,7 @@ function vfieldx(Args)
         #Integration
         funcxpass(x)=fx(x,Args)
         #Outer Integral
-        result,tol=quadgk(funcxpass,xbounds[1],xbounds[2];reltol=epsrel,abstol=epsabs)
+        result,tol=quadgk(funcxpass,xbounds[1],xbounds[2];rtol=epsrel,atol=epsabs)
         return result
 end #vfieldx
 
@@ -230,7 +230,7 @@ function vfieldy(Args)
         #Integration
         funcypass(x)=fy(x,Args)
         #Outer Integral
-        result,tol=quadgk(funcypass,xbounds[1],xbounds[2];reltol=epsrel,abstol=epsabs)
+        result,tol=quadgk(funcypass,xbounds[1],xbounds[2];rtol=epsrel,atol=epsabs)
         return result
 end #vfieldy
 
@@ -261,14 +261,13 @@ function velocity_field(xt,yt,x0,y0,Vinf,dia,rot,chord,B,veltype,param="None")
         tsr=rad*abs(rot)/Vinf
         solidity = (chord*B)/rad
         x0t=x0-xt
-        x0y=y0-yt
+        y0t=y0-yt
 
     if param=="None"
-            Args=model_gen(x0,y0,tsr,solidity,dia,rot)
+            Args=model_gen(x0t,y0t,tsr,solidity,dia,rot)
     else
             Args=param
     end
-
 
     if veltype=="vort"
         #Vorticity Caclculation (No Integration)
@@ -339,20 +338,18 @@ function overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,Vinf,pointcalc,param="None"
         velx_int=zeros(p)
         vely_int=zeros(p)
         #Find points around the flight path of the blades
-
         for i=1:p
                 if pointcalc==false
                         theta=(2*pi/p)*i-(2*pi/p)/2
                         xd[i]=x0-sin(theta)*(dia[1]/2.0)
                         yd[i]=y0+cos(theta)*(dia[1]/2.0)
                 elseif pointcalc==true
-                        xd[1]=0
-                        yd[1]=0
+                        xd[1]=x0
+                        yd[1]=y0
                 end
         end
         intex=zeros(p)
         intey=zeros(p)
-
         if t==1 #Coupled Confiugration
                 if pointcalc==false
                         for j=1:p
@@ -410,9 +407,10 @@ function overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,Vinf,pointcalc,param="None"
                                                 end
                                         end
                                 end
-
+                        else
+                                println(":(")
                         end
-        elseif pointcalc==true
+                elseif pointcalc==true
                         for j=1:t
                                 wake = velocity_field(xt[j],yt[j],xd[1],yd[1],Vinf,diat[j],rott[j],chord,B,veltype,param)
                                 velx_int[1] = -wake[1]
@@ -445,6 +443,7 @@ function overlap(p,xt,yt,diat,rott,chord,B,x0,y0,dia,Vinf,pointcalc,param="None"
                         end
                 end
         end
+        #println([velx[1],vely[1]])
         return velx,vely
 end #overlap
 
