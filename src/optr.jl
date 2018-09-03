@@ -113,10 +113,22 @@ function full_obj(xopt,gl)
     #c=[SPL,sep]
     c=SPL
     append!(c,sep)
+    cbounds=circularBoundary(x,y,5)
+    append!(c,cbounds)
     #println(funcs,c,fail)
     return funcs,c,fail
 
 end #obj_func
+
+function circularBoundary(turbineX,turbineY,circle_radius)
+    nTurb=length(turbineX)
+    cbounds=zeros(nTurb)
+    for i=1:nTurb
+        R=sqrt((turbineX[i]-0)^2+(turbineY[i]-0)^2)
+        cbounds[i]=circle_radius-R
+    end
+    return cbounds
+end #circularBoundary
 
 function vawt_wake(xw,yw,dia,rotw,ntheta,chord,B,Vinf)
     t=length(xw) #number of turbines
@@ -374,7 +386,8 @@ function optimize(opt)
     optimize=opt
 
     #plot results
-
+    xlim=[-5,5]
+    ylim=[-5,5]
     #save Results
 
     #Load Model
@@ -382,17 +395,18 @@ function optimize(opt)
 
     if optimize==false
         #Test OBJ Function
-        #println("Testing OBJ Function")
-        #tic()
-        #xopt,fopt,info=full_obj(xf,globes)
-        #toc()
+        println("Testing OBJ Function")
+        tic()
+        xopt,c,info=full_obj(xf,globes)
+        toc()
+        println(c)
         xopt=xf
         fopt=0.0
         info="Skipped Function"
     else
     #Warm Start
-    xf=[1.0, 8.6962, 1.0, 3.09605, 4.5, 9.91555, 1.09723, 5.41997, 2.67624, 3.41189, 8.48557, 3.43793, 1.5, 1.02541, 5.7729, 4.00314]
-
+    xf=[1.0, -3.6962, 1.0, 3.09605, 4.5, 2.91555, 1.09723, -3.41997, 2.67624, 3.41189, -4.48557, 3.43793, 1.5, 1.02541,-2.7729, 4.00314]
+    nturb=8
     #Optimize
     sz=ones(nturb)
     #Convert Limits to Snopt format
@@ -465,7 +479,7 @@ function contour(globes,x)
 
 end
 
-x,globes=optimize(true)
+x,globes=optimize(false)
 #x=[1.0, 8.6962, 1.0, 3.09605, 3.09744, 9.91555, 1.09723, 5.41997, 2.67624, 3.41189, 8.48557, 3.43793, 1.0, 1.02541, 5.7729, 4.00314]
 
 println(x)
