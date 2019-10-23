@@ -54,4 +54,4 @@ https://figshare.com/articles/Parameterized_Wake_Model/2059947
 
 ## Referencing the Model
 
-To reference any part of this repository, use the reference of the paper entitled "Parameterized Vertical-Axis Wind Turbine Wake Model Using CFD Vorticity Data" found at http://arc.aiaa.org/doi/10.2514/6.2016-1730.
+To reference any part of this repository, use the reference of the paper entitled "Development of a Parameterized Reduced-Order Vertical-Axis Wind Turbine Wake Model" found at https://journals.sagepub.com/doi/10.1177/0309524X19849864.
